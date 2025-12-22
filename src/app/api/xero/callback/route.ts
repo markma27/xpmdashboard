@@ -64,7 +64,25 @@ export async function GET(request: NextRequest) {
     
     // Get tenant information
     // In xero-node v5, we need to call updateTenants() to get tenant list
-    await xeroClient.updateTenants()
+    // Pass false to skip fetching full organization details (which can cause API errors)
+    // We only need the tenant ID and name, which are available from the connections endpoint
+    try {
+      await xeroClient.updateTenants(false)
+    } catch (tenantError: any) {
+      console.error('Error fetching tenants:', tenantError)
+      // If updateTenants fails, try to get tenants directly from connections
+      // This is a fallback in case the updateTenants call fails
+      const connectionsResult = await xeroClient.queryApi('GET', 'https://api.xero.com/connections')
+      if (connectionsResult?.body && Array.isArray(connectionsResult.body)) {
+        xeroClient.tenants = connectionsResult.body.map((conn: any) => ({
+          tenantId: conn.tenantId,
+          tenantName: conn.tenantName || 'Xero Organization',
+        }))
+      } else {
+        throw new Error(`Failed to get tenant information: ${tenantError?.response?.body?.Detail || tenantError?.message || 'Unknown error'}`)
+      }
+    }
+    
     const tenants = xeroClient.tenants || []
     
     if (tenants.length === 0) {
@@ -115,8 +133,21 @@ export async function GET(request: NextRequest) {
     )
   } catch (error: any) {
     console.error('Xero callback error:', error)
+    
+    // Extract error message from various possible error formats
+    let errorMessage = 'Unknown error occurred'
+    if (error?.response?.body?.Detail) {
+      errorMessage = error.response.body.Detail
+    } else if (error?.response?.body?.Title) {
+      errorMessage = error.response.body.Title
+    } else if (error?.message) {
+      errorMessage = error.message
+    } else if (typeof error === 'string') {
+      errorMessage = error
+    }
+    
     return NextResponse.redirect(
-      new URL(`/settings/xero?error=${encodeURIComponent(error.message)}`, request.url)
+      new URL(`/settings/xero?error=${encodeURIComponent(errorMessage)}`, request.url)
     )
   }
 }

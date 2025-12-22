@@ -22,7 +22,10 @@ export function createXeroClient() {
     clientId: XERO_CLIENT_ID,
     clientSecret: XERO_CLIENT_SECRET,
     redirectUris: [XERO_REDIRECT_URI],
-    scopes: ['practicemanager'], // Array of scopes for XPM (Xero Practice Manager) access
+    scopes: [
+      'practicemanager', // XPM (Xero Practice Manager) access
+      'offline_access',  // Required for refresh tokens (enables "permanent" access via auto-refresh)
+    ],
   })
 }
 
