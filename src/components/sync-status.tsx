@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
 import { RefreshCw, CheckCircle2, XCircle, Clock } from 'lucide-react'
 
 interface SyncStatus {
@@ -22,6 +23,9 @@ export function SyncStatus({ organizationId }: SyncStatusProps) {
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [syncingTable, setSyncingTable] = useState<string | null>(null)
+  const [progressMap, setProgressMap] = useState<Record<string, number>>({})
+  const progressIntervalRef = useRef<Record<string, NodeJS.Timeout>>({})
+  const startTimeRef = useRef<Record<string, number>>({})
 
   useEffect(() => {
     loadStatus()
@@ -68,6 +72,105 @@ export function SyncStatus({ organizationId }: SyncStatusProps) {
 
   const handleSyncTable = async (statusTableName: string) => {
     setSyncingTable(statusTableName)
+    
+    // Initialize progress tracking
+    setProgressMap(prev => ({ ...prev, [statusTableName]: 0 }))
+    startTimeRef.current[statusTableName] = Date.now()
+    
+    // Get initial record count BEFORE sync starts (this is our starting point)
+    let startRecordCount = 0
+    try {
+      const initialResponse = await fetch(`/api/xpm/sync/status?organizationId=${organizationId}`)
+      if (initialResponse.ok) {
+        const initialData = await initialResponse.json()
+        const initialStatus = initialData.find((s: SyncStatus) => s.table_name === statusTableName)
+        startRecordCount = initialStatus?.last_sync_count || 0
+      }
+    } catch (error) {
+      console.error('Failed to get initial sync status:', error)
+    }
+    
+    let lastRecordCount = startRecordCount
+    let maxRecordCount = startRecordCount // Track the maximum we've seen
+    
+    // Start polling for progress based on actual record count
+    // Poll the status API to get current record count and calculate progress
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/xpm/sync/status?organizationId=${organizationId}`)
+        if (response.ok) {
+          const data = await response.json()
+          const currentStatus = data.find((s: SyncStatus) => s.table_name === statusTableName)
+          
+          if (currentStatus) {
+            const currentRecords = currentStatus.last_sync_count || 0
+            
+            // Check if error_message contains progress info (temporary storage during sync)
+            let totalRecords = 0
+            let processedRecords = currentRecords
+            
+            if (currentStatus.error_message && currentStatus.error_message.startsWith('PROGRESS:')) {
+              try {
+                const progressData = JSON.parse(currentStatus.error_message.replace('PROGRESS:', ''))
+                totalRecords = progressData.total || 0
+                processedRecords = progressData.processed || currentRecords
+              } catch (e) {
+                // If parsing fails, use currentRecords as fallback
+                console.warn('Failed to parse progress info:', e)
+              }
+            }
+            
+            // Calculate progress based on processed records vs total records
+            // ALL tables should use: progress = (processedRecords / totalRecords) * 100
+            if (totalRecords > 0) {
+              // We know the total records, calculate accurate progress
+              // Progress = (processedRecords / totalRecords) * 100
+              // Cap at 95% until sync completes (will show 100% when sync finishes)
+              const progress = Math.min(95, Math.round((processedRecords / totalRecords) * 100))
+              setProgressMap(prev => ({ ...prev, [statusTableName]: progress }))
+            } else if (currentStatus.last_sync_status === 'syncing') {
+              // Sync is in progress but we don't know total yet
+              // This should rarely happen if updateProgress is called correctly with totalRecords
+              // Fallback: use processed records increase as indicator
+              const recordIncrease = processedRecords - startRecordCount
+              
+              if (recordIncrease > 0) {
+                // We have some increase, estimate progress
+                // Estimate total based on current records (conservative estimate)
+                maxRecordCount = Math.max(maxRecordCount, processedRecords)
+                // Estimate total as at least 2x current, or use maxRecordCount if higher
+                const estimatedTotal = Math.max(maxRecordCount, Math.max(processedRecords * 2, startRecordCount * 2))
+                
+                if (estimatedTotal > 0) {
+                  const progress = Math.min(90, Math.round((processedRecords / estimatedTotal) * 100))
+                  setProgressMap(prev => ({ ...prev, [statusTableName]: progress }))
+                } else {
+                  // Fallback: minimal progress
+                  const elapsed = Date.now() - startTimeRef.current[statusTableName]
+                  const progress = Math.min(10, Math.round((elapsed / 1000) * 2)) // 2% per second, max 10%
+                  setProgressMap(prev => ({ ...prev, [statusTableName]: progress }))
+                }
+              } else {
+                // No increase yet, show minimal progress
+                const elapsed = Date.now() - startTimeRef.current[statusTableName]
+                const progress = Math.min(10, Math.round((elapsed / 1000) * 2)) // 2% per second, max 10%
+                setProgressMap(prev => ({ ...prev, [statusTableName]: progress }))
+              }
+            } else {
+              // Sync not in progress or completed
+              // Don't update progress here, let sync completion handle it
+            }
+            
+            lastRecordCount = currentRecords
+          }
+        }
+      } catch (error) {
+        console.error('Failed to poll sync progress:', error)
+      }
+    }, 1000) // Poll every second
+    
+    progressIntervalRef.current[statusTableName] = pollInterval
+    
     try {
       // Extract table name from status (e.g., "xpm_clients" -> "clients")
       const cleanTableName = statusTableName.replace('xpm_', '')
@@ -85,22 +188,53 @@ export function SyncStatus({ organizationId }: SyncStatusProps) {
         const data = await response.json()
         console.log(`Sync result for ${cleanTableName}:`, data)
         
-        // Reload status after sync
-        setTimeout(() => {
-          loadStatus()
+        // Stop polling and set to 100%
+        clearInterval(progressIntervalRef.current[statusTableName])
+        setProgressMap(prev => ({ ...prev, [statusTableName]: 100 }))
+        
+        // Reload status after sync to get final count
+        setTimeout(async () => {
+          await loadStatus()
           setSyncingTable(null)
-        }, 1500)
+          // Clear progress after a delay
+          setTimeout(() => {
+            setProgressMap(prev => {
+              const newMap = { ...prev }
+              delete newMap[statusTableName]
+              return newMap
+            })
+            delete progressIntervalRef.current[statusTableName]
+            delete startTimeRef.current[statusTableName]
+          }, 1000)
+        }, 500)
       } else {
         const data = await response.json()
+        clearInterval(progressIntervalRef.current[statusTableName])
+        setProgressMap(prev => ({ ...prev, [statusTableName]: 0 }))
         alert(`Sync failed for ${cleanTableName}: ${data.error || 'Unknown error'}`)
         setSyncingTable(null)
+        delete progressIntervalRef.current[statusTableName]
+        delete startTimeRef.current[statusTableName]
       }
     } catch (error) {
       console.error(`Sync error for ${statusTableName}:`, error)
+      clearInterval(progressIntervalRef.current[statusTableName])
+      setProgressMap(prev => ({ ...prev, [statusTableName]: 0 }))
       alert(`Sync failed for ${statusTableName}`)
       setSyncingTable(null)
+      delete progressIntervalRef.current[statusTableName]
+      delete startTimeRef.current[statusTableName]
     }
   }
+  
+  // Cleanup intervals on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(progressIntervalRef.current).forEach(interval => {
+        clearInterval(interval)
+      })
+    }
+  }, [])
 
   const getStatusIcon = (status: string | null) => {
     switch (status) {
@@ -183,39 +317,50 @@ export function SyncStatus({ organizationId }: SyncStatusProps) {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="flex items-start justify-between">
-                  <div className="text-sm space-y-1 flex-1">
-                    <div>
-                      <span className="text-muted-foreground">Last sync: </span>
-                      {status.last_sync_at
-                        ? new Date(status.last_sync_at).toLocaleString()
-                        : 'Never'}
-                    </div>
-                    {status.error_message && (
-                      <div className="text-red-600 text-xs mt-2">
-                        Error: {status.error_message}
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="text-sm space-y-1 flex-1">
+                      <div>
+                        <span className="text-muted-foreground">Last sync: </span>
+                        {status.last_sync_at
+                          ? new Date(status.last_sync_at).toLocaleString()
+                          : 'Never'}
                       </div>
-                    )}
+                      {status.error_message && (
+                        <div className="text-red-600 text-xs mt-2">
+                          Error: {status.error_message}
+                        </div>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleSyncTable(status.table_name)}
+                      disabled={syncingTable === status.table_name || syncing}
+                      className="ml-4"
+                    >
+                      {syncingTable === status.table_name ? (
+                        <>
+                          <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
+                          Syncing...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="mr-2 h-3 w-3" />
+                          Sync
+                        </>
+                      )}
+                    </Button>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleSyncTable(status.table_name)}
-                    disabled={syncingTable === status.table_name || syncing}
-                    className="ml-4"
-                  >
-                    {syncingTable === status.table_name ? (
-                      <>
-                        <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
-                        Syncing...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="mr-2 h-3 w-3" />
-                        Sync
-                      </>
-                    )}
-                  </Button>
+                  {syncingTable === status.table_name && progressMap[status.table_name] !== undefined && (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Progress</span>
+                        <span className="font-medium">{progressMap[status.table_name]}%</span>
+                      </div>
+                      <Progress value={progressMap[status.table_name]} className="h-2" />
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -225,4 +370,5 @@ export function SyncStatus({ organizationId }: SyncStatusProps) {
     </div>
   )
 }
+
 
