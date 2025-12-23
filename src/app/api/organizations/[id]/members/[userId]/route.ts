@@ -4,12 +4,13 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; userId: string } }
+  { params }: { params: Promise<{ id: string; userId: string }> }
 ) {
   try {
     const user = await requireAuth()
-    const organizationId = params.id
-    const targetUserId = params.userId
+    const { id, userId } = await params
+    const organizationId = id
+    const targetUserId = userId
 
     // Prevent self-deletion
     if (user.id === targetUserId) {

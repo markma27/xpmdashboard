@@ -2,7 +2,8 @@ import { XeroClient } from 'xero-node'
 import axios from 'axios'
 import { parseString } from 'xml2js'
 import { promisify } from 'util'
-import { getAuthenticatedXeroClient } from '../xero/client'
+import { getAuthenticatedXeroClient, encryptTokenSetForStorage } from '../xero/client'
+import { decryptTokenSet } from '../xero/crypto'
 import { createServiceRoleClient } from '../supabase/service-role'
 
 const parseXML = promisify(parseString)
@@ -21,13 +22,59 @@ export async function syncXPMData(
   organizationId: string,
   tenantId: string,
   encryptedTokenSet: string,
-  tableName?: string
+  tableName?: string,
+  connectionId?: string // Optional: connection ID to update token after refresh
 ): Promise<SyncResult[]> {
   const results: SyncResult[] = []
   const supabase = createServiceRoleClient()
 
   try {
-    const xeroClient = await getAuthenticatedXeroClient(encryptedTokenSet)
+    let xeroClient: XeroClient
+    let tokenWasRefreshed = false
+    try {
+      xeroClient = await getAuthenticatedXeroClient(encryptedTokenSet)
+      
+      // Check if token was refreshed by reading the current token set
+      const currentTokenSet = xeroClient.readTokenSet()
+      const originalTokenSet = JSON.parse(decryptTokenSet(encryptedTokenSet))
+      
+      // If access_token changed, token was refreshed
+      if (currentTokenSet?.access_token !== originalTokenSet?.access_token) {
+        tokenWasRefreshed = true
+      }
+    } catch (error: any) {
+      // If token refresh failed, throw a more descriptive error
+      if (error.message?.includes('REFRESH_TOKEN_EXPIRED') || error.message?.includes('invalid_grant')) {
+        throw new Error('REFRESH_TOKEN_EXPIRED: Your Xero connection has expired. Please reconnect to Xero.')
+      }
+      throw error
+    }
+    
+    // If token was refreshed and connectionId is provided, save the new token
+    if (tokenWasRefreshed && connectionId) {
+      try {
+        const newTokenSet = xeroClient.readTokenSet()
+        const { encryptTokenSetForStorage } = await import('../xero/client')
+        const encryptedNewTokenSet = encryptTokenSetForStorage(newTokenSet)
+        const expiresAt = newTokenSet.expires_at 
+          ? new Date(newTokenSet.expires_at * 1000)
+          : new Date(Date.now() + 30 * 60 * 1000)
+        
+        await supabase
+          .from('xero_connections')
+          .update({
+            token_set_enc: encryptedNewTokenSet,
+            expires_at: expiresAt.toISOString(),
+            is_active: true, // Ensure it's marked as active
+          })
+          .eq('id', connectionId)
+        
+        console.log(`✓ Token refreshed and saved for connection ${connectionId}`)
+      } catch (saveError: any) {
+        console.warn('Failed to save refreshed token:', saveError)
+        // Don't throw - continue with sync using the refreshed token in memory
+      }
+    }
 
     // Define tables to sync
     // Removed: customfields, expenseclaims, quotes, templates (not needed)
@@ -221,19 +268,44 @@ async function syncTable(
     // - time entries: can use dates, but we'll try without first
     // - clients: no filters needed - API should return all including archived with status
     
+    // Format date helper function (YYYYMMDD format)
+    const formatDate = (date: Date): string => {
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}${month}${day}`
+    }
+    
+    // Calculate financial year start date (Xero FY starts July 1)
+    // Returns the start date of the financial year N years ago
+    const getFinancialYearStart = (yearsAgo: number): Date => {
+      const now = new Date()
+      const currentYear = now.getFullYear()
+      const currentMonth = now.getMonth() // 0-11 (Jan = 0, Dec = 11)
+      
+      // If we're before July 1, the current FY started last year
+      // If we're on or after July 1, the current FY started this year
+      let fyStartYear: number
+      if (currentMonth < 6) {
+        // Before July (Jan-Jun), current FY started last year
+        fyStartYear = currentYear - 1
+      } else {
+        // July or later, current FY started this year
+        fyStartYear = currentYear
+      }
+      
+      // Go back N financial years
+      const targetFYStartYear = fyStartYear - yearsAgo
+      
+      // Financial year starts July 1
+      return new Date(targetFYStartYear, 6, 1) // Month 6 = July
+    }
+    
     if (tableName === 'invoices') {
       // Invoices API requires from/to dates, so use a very wide range to get ALL invoices
       // Use 10 years ago to now to ensure we get all historical invoices
       const now = new Date()
       const tenYearsAgo = new Date(now.getFullYear() - 10, now.getMonth(), now.getDate())
-      
-      // Format: yyyymmdd (no separators)
-      const formatDate = (date: Date): string => {
-        const year = date.getFullYear()
-        const month = String(date.getMonth() + 1).padStart(2, '0')
-        const day = String(date.getDate()).padStart(2, '0')
-        return `${year}${month}${day}`
-      }
       
       const fromDate = formatDate(tenYearsAgo)
       const toDate = formatDate(now)
@@ -242,9 +314,35 @@ async function syncTable(
       const separator = apiEndpoint.includes('?') ? '&' : '?'
       apiEndpoint = `${apiEndpoint}${separator}from=${fromDate}&to=${toDate}&detailed=true`
       console.log(`Using wide date range for invoices: ${fromDate} to ${toDate} (10 years)`)
+    } else if (tableName === 'jobs') {
+      // Jobs API GET list requires from/to dates (required parameters)
+      // Reference: https://developer.xero.com/documentation/api/practice-manager/jobs#get-list
+      // Use a very wide range to get ALL jobs (10 years)
+      const now = new Date()
+      const tenYearsAgo = new Date(now.getFullYear() - 10, now.getMonth(), now.getDate())
+      
+      const fromDate = formatDate(tenYearsAgo)
+      const toDate = formatDate(now)
+      
+      // Add required query parameters
+      const separator = apiEndpoint.includes('?') ? '&' : '?'
+      apiEndpoint = `${apiEndpoint}${separator}from=${fromDate}&to=${toDate}&detailed=true`
+      console.log(`Using wide date range for jobs: ${fromDate} to ${toDate} (10 years)`)
     } else if (tableName === 'timeentries') {
-      // For time entries, try without date filters first to get all
-      // If API requires dates, we can add them later
+      // Time entries API GET list requires from/to dates (required parameters)
+      // Reference: https://developer.xero.com/documentation/api/practice-manager/time#get-list
+      // Sync from the start of the last 2 financial years (e.g., if today is Dec 23, 2025 (FY26),
+      // sync from July 1, 2023 (FY24 start))
+      const now = new Date()
+      const twoFinancialYearsAgoStart = getFinancialYearStart(2) // 2 financial years ago
+      
+      const fromDate = formatDate(twoFinancialYearsAgoStart)
+      const toDate = formatDate(now)
+      
+      // Add required query parameters
+      const separator = apiEndpoint.includes('?') ? '&' : '?'
+      apiEndpoint = `${apiEndpoint}${separator}from=${fromDate}&to=${toDate}`
+      console.log(`Using financial year range for Timesheets: ${fromDate} to ${toDate} (from start of FY 2 years ago)`)
     } else if (tableName === 'clients') {
       // For clients, XPM API by default only returns active clients
       // We'll try multiple approaches to get archived clients
@@ -628,7 +726,7 @@ function extractDataFromResponse(response: any, tableName: string): any[] {
       clientgroups: { plural: 'Groups', singular: 'Group' },
       jobs: { plural: 'Jobs', singular: 'Job' },
       tasks: { plural: 'Tasks', singular: 'Task' },
-      timeentries: { plural: 'TimeEntries', singular: 'TimeEntry' },
+      timeentries: { plural: 'Times', singular: 'Time' }, // Fixed: API returns <Times><Time>...</Time></Times>
       invoices: { plural: 'Invoices', singular: 'Invoice' },
       staff: { plural: 'StaffList', singular: 'Staff' }, // Fixed: StaffList -> Staff (not Staff -> StaffMember)
       categories: { plural: 'Categories', singular: 'Category' },
@@ -643,19 +741,52 @@ function extractDataFromResponse(response: any, tableName: string): any[] {
     
     // Extract data from XML structure
     // xml2js wraps text content in arrays, so we need to access [0]
-    // Log the actual structure for debugging (especially for staff)
-    if (tableName === 'staff') {
+    // Log the actual structure for debugging (especially for staff and timeentries)
+    if (tableName === 'staff' || tableName === 'timeentries') {
       console.log(`XML Response structure for ${tableName}:`, {
         responseKeys: Object.keys(body.Response || {}),
         expectedPlural: elements.plural,
         expectedSingular: elements.singular,
-        responsePreview: JSON.stringify(body.Response).substring(0, 500),
+        responsePreview: JSON.stringify(body.Response).substring(0, 1000),
       })
     }
     
     const pluralElement = body.Response[elements.plural]
     if (!pluralElement || !pluralElement[0]) {
       console.warn(`No ${elements.plural} element found in XML for ${tableName}`)
+      
+      // For timeentries, try alternative element names
+      if (tableName === 'timeentries') {
+        console.log(`Checking alternative element names for timeentries...`)
+        console.log(`Available keys in Response:`, Object.keys(body.Response || {}))
+        const alternatives = ['Times', 'TimeEntries']
+        for (const alt of alternatives) {
+          if (body.Response[alt] && body.Response[alt][0]) {
+            console.log(`Found alternative element for timeentries: ${alt}`)
+            const altItems = body.Response[alt][0]['Time'] || body.Response[alt][0]['TimeEntry']
+            if (altItems && Array.isArray(altItems)) {
+              console.log(`Using alternative structure: ${alt} -> ${altItems.length} items`)
+              return altItems.map((item: any) => {
+                const converted: any = {}
+                for (const key in item) {
+                  if (Array.isArray(item[key]) && item[key].length > 0) {
+                    converted[key] = item[key].length === 1 && typeof item[key][0] === 'string' 
+                      ? item[key][0] 
+                      : item[key].length === 1 && typeof item[key][0] === 'object'
+                      ? item[key][0]
+                      : item[key]
+                  } else {
+                    converted[key] = item[key]
+                  }
+                }
+                return converted
+              })
+            }
+          }
+        }
+        return []
+      }
+      
       // For staff, try alternative element names
       if (tableName === 'staff') {
         const alternatives = ['StaffMembers', 'Members']
@@ -802,8 +933,9 @@ function extractDataFromResponse(response: any, tableName: string): any[] {
     tableName,
     // Special cases
     tableName === 'clientgroups' ? 'ClientGroups' : '',
-    tableName === 'timeentries' ? 'TimeEntries' : '',
+    tableName === 'timeentries' ? 'Times' : '', // API returns <Times> not <TimeEntries>
     tableName === 'timeentries' ? 'Time' : '',
+    tableName === 'timeentries' ? 'TimeEntries' : '', // Fallback
   ].filter((key): key is string => Boolean(key))
   
   for (const key of keysToTry) {

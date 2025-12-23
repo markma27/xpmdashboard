@@ -35,7 +35,7 @@ export default async function OrganisationSettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Organization Information</CardTitle>
-            <CardDescription>Update your organization's basic information</CardDescription>
+            <CardDescription>Update your organization&apos;s basic information</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">

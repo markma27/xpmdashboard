@@ -154,7 +154,7 @@ export function XeroConnectionList({ organizationId }: XeroConnectionListProps) 
       {connections.length === 0 ? (
         <div className="rounded-lg border border-dashed p-8 text-center">
           <p className="mb-4 text-sm text-muted-foreground">
-            No Xero connections configured. Click "Connect Xero" to get started.
+            No Xero connections configured. Click &quot;Connect Xero&quot; to get started.
           </p>
         </div>
       ) : (

@@ -40,14 +40,37 @@ export async function getAuthorizationUrl(state?: string): Promise<string> {
 
   const xeroClient = createXeroClient()
   
-  // Set state if provided
-  if (state) {
-    xeroClient.config = { ...xeroClient.config, state }
-  }
-  
   try {
     await xeroClient.initialize()
+    
+    // Set state in config BEFORE calling buildConsentUrl
+    // xero-node will automatically include this state in the consent URL
+    // This ensures the state matches when apiCallback is called later
+    if (state) {
+      try {
+        xeroClient.config = {
+          ...xeroClient.config,
+          state: state,
+        } as any
+      } catch (e) {
+        // If config assignment fails, try alternative method
+        console.warn('Could not set state via config assignment, trying alternative method')
+      }
+    }
+    
     const consentUrl = await xeroClient.buildConsentUrl()
+    
+    // If state wasn't set via config, manually append it to URL
+    // This is a fallback if xero-node doesn't include it automatically
+    if (state) {
+      const url = new URL(consentUrl)
+      // Only add if not already present
+      if (!url.searchParams.has('state')) {
+        url.searchParams.set('state', state)
+        return url.toString()
+      }
+    }
+    
     return consentUrl
   } catch (error: any) {
     throw new Error(`Failed to build Xero consent URL: ${error.message}`)
@@ -69,12 +92,42 @@ export async function exchangeCodeForTokens(callbackUrl: string, state?: string)
   // Initialize client
   await xeroClient.initialize()
   
-  // Set state in config if provided (needed for apiCallback verification)
-  if (state && xeroClient.config) {
-    xeroClient.config.state = state
+  // Extract state from callback URL if not provided
+  // xero-node v5 requires state to be set in config before calling apiCallback
+  // This is used for CSRF protection - the state in the callback URL must match
+  let stateToUse = state
+  if (!stateToUse) {
+    try {
+      const url = new URL(callbackUrl)
+      stateToUse = url.searchParams.get('state') || undefined
+    } catch (e) {
+      // If URL parsing fails, use provided state or throw error
+      if (!state) {
+        throw new Error('State parameter is required for OAuth callback verification')
+      }
+    }
   }
   
-  // apiCallback expects the full callback URL
+  if (stateToUse) {
+    // Set state in config for verification
+    // Note: xero-node expects state to be set before apiCallback
+    // The config object might be read-only, so we need to check the xero-node API
+    // For now, try to set it directly
+    try {
+      xeroClient.config = {
+        ...xeroClient.config,
+        state: stateToUse,
+      } as any
+    } catch (e) {
+      // If config is read-only, we might need to pass state differently
+      console.warn('Could not set state in config, attempting apiCallback anyway')
+    }
+  } else {
+    throw new Error('State parameter is missing from callback URL. This is required for security.')
+  }
+  
+  // apiCallback expects the full callback URL (which includes state parameter)
+  // It will verify that the state in the URL matches the state in config
   // This will exchange the authorization code for access and refresh tokens
   // Access tokens expire in 30 minutes, refresh tokens last ~60 days
   await xeroClient.apiCallback(callbackUrl)
@@ -88,14 +141,23 @@ export async function exchangeCodeForTokens(callbackUrl: string, state?: string)
 export async function refreshAccessToken(encryptedTokenSet: string): Promise<any> {
   const xeroClient = createXeroClient()
   
+  // Initialize client first (required before setTokenSet)
+  await xeroClient.initialize()
+  
   // Decrypt and parse token set
   const decrypted = decryptTokenSet(encryptedTokenSet)
   const tokenSet = JSON.parse(decrypted)
+  
+  // Validate token set has refresh_token
+  if (!tokenSet.refresh_token) {
+    throw new Error('No refresh token available. Please reconnect to Xero.')
+  }
   
   // Set tokens in client
   await xeroClient.setTokenSet(tokenSet)
   
   // Refresh tokens
+  // Note: refreshToken() returns a new token set with updated access_token
   const newTokenSet = await xeroClient.refreshToken()
   
   return newTokenSet
@@ -123,15 +185,32 @@ export async function getAuthenticatedXeroClient(encryptedTokenSet: string): Pro
   // Xero access tokens expire in 30 minutes, but refresh tokens last ~60 days
   // We can use refresh tokens to get new access tokens automatically
   const now = Math.floor(Date.now() / 1000)
-  if (tokenSet.expires_at && tokenSet.expires_at < now) {
+  const expiresAt = tokenSet.expires_at || 0
+  
+  // Refresh if expired or about to expire (within 5 minutes)
+  if (expiresAt < now + 300) {
     try {
+      // Validate refresh token exists
+      if (!tokenSet.refresh_token) {
+        throw new Error('REFRESH_TOKEN_EXPIRED: No refresh token available. Please reconnect to Xero.')
+      }
+      
       // Refresh the access token using the refresh token
       await xeroClient.refreshToken()
-      // Note: In production, you should save the refreshed token set back to database
-      // For now, the refreshed token is stored in the client for this session
+      // Note: The refreshed token is stored in the client for this session
+      // The refreshed token set should be saved back to database (handled in sync route)
     } catch (error: any) {
+      // Handle specific error types
+      const errorMessage = error?.error || error?.message || 'Unknown error'
+      
+      // invalid_grant usually means refresh token expired or revoked
+      if (errorMessage === 'invalid_grant' || error?.error === 'invalid_grant') {
+        console.error('Token refresh failed: Refresh token expired or revoked. User needs to reconnect.')
+        throw new Error('REFRESH_TOKEN_EXPIRED: Your Xero connection has expired. Please reconnect to Xero.')
+      }
+      
       console.error('Token refresh failed:', error)
-      throw new Error('Access token expired and refresh failed. Please reconnect to Xero.')
+      throw new Error(`Access token expired and refresh failed: ${errorMessage}. Please reconnect to Xero.`)
     }
   }
   

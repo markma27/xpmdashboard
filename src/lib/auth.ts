@@ -104,7 +104,8 @@ export async function setActiveOrgId(orgId: string) {
 }
 
 /**
- * Require organization - ensures user has at least one org and sets active org
+ * Require organization - ensures user has at least one org
+ * Note: Does not set cookie automatically - use API route /api/org/set-active for that
  */
 export async function requireOrg(): Promise<Organization> {
   const user = await requireAuth()
@@ -119,9 +120,11 @@ export async function requireOrg(): Promise<Organization> {
   let activeOrg = orgs.find((org) => org.id === activeOrgId)
 
   // If no active org or active org not in user's orgs, use first org
+  // But don't set cookie here - let the client/API route handle it
   if (!activeOrg && orgs.length > 0) {
     activeOrg = orgs[0]
-    await setActiveOrgId(activeOrg.id)
+    // Don't set cookie here - cookies can only be modified in Server Actions or Route Handlers
+    // The client will set it via /api/org/set-active if needed
   }
 
   if (!activeOrg) {

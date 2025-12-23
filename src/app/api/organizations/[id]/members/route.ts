@@ -5,11 +5,12 @@ import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuth()
-    const organizationId = params.id
+    const { id } = await params
+    const organizationId = id
     const supabase = await createClient()
 
     // Verify user belongs to the organization
@@ -62,11 +63,12 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuth()
-    const organizationId = params.id
+    const { id } = await params
+    const organizationId = id
     const { email, role = 'viewer' } = await request.json()
 
     if (!email) {

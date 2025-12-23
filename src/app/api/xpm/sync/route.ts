@@ -45,14 +45,32 @@ export async function POST(request: NextRequest) {
           organizationId,
           connection.tenant_id,
           connection.token_set_enc,
-          table || undefined
+          table || undefined,
+          connection.id // Pass connection ID to save refreshed token
         )
         allResults.push(...results)
       } catch (error: any) {
-        allResults.push({
-          tenantId: connection.tenant_id,
-          error: error.message,
-        })
+        const errorMessage = error.message || 'Unknown error'
+        
+        // If refresh token expired, mark connection as inactive
+        if (errorMessage.includes('REFRESH_TOKEN_EXPIRED') || errorMessage.includes('invalid_grant')) {
+          console.warn(`Connection ${connection.id} refresh token expired. Marking as inactive.`)
+          await supabase
+            .from('xero_connections')
+            .update({ is_active: false })
+            .eq('id', connection.id)
+          
+          allResults.push({
+            tenantId: connection.tenant_id,
+            error: 'Xero connection expired. Please reconnect to Xero.',
+            requiresReconnect: true,
+          })
+        } else {
+          allResults.push({
+            tenantId: connection.tenant_id,
+            error: errorMessage,
+          })
+        }
       }
     }
 

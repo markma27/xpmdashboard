@@ -30,7 +30,18 @@ export function OrgSelector({ organizations, activeOrgId: initialActiveOrgId }: 
     if (stored && organizations.some(org => org.id === stored)) {
       setActiveOrgId(stored)
     } else if (organizations.length > 0 && !activeOrgId) {
-      setActiveOrgId(organizations[0].id)
+      // If no active org is set, use the first org and set it via API
+      const firstOrgId = organizations[0].id
+      setActiveOrgId(firstOrgId)
+      localStorage.setItem('active_org_id', firstOrgId)
+      // Set cookie via API to ensure server-side access
+      fetch('/api/org/set-active', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orgId: firstOrgId }),
+      }).catch(err => {
+        console.error('Failed to set active org cookie:', err)
+      })
     }
   }, [organizations, activeOrgId])
 

@@ -115,6 +115,22 @@ export function SyncStatus({ organizationId }: SyncStatusProps) {
     }
   }
 
+  const formatTableName = (tableName: string): string => {
+    // Remove 'xpm_' prefix and replace underscores with spaces
+    let formatted = tableName.replace('xpm_', '').replace(/_/g, ' ')
+    
+    // Special case: rename 'time entries' to 'Timesheets'
+    if (formatted === 'time entries') {
+      return 'Timesheets'
+    }
+    
+    // Capitalize first letter of each word
+    return formatted
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
+  }
+
   if (loading) {
     return <div className="text-center py-4 text-muted-foreground">Loading sync status...</div>
   }
@@ -146,7 +162,7 @@ export function SyncStatus({ organizationId }: SyncStatusProps) {
       {statuses.length === 0 ? (
         <div className="rounded-lg border border-dashed p-8 text-center">
           <p className="text-sm text-muted-foreground">
-            No sync history. Click "Sync Now" to start syncing data.
+            No sync history. Click &quot;Sync Now&quot; to start syncing data.
           </p>
         </div>
       ) : (
@@ -157,8 +173,8 @@ export function SyncStatus({ organizationId }: SyncStatusProps) {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {getStatusIcon(status.last_sync_status)}
-                    <CardTitle className="text-base capitalize">
-                      {status.table_name.replace('xpm_', '').replace(/_/g, ' ')}
+                    <CardTitle className="text-base">
+                      {formatTableName(status.table_name)}
                     </CardTitle>
                   </div>
                   <div className="text-sm text-muted-foreground">

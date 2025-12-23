@@ -66,24 +66,49 @@ export async function GET(request: NextRequest) {
     // In xero-node v5, we need to call updateTenants() to get tenant list
     // Pass false to skip fetching full organization details (which can cause API errors)
     // We only need the tenant ID and name, which are available from the connections endpoint
+    // Get tenant information
+    // In xero-node v5, we need to call updateTenants() to get tenant list
+    // Pass false to skip fetching full organization details (which can cause API errors)
+    let tenants: Array<{ tenantId: string; tenantName: string }> = []
+    
     try {
       await xeroClient.updateTenants(false)
+      tenants = xeroClient.tenants || []
     } catch (tenantError: any) {
-      console.error('Error fetching tenants:', tenantError)
-      // If updateTenants fails, try to get tenants directly from connections
+      console.error('Error fetching tenants via updateTenants:', tenantError)
+      // If updateTenants fails, try to get tenants directly from connections API
       // This is a fallback in case the updateTenants call fails
-      const connectionsResult = await xeroClient.queryApi('GET', 'https://api.xero.com/connections')
-      if (connectionsResult?.body && Array.isArray(connectionsResult.body)) {
-        xeroClient.tenants = connectionsResult.body.map((conn: any) => ({
-          tenantId: conn.tenantId,
-          tenantName: conn.tenantName || 'Xero Organization',
-        }))
-      } else {
-        throw new Error(`Failed to get tenant information: ${tenantError?.response?.body?.Detail || tenantError?.message || 'Unknown error'}`)
+      try {
+        const currentTokenSet = xeroClient.readTokenSet()
+        const accessToken = currentTokenSet?.access_token
+        if (!accessToken) {
+          throw new Error('No access token available')
+        }
+        
+        const connectionsResponse = await fetch('https://api.xero.com/connections', {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        })
+        
+        if (connectionsResponse.ok) {
+          const connections = await connectionsResponse.json()
+          if (Array.isArray(connections)) {
+            tenants = connections.map((conn: any) => ({
+              tenantId: conn.tenantId,
+              tenantName: conn.tenantName || 'Xero Organization',
+            }))
+          } else {
+            throw new Error(`Failed to get tenant information: Invalid response format`)
+          }
+        } else {
+          throw new Error(`Failed to get tenant information: ${connectionsResponse.statusText}`)
+        }
+      } catch (fetchError: any) {
+        throw new Error(`Failed to get tenant information: ${tenantError?.response?.body?.Detail || tenantError?.message || fetchError?.message || 'Unknown error'}`)
       }
     }
-    
-    const tenants = xeroClient.tenants || []
     
     if (tenants.length === 0) {
       return NextResponse.redirect(
