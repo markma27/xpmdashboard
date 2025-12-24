@@ -36,7 +36,31 @@ export function SyncStatus({ organizationId }: SyncStatusProps) {
       const response = await fetch(`/api/xpm/sync/status?organizationId=${organizationId}`)
       if (response.ok) {
         const data = await response.json()
-        setStatuses(data)
+        // Filter out removed tables: costs, categories, tasks, timeentries, jobs
+        // Check both short names (e.g., "costs") and full table names (e.g., "xpm_costs")
+        // Also check formatted names (e.g., "Costs", "Categories", "Tasks", "Timeentries", "Jobs")
+        const excludedTables = [
+          'costs', 'categories', 'tasks', 'timeentries', 'jobs',
+          'xpm_costs', 'xpm_categories', 'xpm_tasks', 'xpm_time_entries', 'xpm_jobs',
+          'Costs', 'Categories', 'Tasks', 'Timeentries', 'Jobs',
+          'Time Entries', 'Timeentries'
+        ]
+        const filteredData = data.filter((item: SyncStatus) => {
+          const tableName = item.table_name.toLowerCase()
+          const formattedName = formatTableName(item.table_name).toLowerCase()
+          const isExcluded = excludedTables.some(excluded => 
+            excluded.toLowerCase() === tableName || 
+            excluded.toLowerCase() === formattedName ||
+            tableName.includes(excluded.toLowerCase()) ||
+            formattedName.includes(excluded.toLowerCase())
+          )
+          if (isExcluded) {
+            console.log(`Filtering out table: ${item.table_name} (formatted: ${formatTableName(item.table_name)})`)
+          }
+          return !isExcluded
+        })
+        console.log(`Sync status: ${data.length} total, ${filteredData.length} after filtering`)
+        setStatuses(filteredData)
       }
     } catch (error) {
       console.error('Failed to load sync status:', error)

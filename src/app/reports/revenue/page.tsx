@@ -1,5 +1,7 @@
 import { requireOrg, loadUserOrganizations, getActiveOrgId } from '@/lib/auth'
 import { AppLayout } from '@/components/layout/app-layout'
+import { RevenueMonthlyChartClient } from '@/components/charts/revenue-monthly-chart-client'
+import { RevenueClientGroupsTable } from '@/components/charts/revenue-client-groups-table'
 
 export default async function RevenueReportPage() {
   const org = await requireOrg()
@@ -15,9 +17,8 @@ export default async function RevenueReportPage() {
             View revenue data by month, client groups, and partners/managers
           </p>
         </div>
-        <div className="rounded-lg border p-8 text-center text-muted-foreground">
-          Report content coming soon - Connect Xero and sync data first
-        </div>
+        <RevenueMonthlyChartClient organizationId={org.id} />
+        <RevenueClientGroupsTable organizationId={org.id} />
       </div>
     </AppLayout>
   )

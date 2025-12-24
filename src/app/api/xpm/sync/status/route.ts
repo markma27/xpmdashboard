@@ -25,7 +25,17 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    return NextResponse.json(metadata || [])
+    // Filter out removed tables: costs, categories, tasks, timeentries, jobs
+    // Check both short names (e.g., "costs") and full table names (e.g., "xpm_costs")
+    const excludedTables = [
+      'costs', 'categories', 'tasks', 'timeentries', 'jobs',
+      'xpm_costs', 'xpm_categories', 'xpm_tasks', 'xpm_time_entries', 'xpm_jobs'
+    ]
+    const filteredMetadata = (metadata || []).filter(
+      (item: any) => !excludedTables.includes(item.table_name)
+    )
+
+    return NextResponse.json(filteredMetadata)
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || 'Server error' },

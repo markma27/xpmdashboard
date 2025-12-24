@@ -11,6 +11,7 @@ import {
   Clock,
   Briefcase,
   BarChart3,
+  Upload,
 } from 'lucide-react'
 
 const navigation = [
@@ -68,6 +69,26 @@ const navigation = [
         name: 'Sync',
         href: '/settings/sync',
         icon: Settings,
+      },
+      {
+        name: 'Timesheet Upload',
+        href: '/settings/timesheet',
+        icon: Upload,
+      },
+      {
+        name: 'WIP Upload',
+        href: '/settings/wip-timesheet',
+        icon: Upload,
+      },
+      {
+        name: 'Recoverability Upload',
+        href: '/settings/recoverability-timesheet',
+        icon: Upload,
+      },
+      {
+        name: 'Invoice Upload',
+        href: '/settings/invoice',
+        icon: Upload,
       },
     ],
   },

@@ -77,19 +77,14 @@ export async function syncXPMData(
     }
 
     // Define tables to sync
-    // Removed: customfields, expenseclaims, quotes, templates (not needed)
+    // Removed: customfields, expenseclaims, quotes, templates, jobs, tasks, timeentries, categories, costs (not needed)
     const tablesToSync = tableName
       ? [tableName]
       : [
           'clients',
           'clientgroups',
-          'jobs',
           'staff',
-          'tasks',
-          'timeentries',
           'invoices',
-          'categories',
-          'costs',
         ]
 
     for (const table of tablesToSync) {
