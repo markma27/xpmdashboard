@@ -112,6 +112,10 @@ export function RevenueMonthlyChart({ data }: RevenueMonthlyChartProps) {
             position="top"
             formatter={(value: number) => {
               if (value === 0) return ''
+              // Show full amount if less than $10k, otherwise use 'k' notation
+              if (value < 10000) {
+                return `$${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+              }
               return `$${(value / 1000).toFixed(0)}k`
             }}
             style={{ fontSize: '11px', fill: '#666' }}
@@ -128,6 +132,10 @@ export function RevenueMonthlyChart({ data }: RevenueMonthlyChartProps) {
             position="top"
             formatter={(value: number) => {
               if (value === 0) return ''
+              // Show full amount if less than $10k, otherwise use 'k' notation
+              if (value < 10000) {
+                return `$${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+              }
               return `$${(value / 1000).toFixed(0)}k`
             }}
             style={{ fontSize: '11px', fill: '#666' }}

@@ -40,90 +40,55 @@ export async function GET(request: NextRequest) {
     const lastYearStart = `${lastFYStartYear}-07-01`
     const lastYearEnd = `${lastFYEndYear}-06-30`
 
-    // Fetch current year invoices - get all records using pagination
-    let currentYearData: any[] = []
-    let currentYearPage = 0
-    const pageSize = 1000
-    let hasMoreCurrentYear = true
-    
-    while (hasMoreCurrentYear) {
-      let query = supabase
-        .from('invoice_uploads')
-        .select('date, amount, account_manager, job_manager')
-        .eq('organization_id', organizationId)
-        .gte('date', currentYearStart)
-        .lte('date', currentYearEnd)
+    // Helper function to fetch all data for a date range
+    async function fetchAllData(startDate: string, endDate: string): Promise<any[]> {
+      let allData: any[] = []
+      let page = 0
+      const pageSize = 1000
+      let hasMore = true
       
-      // Apply partner filter if provided
-      if (partnerFilter) {
-        query = query.eq('account_manager', partnerFilter)
+      while (hasMore) {
+        let query = supabase
+          .from('invoice_uploads')
+          .select('date, amount, account_manager, job_manager')
+          .eq('organization_id', organizationId)
+          .gte('date', startDate)
+          .lte('date', endDate)
+        
+        // Apply partner filter if provided
+        if (partnerFilter) {
+          query = query.eq('account_manager', partnerFilter)
+        }
+        
+        // Apply client manager filter if provided
+        if (clientManagerFilter) {
+          query = query.eq('job_manager', clientManagerFilter)
+        }
+        
+        const { data: pageData, error: pageError } = await query
+          .range(page * pageSize, (page + 1) * pageSize - 1)
+        
+        if (pageError) {
+          throw new Error(`Failed to fetch data: ${pageError.message}`)
+        }
+        
+        if (pageData && pageData.length > 0) {
+          allData = allData.concat(pageData)
+          page++
+          hasMore = pageData.length === pageSize
+        } else {
+          hasMore = false
+        }
       }
       
-      // Apply client manager filter if provided
-      if (clientManagerFilter) {
-        query = query.eq('job_manager', clientManagerFilter)
-      }
-      
-      const { data: pageData, error: pageError } = await query
-        .range(currentYearPage * pageSize, (currentYearPage + 1) * pageSize - 1)
-      
-      if (pageError) {
-        return NextResponse.json(
-          { error: 'Failed to fetch current year data', details: pageError.message },
-          { status: 500 }
-        )
-      }
-      
-      if (pageData && pageData.length > 0) {
-        currentYearData = currentYearData.concat(pageData)
-        currentYearPage++
-        hasMoreCurrentYear = pageData.length === pageSize
-      } else {
-        hasMoreCurrentYear = false
-      }
+      return allData
     }
 
-    // Fetch last year invoices - get all records using pagination
-    let lastYearData: any[] = []
-    let lastYearPage = 0
-    let hasMoreLastYear = true
-    
-    while (hasMoreLastYear) {
-      let query = supabase
-        .from('invoice_uploads')
-        .select('date, amount, account_manager, job_manager')
-        .eq('organization_id', organizationId)
-        .gte('date', lastYearStart)
-        .lte('date', lastYearEnd)
-      
-      // Apply partner filter if provided
-      if (partnerFilter) {
-        query = query.eq('account_manager', partnerFilter)
-      }
-      
-      // Apply client manager filter if provided
-      if (clientManagerFilter) {
-        query = query.eq('job_manager', clientManagerFilter)
-      }
-      
-      const { data: pageData, error: pageError } = await query
-        .range(lastYearPage * pageSize, (lastYearPage + 1) * pageSize - 1)
-      
-      if (pageError) {
-        return NextResponse.json(
-          { error: 'Failed to fetch last year data', details: pageError.message },
-          { status: 500 }
-        )
-      }
-      
-      if (pageData && pageData.length > 0) {
-        lastYearData = lastYearData.concat(pageData)
-        lastYearPage++
-        hasMoreLastYear = pageData.length === pageSize
-      } else {
-        hasMoreLastYear = false
-      }
-    }
+    // Fetch current year and last year data in parallel
+    const [currentYearData, lastYearData] = await Promise.all([
+      fetchAllData(currentYearStart, currentYearEnd),
+      fetchAllData(lastYearStart, lastYearEnd),
+    ])
 
     // Initialize months array (July to June)
     const months = [

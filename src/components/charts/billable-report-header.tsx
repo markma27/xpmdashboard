@@ -12,13 +12,28 @@ interface BillableReportHeaderProps {
   selectedStaff: string | null
   staffList: string[]
   onStaffChange: (staff: string | null) => void
+  lastUpdated?: string | null
 }
 
 export function BillableReportHeader({
   selectedStaff,
   staffList,
   onStaffChange,
+  lastUpdated,
 }: BillableReportHeaderProps) {
+  // Format date as DD MMM YYYY
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return null
+    const date = new Date(dateString)
+    const day = date.getDate().toString().padStart(2, '0')
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const month = monthNames[date.getMonth()]
+    const year = date.getFullYear()
+    return `${day} ${month} ${year}`
+  }
+
+  const formattedDate = formatDate(lastUpdated || null)
+
   return (
     <div className="flex items-start justify-between gap-4">
       <div className="flex-1">
@@ -26,6 +41,11 @@ export function BillableReportHeader({
         <p className="text-muted-foreground">
           View billable hours and amounts by month, client groups, and partners/managers
         </p>
+        {formattedDate && (
+          <p className="text-sm text-red-800 mt-1">
+            Last updated: {formattedDate}
+          </p>
+        )}
       </div>
       <div className="flex items-center gap-2 pt-2">
         <span className="text-sm text-muted-foreground">Staff:</span>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { TableSkeleton } from './chart-skeleton'
 
 interface ClientGroupData {
   clientGroup: string
@@ -80,19 +81,7 @@ export function RevenueClientGroupsTable({
   }
 
   if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Billings by Client Group</CardTitle>
-          <CardDescription>Detailed revenue breakdown by client group</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-[200px]">
-            <p className="text-muted-foreground">Loading data...</p>
-          </div>
-        </CardContent>
-      </Card>
-    )
+    return <TableSkeleton />
   }
 
   if (error) {

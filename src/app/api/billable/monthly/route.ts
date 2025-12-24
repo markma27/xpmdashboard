@@ -39,80 +39,50 @@ export async function GET(request: NextRequest) {
     const lastYearStart = `${lastFYStartYear}-07-01`
     const lastYearEnd = `${lastFYEndYear}-06-30`
 
-    // Fetch current year timesheet data - get all records using pagination
-    let currentYearData: any[] = []
-    let currentYearPage = 0
-    const pageSize = 1000
-    let hasMoreCurrentYear = true
-    
-    while (hasMoreCurrentYear) {
-      let query = supabase
-        .from('timesheet_uploads')
-        .select('date, billable_amount')
-        .eq('organization_id', organizationId)
-        .gte('date', currentYearStart)
-        .lte('date', currentYearEnd)
+    // Helper function to fetch all data for a date range
+    async function fetchAllData(startDate: string, endDate: string): Promise<any[]> {
+      let allData: any[] = []
+      let page = 0
+      const pageSize = 1000
+      let hasMore = true
       
-      // Apply staff filter if provided
-      if (staffFilter) {
-        query = query.eq('staff', staffFilter)
+      while (hasMore) {
+        let query = supabase
+          .from('timesheet_uploads')
+          .select('date, billable_amount')
+          .eq('organization_id', organizationId)
+          .gte('date', startDate)
+          .lte('date', endDate)
+        
+        // Apply staff filter if provided
+        if (staffFilter) {
+          query = query.eq('staff', staffFilter)
+        }
+        
+        const { data: pageData, error: pageError } = await query
+          .range(page * pageSize, (page + 1) * pageSize - 1)
+        
+        if (pageError) {
+          throw new Error(`Failed to fetch data: ${pageError.message}`)
+        }
+        
+        if (pageData && pageData.length > 0) {
+          allData = allData.concat(pageData)
+          page++
+          hasMore = pageData.length === pageSize
+        } else {
+          hasMore = false
+        }
       }
       
-      const { data: pageData, error: pageError } = await query
-        .range(currentYearPage * pageSize, (currentYearPage + 1) * pageSize - 1)
-      
-      if (pageError) {
-        return NextResponse.json(
-          { error: 'Failed to fetch current year data', details: pageError.message },
-          { status: 500 }
-        )
-      }
-      
-      if (pageData && pageData.length > 0) {
-        currentYearData = currentYearData.concat(pageData)
-        currentYearPage++
-        hasMoreCurrentYear = pageData.length === pageSize
-      } else {
-        hasMoreCurrentYear = false
-      }
+      return allData
     }
 
-    // Fetch last year timesheet data - get all records using pagination
-    let lastYearData: any[] = []
-    let lastYearPage = 0
-    let hasMoreLastYear = true
-    
-    while (hasMoreLastYear) {
-      let query = supabase
-        .from('timesheet_uploads')
-        .select('date, billable_amount')
-        .eq('organization_id', organizationId)
-        .gte('date', lastYearStart)
-        .lte('date', lastYearEnd)
-      
-      // Apply staff filter if provided
-      if (staffFilter) {
-        query = query.eq('staff', staffFilter)
-      }
-      
-      const { data: pageData, error: pageError } = await query
-        .range(lastYearPage * pageSize, (lastYearPage + 1) * pageSize - 1)
-      
-      if (pageError) {
-        return NextResponse.json(
-          { error: 'Failed to fetch last year data', details: pageError.message },
-          { status: 500 }
-        )
-      }
-      
-      if (pageData && pageData.length > 0) {
-        lastYearData = lastYearData.concat(pageData)
-        lastYearPage++
-        hasMoreLastYear = pageData.length === pageSize
-      } else {
-        hasMoreLastYear = false
-      }
-    }
+    // Fetch current year and last year data in parallel
+    const [currentYearData, lastYearData] = await Promise.all([
+      fetchAllData(currentYearStart, currentYearEnd),
+      fetchAllData(lastYearStart, lastYearEnd),
+    ])
 
     // Initialize months array (July to June)
     const months = [

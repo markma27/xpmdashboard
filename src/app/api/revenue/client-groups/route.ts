@@ -7,6 +7,8 @@ export async function GET(request: NextRequest) {
     const org = await requireOrg()
     const searchParams = request.nextUrl.searchParams
     const organizationId = searchParams.get('organizationId') || org.id
+    const partnerFilter = searchParams.get('partner')
+    const clientManagerFilter = searchParams.get('clientManager')
 
     const supabase = await createClient()
 
@@ -41,66 +43,55 @@ export async function GET(request: NextRequest) {
     // Use RPC or aggregate query to get sums grouped by client_group
     // This avoids the 1000 record limit by aggregating in the database
     
-    // Fetch current year invoices - get all records using pagination
-    let currentYearData: any[] = []
-    let currentYearPage = 0
-    const pageSize = 1000
-    let hasMoreCurrentYear = true
-    
-    while (hasMoreCurrentYear) {
-      const { data: pageData, error: pageError } = await supabase
-        .from('invoice_uploads')
-        .select('client_group, amount, account_manager, job_manager')
-        .eq('organization_id', organizationId)
-        .gte('date', currentYearStart)
-        .lte('date', currentYearEnd)
-        .range(currentYearPage * pageSize, (currentYearPage + 1) * pageSize - 1)
+    // Helper function to fetch all data for a date range
+    const fetchAllData = async (startDate: string, endDate: string): Promise<any[]> => {
+      let allData: any[] = []
+      let page = 0
+      const pageSize = 1000
+      let hasMore = true
       
-      if (pageError) {
-        return NextResponse.json(
-          { error: 'Failed to fetch current year data', details: pageError.message },
-          { status: 500 }
-        )
+      while (hasMore) {
+        let query = supabase
+          .from('invoice_uploads')
+          .select('client_group, amount, account_manager, job_manager')
+          .eq('organization_id', organizationId)
+          .gte('date', startDate)
+          .lte('date', endDate)
+        
+        // Apply partner filter if provided
+        if (partnerFilter) {
+          query = query.eq('account_manager', partnerFilter)
+        }
+        
+        // Apply client manager filter if provided
+        if (clientManagerFilter) {
+          query = query.eq('job_manager', clientManagerFilter)
+        }
+        
+        const { data: pageData, error: pageError } = await query
+          .range(page * pageSize, (page + 1) * pageSize - 1)
+        
+        if (pageError) {
+          throw new Error(`Failed to fetch data: ${pageError.message}`)
+        }
+        
+        if (pageData && pageData.length > 0) {
+          allData = allData.concat(pageData)
+          page++
+          hasMore = pageData.length === pageSize
+        } else {
+          hasMore = false
+        }
       }
       
-      if (pageData && pageData.length > 0) {
-        currentYearData = currentYearData.concat(pageData)
-        currentYearPage++
-        hasMoreCurrentYear = pageData.length === pageSize
-      } else {
-        hasMoreCurrentYear = false
-      }
+      return allData
     }
 
-    // Fetch last year invoices - get all records using pagination
-    let lastYearData: any[] = []
-    let lastYearPage = 0
-    let hasMoreLastYear = true
-    
-    while (hasMoreLastYear) {
-      const { data: pageData, error: pageError } = await supabase
-        .from('invoice_uploads')
-        .select('client_group, amount, account_manager, job_manager')
-        .eq('organization_id', organizationId)
-        .gte('date', lastYearStart)
-        .lte('date', lastYearEnd)
-        .range(lastYearPage * pageSize, (lastYearPage + 1) * pageSize - 1)
-      
-      if (pageError) {
-        return NextResponse.json(
-          { error: 'Failed to fetch last year data', details: pageError.message },
-          { status: 500 }
-        )
-      }
-      
-      if (pageData && pageData.length > 0) {
-        lastYearData = lastYearData.concat(pageData)
-        lastYearPage++
-        hasMoreLastYear = pageData.length === pageSize
-      } else {
-        hasMoreLastYear = false
-      }
-    }
+    // Fetch current year and last year data in parallel
+    const [currentYearData, lastYearData] = await Promise.all([
+      fetchAllData(currentYearStart, currentYearEnd),
+      fetchAllData(lastYearStart, lastYearEnd),
+    ])
 
 
     // Aggregate by client_group

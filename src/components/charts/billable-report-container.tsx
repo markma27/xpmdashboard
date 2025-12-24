@@ -12,32 +12,49 @@ interface BillableReportContainerProps {
 export function BillableReportContainer({ organizationId }: BillableReportContainerProps) {
   const [selectedStaff, setSelectedStaff] = useState<string | null>(null)
   const [staffList, setStaffList] = useState<string[]>([])
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null)
 
-  // Fetch staff list on mount
+  // Fetch staff list and last upload date on mount
   useEffect(() => {
-    async function fetchStaffList() {
+    async function fetchData() {
       try {
-        const response = await fetch(
-          `/api/billable/staff?organizationId=${organizationId}&t=${Date.now()}`,
-          {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache',
-            },
-          }
-        )
+        const [staffResponse, lastUploadResponse] = await Promise.all([
+          fetch(
+            `/api/billable/staff?organizationId=${organizationId}&t=${Date.now()}`,
+            {
+              cache: 'no-store',
+              headers: {
+                'Cache-Control': 'no-cache',
+              },
+            }
+          ),
+          fetch(
+            `/api/timesheet/last-upload?organizationId=${organizationId}&t=${Date.now()}`,
+            {
+              cache: 'no-store',
+              headers: {
+                'Cache-Control': 'no-cache',
+              },
+            }
+          ),
+        ])
         
-        if (response.ok) {
-          const result = await response.json()
+        if (staffResponse.ok) {
+          const result = await staffResponse.json()
           setStaffList(result)
+        }
+        
+        if (lastUploadResponse.ok) {
+          const uploadResult = await lastUploadResponse.json()
+          setLastUpdated(uploadResult.lastUploadDate)
         }
       } catch (err) {
         // Silently fail - staff list is not critical
-        console.error('Failed to fetch staff list:', err)
+        console.error('Failed to fetch data:', err)
       }
     }
 
-    fetchStaffList()
+    fetchData()
   }, [organizationId])
 
   return (
@@ -46,6 +63,7 @@ export function BillableReportContainer({ organizationId }: BillableReportContai
         selectedStaff={selectedStaff}
         staffList={staffList}
         onStaffChange={setSelectedStaff}
+        lastUpdated={lastUpdated}
       />
       <BillableMonthlyChartClient 
         organizationId={organizationId} 

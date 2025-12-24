@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { BillableMonthlyChart } from './billable-monthly-chart'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ChartSkeleton } from './chart-skeleton'
 
 interface MonthlyBillableData {
   month: string
@@ -58,19 +59,7 @@ export function BillableMonthlyChartClient({
   }, [organizationId, selectedStaff])
 
   if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Billable - monthly</CardTitle>
-          <CardDescription>Monthly billable amount comparison</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-[400px]">
-            <p className="text-muted-foreground">Loading chart data...</p>
-          </div>
-        </CardContent>
-      </Card>
-    )
+    return <ChartSkeleton />
   }
 
   if (error) {

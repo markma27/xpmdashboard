@@ -1,23 +1,23 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { RevenueMonthlyChartClient } from './revenue-monthly-chart-client'
-import { RevenueClientGroupsTable } from './revenue-client-groups-table'
-import { RevenueReportHeader } from './revenue-report-header'
+import { WIPChartsClient } from './wip-charts-client'
+import { WIPClientGroupsTable } from './wip-client-groups-table'
+import { WIPReportHeader } from './wip-report-header'
+import { WIPAgingCharts } from './wip-aging-charts'
 
 interface ClientGroupData {
   clientGroup: string
-  currentYear: number
-  lastYear: number
+  amount: number
   partner: string | null
   clientManager: string | null
 }
 
-interface RevenueReportContainerProps {
+interface WIPReportContainerProps {
   organizationId: string
 }
 
-export function RevenueReportContainer({ organizationId }: RevenueReportContainerProps) {
+export function WIPReportContainer({ organizationId }: WIPReportContainerProps) {
   const [selectedPartner, setSelectedPartner] = useState<string | null>(null)
   const [selectedClientManager, setSelectedClientManager] = useState<string | null>(null)
   const [data, setData] = useState<ClientGroupData[]>([])
@@ -31,7 +31,7 @@ export function RevenueReportContainer({ organizationId }: RevenueReportContaine
         setLoading(true)
         const [dataResponse, lastUploadResponse] = await Promise.all([
           fetch(
-            `/api/revenue/client-groups?organizationId=${organizationId}&t=${Date.now()}`,
+            `/api/wip/client-groups?organizationId=${organizationId}&t=${Date.now()}`,
             {
               cache: 'no-store',
               headers: {
@@ -40,7 +40,7 @@ export function RevenueReportContainer({ organizationId }: RevenueReportContaine
             }
           ),
           fetch(
-            `/api/invoice/last-upload?organizationId=${organizationId}&t=${Date.now()}`,
+            `/api/wip/last-upload?organizationId=${organizationId}&t=${Date.now()}`,
             {
               cache: 'no-store',
               headers: {
@@ -60,7 +60,7 @@ export function RevenueReportContainer({ organizationId }: RevenueReportContaine
           setLastUpdated(uploadResult.lastUploadDate)
         }
       } catch (err) {
-        console.error('Failed to fetch revenue data:', err)
+        console.error('Failed to fetch WIP data:', err)
       } finally {
         setLoading(false)
       }
@@ -80,7 +80,7 @@ export function RevenueReportContainer({ organizationId }: RevenueReportContaine
 
   return (
     <>
-      <RevenueReportHeader
+      <WIPReportHeader
         selectedPartner={selectedPartner}
         selectedClientManager={selectedClientManager}
         partners={partners}
@@ -89,12 +89,17 @@ export function RevenueReportContainer({ organizationId }: RevenueReportContaine
         onClientManagerChange={setSelectedClientManager}
         lastUpdated={lastUpdated}
       />
-      <RevenueMonthlyChartClient 
+      <WIPChartsClient 
         organizationId={organizationId}
         selectedPartner={selectedPartner}
         selectedClientManager={selectedClientManager}
       />
-      <RevenueClientGroupsTable 
+      <WIPAgingCharts 
+        organizationId={organizationId}
+        selectedPartner={selectedPartner}
+        selectedClientManager={selectedClientManager}
+      />
+      <WIPClientGroupsTable 
         organizationId={organizationId}
         selectedPartner={selectedPartner}
         selectedClientManager={selectedClientManager}

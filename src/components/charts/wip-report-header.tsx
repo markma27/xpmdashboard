@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button'
 
-interface RevenueReportHeaderProps {
+interface WIPReportHeaderProps {
   selectedPartner: string | null
   selectedClientManager: string | null
   partners: string[]
@@ -12,7 +12,7 @@ interface RevenueReportHeaderProps {
   lastUpdated?: string | null
 }
 
-export function RevenueReportHeader({
+export function WIPReportHeader({
   selectedPartner,
   selectedClientManager,
   partners,
@@ -20,7 +20,7 @@ export function RevenueReportHeader({
   onPartnerChange,
   onClientManagerChange,
   lastUpdated,
-}: RevenueReportHeaderProps) {
+}: WIPReportHeaderProps) {
   // Format date as DD MMM YYYY
   const formatDate = (dateString: string | null) => {
     if (!dateString) return null
@@ -37,9 +37,9 @@ export function RevenueReportHeader({
   return (
     <div className="flex items-start justify-between gap-4">
       <div className="flex-1">
-        <h1 className="text-3xl font-bold">Revenue Report</h1>
+        <h1 className="text-3xl font-bold">Work In Progress Report</h1>
         <p className="text-muted-foreground">
-          View revenue data by month, client groups, and partners/managers
+          View WIP amounts by partner, client manager, and client groups
         </p>
         {formattedDate && (
           <p className="text-sm text-red-800 mt-1">

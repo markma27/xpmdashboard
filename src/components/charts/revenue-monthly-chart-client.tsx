@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { RevenueMonthlyChart } from './revenue-monthly-chart'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ChartSkeleton } from './chart-skeleton'
 
 interface MonthlyRevenueData {
   month: string
@@ -63,19 +64,7 @@ export function RevenueMonthlyChartClient({
   }, [organizationId, selectedPartner, selectedClientManager])
 
   if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Billings - monthly</CardTitle>
-          <CardDescription>Monthly revenue comparison</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-[400px]">
-            <p className="text-muted-foreground">Loading chart data...</p>
-          </div>
-        </CardContent>
-      </Card>
-    )
+    return <ChartSkeleton />
   }
 
   if (error) {
