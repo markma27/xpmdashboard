@@ -7,8 +7,7 @@ export async function GET(request: NextRequest) {
     const org = await requireOrg()
     const searchParams = request.nextUrl.searchParams
     const organizationId = searchParams.get('organizationId') || org.id
-    const partnerFilter = searchParams.get('partner') // Optional partner filter (account_manager)
-    const clientManagerFilter = searchParams.get('clientManager') // Optional client manager filter (job_manager)
+    const staffFilter = searchParams.get('staff') // Optional staff filter
 
     const supabase = await createClient()
 
@@ -40,7 +39,7 @@ export async function GET(request: NextRequest) {
     const lastYearStart = `${lastFYStartYear}-07-01`
     const lastYearEnd = `${lastFYEndYear}-06-30`
 
-    // Fetch current year invoices - get all records using pagination
+    // Fetch current year timesheet data - get all records using pagination
     let currentYearData: any[] = []
     let currentYearPage = 0
     const pageSize = 1000
@@ -48,20 +47,15 @@ export async function GET(request: NextRequest) {
     
     while (hasMoreCurrentYear) {
       let query = supabase
-        .from('invoice_uploads')
-        .select('date, amount, account_manager, job_manager')
+        .from('timesheet_uploads')
+        .select('date, billable_amount')
         .eq('organization_id', organizationId)
         .gte('date', currentYearStart)
         .lte('date', currentYearEnd)
       
-      // Apply partner filter if provided
-      if (partnerFilter) {
-        query = query.eq('account_manager', partnerFilter)
-      }
-      
-      // Apply client manager filter if provided
-      if (clientManagerFilter) {
-        query = query.eq('job_manager', clientManagerFilter)
+      // Apply staff filter if provided
+      if (staffFilter) {
+        query = query.eq('staff', staffFilter)
       }
       
       const { data: pageData, error: pageError } = await query
@@ -83,27 +77,22 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Fetch last year invoices - get all records using pagination
+    // Fetch last year timesheet data - get all records using pagination
     let lastYearData: any[] = []
     let lastYearPage = 0
     let hasMoreLastYear = true
     
     while (hasMoreLastYear) {
       let query = supabase
-        .from('invoice_uploads')
-        .select('date, amount, account_manager, job_manager')
+        .from('timesheet_uploads')
+        .select('date, billable_amount')
         .eq('organization_id', organizationId)
         .gte('date', lastYearStart)
         .lte('date', lastYearEnd)
       
-      // Apply partner filter if provided
-      if (partnerFilter) {
-        query = query.eq('account_manager', partnerFilter)
-      }
-      
-      // Apply client manager filter if provided
-      if (clientManagerFilter) {
-        query = query.eq('job_manager', clientManagerFilter)
+      // Apply staff filter if provided
+      if (staffFilter) {
+        query = query.eq('staff', staffFilter)
       }
       
       const { data: pageData, error: pageError } = await query
@@ -132,7 +121,7 @@ export async function GET(request: NextRequest) {
     ]
 
     // Initialize data structure
-    const monthlyData = months.map((month, index) => {
+    const monthlyData = months.map((month) => {
       return {
         month,
         currentYear: 0,
@@ -141,10 +130,10 @@ export async function GET(request: NextRequest) {
     })
 
     // Aggregate current year data
-    // Current year: July 2025 to June 2026
+    // Current financial year: July currentFYStartYear to June currentFYEndYear
     if (currentYearData) {
-      currentYearData.forEach((invoice) => {
-        const date = new Date(invoice.date + 'T00:00:00') // Ensure consistent date parsing
+      currentYearData.forEach((timesheet) => {
+        const date = new Date(timesheet.date + 'T00:00:00') // Ensure consistent date parsing
         const month = date.getMonth()
         const year = date.getFullYear()
 
@@ -159,12 +148,12 @@ export async function GET(request: NextRequest) {
         // January (0) = 6, February (1) = 7, ..., June (5) = 11
         const monthIndex = month >= 6 ? month - 6 : month + 6
 
-        // Handle both string and number types for amount
+        // Handle both string and number types for billable_amount
         let amount = 0
-        if (typeof invoice.amount === 'number') {
-          amount = invoice.amount
-        } else if (typeof invoice.amount === 'string') {
-          amount = parseFloat(invoice.amount) || 0
+        if (typeof timesheet.billable_amount === 'number') {
+          amount = timesheet.billable_amount
+        } else if (typeof timesheet.billable_amount === 'string') {
+          amount = parseFloat(timesheet.billable_amount) || 0
         }
         monthlyData[monthIndex].currentYear += amount
       })
@@ -173,8 +162,8 @@ export async function GET(request: NextRequest) {
     // Aggregate last year data
     // Last financial year: July lastFYStartYear to June lastFYEndYear
     if (lastYearData) {
-      lastYearData.forEach((invoice) => {
-        const date = new Date(invoice.date + 'T00:00:00') // Ensure consistent date parsing
+      lastYearData.forEach((timesheet) => {
+        const date = new Date(timesheet.date + 'T00:00:00') // Ensure consistent date parsing
         const month = date.getMonth()
         const year = date.getFullYear()
 
@@ -187,12 +176,12 @@ export async function GET(request: NextRequest) {
         // Map month to our array index
         const monthIndex = month >= 6 ? month - 6 : month + 6
 
-        // Handle both string and number types for amount
+        // Handle both string and number types for billable_amount
         let amount = 0
-        if (typeof invoice.amount === 'number') {
-          amount = invoice.amount
-        } else if (typeof invoice.amount === 'string') {
-          amount = parseFloat(invoice.amount) || 0
+        if (typeof timesheet.billable_amount === 'number') {
+          amount = timesheet.billable_amount
+        } else if (typeof timesheet.billable_amount === 'string') {
+          amount = parseFloat(timesheet.billable_amount) || 0
         }
         monthlyData[monthIndex].lastYear += amount
       })

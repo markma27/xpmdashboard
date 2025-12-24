@@ -1,27 +1,25 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { RevenueMonthlyChart } from './revenue-monthly-chart'
+import { BillableMonthlyChart } from './billable-monthly-chart'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
-interface MonthlyRevenueData {
+interface MonthlyBillableData {
   month: string
   'Current Year': number
   'Last Year': number
 }
 
-interface RevenueMonthlyChartClientProps {
+interface BillableMonthlyChartClientProps {
   organizationId: string
-  selectedPartner?: string | null
-  selectedClientManager?: string | null
+  selectedStaff?: string | null
 }
 
-export function RevenueMonthlyChartClient({ 
-  organizationId,
-  selectedPartner,
-  selectedClientManager
-}: RevenueMonthlyChartClientProps) {
-  const [data, setData] = useState<MonthlyRevenueData[]>([])
+export function BillableMonthlyChartClient({ 
+  organizationId, 
+  selectedStaff
+}: BillableMonthlyChartClientProps) {
+  const [data, setData] = useState<MonthlyBillableData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -30,13 +28,10 @@ export function RevenueMonthlyChartClient({
       try {
         setLoading(true)
         setError(null)
-        // Build query with optional filters
-        let url = `/api/revenue/monthly?organizationId=${organizationId}&t=${Date.now()}`
-        if (selectedPartner) {
-          url += `&partner=${encodeURIComponent(selectedPartner)}`
-        }
-        if (selectedClientManager) {
-          url += `&clientManager=${encodeURIComponent(selectedClientManager)}`
+        // Build query with optional staff filter
+        let url = `/api/billable/monthly?organizationId=${organizationId}&t=${Date.now()}`
+        if (selectedStaff) {
+          url += `&staff=${encodeURIComponent(selectedStaff)}`
         }
         
         const response = await fetch(url, {
@@ -47,7 +42,7 @@ export function RevenueMonthlyChartClient({
         })
         
         if (!response.ok) {
-          throw new Error('Failed to fetch revenue data')
+          throw new Error('Failed to fetch billable data')
         }
         
         const result = await response.json()
@@ -60,14 +55,14 @@ export function RevenueMonthlyChartClient({
     }
 
     fetchData()
-  }, [organizationId, selectedPartner, selectedClientManager])
+  }, [organizationId, selectedStaff])
 
   if (loading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Billings - monthly</CardTitle>
-          <CardDescription>Monthly revenue comparison</CardDescription>
+          <CardTitle>Billable - monthly</CardTitle>
+          <CardDescription>Monthly billable amount comparison</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[400px]">
@@ -82,8 +77,8 @@ export function RevenueMonthlyChartClient({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Billings - monthly</CardTitle>
-          <CardDescription>Monthly revenue comparison</CardDescription>
+          <CardTitle>Billable - monthly</CardTitle>
+          <CardDescription>Monthly billable amount comparison</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[400px]">
@@ -98,13 +93,13 @@ export function RevenueMonthlyChartClient({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Billings - monthly</CardTitle>
-          <CardDescription>Monthly revenue comparison</CardDescription>
+          <CardTitle>Billable - monthly</CardTitle>
+          <CardDescription>Monthly billable amount comparison</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[400px]">
             <p className="text-muted-foreground">
-              No data available. Please upload invoice data first.
+              No data available. Please upload timesheet data first.
             </p>
           </div>
         </CardContent>
@@ -115,11 +110,11 @@ export function RevenueMonthlyChartClient({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Billings - monthly</CardTitle>
-        <CardDescription>Monthly revenue comparison</CardDescription>
+        <CardTitle>Billable - monthly</CardTitle>
+        <CardDescription>Monthly billable amount comparison</CardDescription>
       </CardHeader>
       <CardContent>
-        <RevenueMonthlyChart data={data} />
+        <BillableMonthlyChart data={data} />
       </CardContent>
     </Card>
   )

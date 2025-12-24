@@ -11,42 +11,43 @@ interface ClientGroupData {
   clientManager: string | null
 }
 
-interface RevenueClientGroupsTableProps {
+interface BillableClientGroupsTableProps {
   organizationId: string
-  selectedPartner?: string | null
-  selectedClientManager?: string | null
+  selectedStaff?: string | null
+  onStaffChange?: (staff: string | null) => void
 }
 
-export function RevenueClientGroupsTable({ 
-  organizationId,
-  selectedPartner: externalSelectedPartner,
-  selectedClientManager: externalSelectedClientManager
-}: RevenueClientGroupsTableProps) {
+export function BillableClientGroupsTable({ 
+  organizationId, 
+  selectedStaff: externalSelectedStaff,
+  onStaffChange 
+}: BillableClientGroupsTableProps) {
   const [data, setData] = useState<ClientGroupData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [internalSelectedPartner, setInternalSelectedPartner] = useState<string | null>(null)
-  const [internalSelectedClientManager, setInternalSelectedClientManager] = useState<string | null>(null)
+  const [internalSelectedStaff, setInternalSelectedStaff] = useState<string | null>(null)
   
-  // Use external values if provided, otherwise use internal state
-  const selectedPartner = externalSelectedPartner !== undefined ? externalSelectedPartner : internalSelectedPartner
-  const selectedClientManager = externalSelectedClientManager !== undefined ? externalSelectedClientManager : internalSelectedClientManager
+  // Use external selectedStaff if provided, otherwise use internal state
+  const selectedStaff = externalSelectedStaff !== undefined ? externalSelectedStaff : internalSelectedStaff
 
+  // Fetch client group data
   useEffect(() => {
     async function fetchData() {
       try {
         setLoading(true)
         setError(null)
-        // Add cache control and timestamp to ensure fresh data on every fetch
-        const response = await fetch(
-          `/api/revenue/client-groups?organizationId=${organizationId}&t=${Date.now()}`,
-          {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache',
-            },
-          }
-        )
+        // Build query with optional staff filter
+        let url = `/api/billable/client-groups?organizationId=${organizationId}&t=${Date.now()}`
+        if (selectedStaff) {
+          url += `&staff=${encodeURIComponent(selectedStaff)}`
+        }
+        
+        const response = await fetch(url, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+          },
+        })
         
         if (!response.ok) {
           throw new Error('Failed to fetch client group data')
@@ -62,7 +63,7 @@ export function RevenueClientGroupsTable({
     }
 
     fetchData()
-  }, [organizationId])
+  }, [organizationId, selectedStaff])
 
   const formatCurrency = (amount: number) => {
     if (amount === 0) return '-'
@@ -83,8 +84,8 @@ export function RevenueClientGroupsTable({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Billings by Client Group</CardTitle>
-          <CardDescription>Detailed revenue breakdown by client group</CardDescription>
+          <CardTitle>Billable by Client Group</CardTitle>
+          <CardDescription>Detailed billable amount breakdown by client group</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[200px]">
@@ -99,8 +100,8 @@ export function RevenueClientGroupsTable({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Billings by Client Group</CardTitle>
-          <CardDescription>Detailed revenue breakdown by client group</CardDescription>
+          <CardTitle>Billable by Client Group</CardTitle>
+          <CardDescription>Detailed billable amount breakdown by client group</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[200px]">
@@ -115,13 +116,13 @@ export function RevenueClientGroupsTable({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Billings by Client Group</CardTitle>
-          <CardDescription>Detailed revenue breakdown by client group</CardDescription>
+          <CardTitle>Billable by Client Group</CardTitle>
+          <CardDescription>Detailed billable amount breakdown by client group</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[200px]">
             <p className="text-muted-foreground">
-              No data available. Please upload invoice data first.
+              No data available. Please upload timesheet data first.
             </p>
           </div>
         </CardContent>
@@ -129,22 +130,8 @@ export function RevenueClientGroupsTable({
     )
   }
 
-  // Get unique partners from data
-  const partners = Array.from(
-    new Set(data.map((item) => item.partner).filter(Boolean))
-  ).sort() as string[]
-
-  // Get unique client managers from data
-  const clientManagers = Array.from(
-    new Set(data.map((item) => item.clientManager).filter(Boolean))
-  ).sort() as string[]
-
-  // Filter data by selected partner and client manager
-  const filteredData = data.filter((item) => {
-    const matchesPartner = !selectedPartner || item.partner === selectedPartner
-    const matchesClientManager = !selectedClientManager || item.clientManager === selectedClientManager
-    return matchesPartner && matchesClientManager
-  })
+  // No client-side filtering needed - API handles staff filtering
+  const filteredData = data
 
   const totalCurrentYear = filteredData.reduce((sum, item) => sum + item.currentYear, 0)
   const totalLastYear = filteredData.reduce((sum, item) => sum + item.lastYear, 0)
@@ -152,8 +139,8 @@ export function RevenueClientGroupsTable({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Billings by Client Group</CardTitle>
-        <CardDescription>Detailed revenue breakdown by client group</CardDescription>
+        <CardTitle>Billable by Client Group</CardTitle>
+        <CardDescription>Detailed billable amount breakdown by client group</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">

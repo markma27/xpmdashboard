@@ -10,17 +10,17 @@ import {
   LabelList,
 } from 'recharts'
 
-interface MonthlyRevenueData {
+interface MonthlyBillableData {
   month: string
   'Current Year': number
   'Last Year': number
 }
 
-interface RevenueMonthlyChartProps {
-  data: MonthlyRevenueData[]
+interface BillableMonthlyChartProps {
+  data: MonthlyBillableData[]
 }
 
-export function RevenueMonthlyChart({ data }: RevenueMonthlyChartProps) {
+export function BillableMonthlyChart({ data }: BillableMonthlyChartProps) {
   // Calculate financial year based on current date
   const now = new Date()
   const currentMonth = now.getMonth() // 0-11
@@ -70,7 +70,7 @@ export function RevenueMonthlyChart({ data }: RevenueMonthlyChartProps) {
         <div className="text-sm font-medium flex items-center gap-2">
           <div 
             className="w-3 h-3 rounded-sm" 
-            style={{ backgroundColor: currentYearPayload?.color || '#fca5a5' }}
+            style={{ backgroundColor: currentYearPayload?.color || '#75CBA8' }}
           />
           <span>
             {monthAbbr} {currentYearValue}: {formatAmount(currentYearAmount)}
@@ -103,7 +103,7 @@ export function RevenueMonthlyChart({ data }: RevenueMonthlyChartProps) {
         <Legend />
         <Bar 
           dataKey="Current Year" 
-          fill="#fca5a5" 
+          fill="#75CBA8" 
           name="Current Year"
           radius={[4, 4, 0, 0]}
         >

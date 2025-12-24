@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
     const org = await requireOrg()
     const searchParams = request.nextUrl.searchParams
     const organizationId = searchParams.get('organizationId') || org.id
+    const staffFilter = searchParams.get('staff') // Optional staff filter
 
     const supabase = await createClient()
 
@@ -38,22 +39,26 @@ export async function GET(request: NextRequest) {
     const lastYearStart = `${lastFYStartYear}-07-01`
     const lastYearEnd = `${lastFYEndYear}-06-30`
 
-    // Use RPC or aggregate query to get sums grouped by client_group
-    // This avoids the 1000 record limit by aggregating in the database
-    
-    // Fetch current year invoices - get all records using pagination
+    // Fetch current year timesheet data - get all records using pagination
     let currentYearData: any[] = []
     let currentYearPage = 0
     const pageSize = 1000
     let hasMoreCurrentYear = true
     
     while (hasMoreCurrentYear) {
-      const { data: pageData, error: pageError } = await supabase
-        .from('invoice_uploads')
-        .select('client_group, amount, account_manager, job_manager')
+      let query = supabase
+        .from('timesheet_uploads')
+        .select('client_group, billable_amount, account_manager, job_manager, staff')
         .eq('organization_id', organizationId)
         .gte('date', currentYearStart)
         .lte('date', currentYearEnd)
+      
+      // Apply staff filter if provided
+      if (staffFilter) {
+        query = query.eq('staff', staffFilter)
+      }
+      
+      const { data: pageData, error: pageError } = await query
         .range(currentYearPage * pageSize, (currentYearPage + 1) * pageSize - 1)
       
       if (pageError) {
@@ -72,18 +77,25 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Fetch last year invoices - get all records using pagination
+    // Fetch last year timesheet data - get all records using pagination
     let lastYearData: any[] = []
     let lastYearPage = 0
     let hasMoreLastYear = true
     
     while (hasMoreLastYear) {
-      const { data: pageData, error: pageError } = await supabase
-        .from('invoice_uploads')
-        .select('client_group, amount, account_manager, job_manager')
+      let query = supabase
+        .from('timesheet_uploads')
+        .select('client_group, billable_amount, account_manager, job_manager, staff')
         .eq('organization_id', organizationId)
         .gte('date', lastYearStart)
         .lte('date', lastYearEnd)
+      
+      // Apply staff filter if provided
+      if (staffFilter) {
+        query = query.eq('staff', staffFilter)
+      }
+      
+      const { data: pageData, error: pageError } = await query
         .range(lastYearPage * pageSize, (lastYearPage + 1) * pageSize - 1)
       
       if (pageError) {
@@ -102,7 +114,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-
     // Aggregate by client_group
     // Store account_manager and job_manager (use the most common one for each group)
     const clientGroupMap = new Map<string, { 
@@ -120,14 +131,14 @@ export async function GET(request: NextRequest) {
 
     // Process current year data
     if (currentYearData) {
-      currentYearData.forEach((invoice) => {
-        const clientGroup = invoice.client_group || 'Uncategorized'
-        // Handle both string and number types for amount
+      currentYearData.forEach((timesheet) => {
+        const clientGroup = timesheet.client_group || 'Uncategorized'
+        // Handle both string and number types for billable_amount
         let amount = 0
-        if (typeof invoice.amount === 'number') {
-          amount = invoice.amount
-        } else if (typeof invoice.amount === 'string') {
-          amount = parseFloat(invoice.amount) || 0
+        if (typeof timesheet.billable_amount === 'number') {
+          amount = timesheet.billable_amount
+        } else if (typeof timesheet.billable_amount === 'string') {
+          amount = parseFloat(timesheet.billable_amount) || 0
         }
         
         if (!clientGroupMap.has(clientGroup)) {
@@ -148,27 +159,27 @@ export async function GET(request: NextRequest) {
         
         // Track managers
         const managers = managerMap.get(clientGroup)!
-        if (invoice.account_manager) {
-          const count = managers.accountManagers.get(invoice.account_manager) || 0
-          managers.accountManagers.set(invoice.account_manager, count + 1)
+        if (timesheet.account_manager) {
+          const count = managers.accountManagers.get(timesheet.account_manager) || 0
+          managers.accountManagers.set(timesheet.account_manager, count + 1)
         }
-        if (invoice.job_manager) {
-          const count = managers.jobManagers.get(invoice.job_manager) || 0
-          managers.jobManagers.set(invoice.job_manager, count + 1)
+        if (timesheet.job_manager) {
+          const count = managers.jobManagers.get(timesheet.job_manager) || 0
+          managers.jobManagers.set(timesheet.job_manager, count + 1)
         }
       })
     }
 
     // Process last year data
     if (lastYearData) {
-      lastYearData.forEach((invoice) => {
-        const clientGroup = invoice.client_group || 'Uncategorized'
-        // Handle both string and number types for amount
+      lastYearData.forEach((timesheet) => {
+        const clientGroup = timesheet.client_group || 'Uncategorized'
+        // Handle both string and number types for billable_amount
         let amount = 0
-        if (typeof invoice.amount === 'number') {
-          amount = invoice.amount
-        } else if (typeof invoice.amount === 'string') {
-          amount = parseFloat(invoice.amount) || 0
+        if (typeof timesheet.billable_amount === 'number') {
+          amount = timesheet.billable_amount
+        } else if (typeof timesheet.billable_amount === 'string') {
+          amount = parseFloat(timesheet.billable_amount) || 0
         }
         
         if (!clientGroupMap.has(clientGroup)) {
@@ -189,13 +200,13 @@ export async function GET(request: NextRequest) {
         
         // Track managers
         const managers = managerMap.get(clientGroup)!
-        if (invoice.account_manager) {
-          const count = managers.accountManagers.get(invoice.account_manager) || 0
-          managers.accountManagers.set(invoice.account_manager, count + 1)
+        if (timesheet.account_manager) {
+          const count = managers.accountManagers.get(timesheet.account_manager) || 0
+          managers.accountManagers.set(timesheet.account_manager, count + 1)
         }
-        if (invoice.job_manager) {
-          const count = managers.jobManagers.get(invoice.job_manager) || 0
-          managers.jobManagers.set(invoice.job_manager, count + 1)
+        if (timesheet.job_manager) {
+          const count = managers.jobManagers.get(timesheet.job_manager) || 0
+          managers.jobManagers.set(timesheet.job_manager, count + 1)
         }
       })
     }
@@ -228,7 +239,7 @@ export async function GET(request: NextRequest) {
         group.jobManager = mostCommonJobManager
       }
     })
-    
+
     // Convert to array and sort by current year amount (descending)
     const result = Array.from(clientGroupMap.entries())
       .map(([clientGroup, data]) => ({
