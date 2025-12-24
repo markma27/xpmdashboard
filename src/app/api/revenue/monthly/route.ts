@@ -102,11 +102,18 @@ export async function GET(request: NextRequest) {
     })
 
     // Aggregate current year data
-    // Since we've already filtered by date range, all data belongs to current year period
+    // Current year: July 2025 to June 2026
     if (currentYearData) {
       currentYearData.forEach((invoice) => {
-        const date = new Date(invoice.date)
+        const date = new Date(invoice.date + 'T00:00:00') // Ensure consistent date parsing
         const month = date.getMonth()
+        const year = date.getFullYear()
+
+        // Verify this belongs to current year period
+        // July 2025 (month=6, year=2025) to June 2026 (month=5, year=2026)
+        if (!((year === 2025 && month >= 6) || (year === 2026 && month < 6))) {
+          return // Skip if not in current year range
+        }
 
         // Map month to our array index
         // July (6) = 0, August (7) = 1, ..., December (11) = 5
@@ -125,11 +132,31 @@ export async function GET(request: NextRequest) {
     }
 
     // Aggregate last year data
-    // Since we've already filtered by date range, all data belongs to last year period
+    // Last year: July 2024 to June 2025
     if (lastYearData) {
+      let june2025Total = 0
+      let june2024Total = 0
+      
       lastYearData.forEach((invoice) => {
-        const date = new Date(invoice.date)
+        const date = new Date(invoice.date + 'T00:00:00') // Ensure consistent date parsing
         const month = date.getMonth()
+        const year = date.getFullYear()
+
+        // Debug: Track June data
+        if (month === 5) { // June
+          const amount = typeof invoice.amount === 'number' ? invoice.amount : parseFloat(invoice.amount || '0')
+          if (year === 2025) {
+            june2025Total += amount
+          } else if (year === 2024) {
+            june2024Total += amount
+          }
+        }
+
+        // Verify this belongs to last year period
+        // July 2024 (month=6, year=2024) to June 2025 (month=5, year=2025)
+        if (!((year === 2024 && month >= 6) || (year === 2025 && month < 6))) {
+          return // Skip if not in last year range
+        }
 
         // Map month to our array index
         const monthIndex = month >= 6 ? month - 6 : month + 6
@@ -143,6 +170,9 @@ export async function GET(request: NextRequest) {
         }
         monthlyData[monthIndex].lastYear += amount
       })
+      
+      console.log(`[DEBUG] June 2024 total: ${june2024Total}, June 2025 total: ${june2025Total}`)
+      console.log(`[DEBUG] Final June lastYear value: ${monthlyData[11].lastYear}`)
     }
 
     // Return full amounts (not divided by 1000, no rounding)
