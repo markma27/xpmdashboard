@@ -257,7 +257,7 @@ export async function POST(request: NextRequest) {
             ))
           }
         },
-        error: (error) => {
+        error: (error: Error) => {
           console.error('CSV parsing error:', error)
           resolve(NextResponse.json(
             { error: 'Failed to parse CSV file', details: error.message },
