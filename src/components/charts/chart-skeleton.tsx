@@ -5,10 +5,10 @@ export function ChartSkeleton() {
     <Card>
       <CardHeader>
         <CardTitle>
-          <div className="h-6 w-48 bg-muted animate-pulse rounded" />
+          <span className="inline-block h-6 w-48 bg-muted animate-pulse rounded" />
         </CardTitle>
         <CardDescription>
-          <div className="h-4 w-64 bg-muted animate-pulse rounded mt-2" />
+          <span className="inline-block h-4 w-64 bg-muted animate-pulse rounded mt-2" />
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -23,10 +23,10 @@ export function TableSkeleton() {
     <Card>
       <CardHeader>
         <CardTitle>
-          <div className="h-6 w-48 bg-muted animate-pulse rounded" />
+          <span className="inline-block h-6 w-48 bg-muted animate-pulse rounded" />
         </CardTitle>
         <CardDescription>
-          <div className="h-4 w-64 bg-muted animate-pulse rounded mt-2" />
+          <span className="inline-block h-4 w-64 bg-muted animate-pulse rounded mt-2" />
         </CardDescription>
       </CardHeader>
       <CardContent>

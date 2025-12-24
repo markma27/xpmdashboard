@@ -12,6 +12,9 @@ interface ClientGroupData {
   clientManager: string | null
 }
 
+type SortColumn = 'clientGroup' | 'partner' | 'clientManager' | 'currentYear' | 'lastYear' | 'change'
+type SortDirection = 'asc' | 'desc'
+
 interface BillableClientGroupsTableProps {
   organizationId: string
   selectedStaff?: string | null
@@ -27,6 +30,8 @@ export function BillableClientGroupsTable({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [internalSelectedStaff, setInternalSelectedStaff] = useState<string | null>(null)
+  const [sortColumn, setSortColumn] = useState<SortColumn>('currentYear')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   
   // Use external selectedStaff if provided, otherwise use internal state
   const selectedStaff = externalSelectedStaff !== undefined ? externalSelectedStaff : internalSelectedStaff
@@ -122,8 +127,67 @@ export function BillableClientGroupsTable({
   // No client-side filtering needed - API handles staff filtering
   const filteredData = data
 
-  const totalCurrentYear = filteredData.reduce((sum, item) => sum + item.currentYear, 0)
-  const totalLastYear = filteredData.reduce((sum, item) => sum + item.lastYear, 0)
+  // Sort data
+  const sortedData = [...filteredData].sort((a, b) => {
+    let aValue: string | number
+    let bValue: string | number
+
+    switch (sortColumn) {
+      case 'clientGroup':
+        aValue = a.clientGroup || ''
+        bValue = b.clientGroup || ''
+        break
+      case 'partner':
+        aValue = a.partner || ''
+        bValue = b.partner || ''
+        break
+      case 'clientManager':
+        aValue = a.clientManager || ''
+        bValue = b.clientManager || ''
+        break
+      case 'currentYear':
+        aValue = a.currentYear
+        bValue = b.currentYear
+        break
+      case 'lastYear':
+        aValue = a.lastYear
+        bValue = b.lastYear
+        break
+      case 'change':
+        aValue = calculateChange(a.currentYear, a.lastYear)
+        bValue = calculateChange(b.currentYear, b.lastYear)
+        break
+      default:
+        return 0
+    }
+
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      const comparison = aValue.localeCompare(bValue)
+      return sortDirection === 'asc' ? comparison : -comparison
+    } else {
+      const comparison = (aValue as number) - (bValue as number)
+      return sortDirection === 'asc' ? comparison : -comparison
+    }
+  })
+
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      // Toggle direction if clicking the same column
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      // Set new column and default to descending
+      setSortColumn(column)
+      setSortDirection('desc')
+    }
+  }
+
+  const SortIcon = ({ column }: { column: SortColumn }) => {
+    if (sortColumn !== column) return null
+    return <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+  }
+
+  const totalCurrentYear = sortedData.reduce((sum, item) => sum + item.currentYear, 0)
+  const totalLastYear = sortedData.reduce((sum, item) => sum + item.lastYear, 0)
 
   return (
     <Card>
@@ -136,16 +200,46 @@ export function BillableClientGroupsTable({
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b">
-                <th className="text-left p-3 font-semibold">Client Group</th>
-                <th className="text-left p-3 font-semibold">Partner</th>
-                <th className="text-left p-3 font-semibold">Client Manager</th>
-                <th className="text-right p-3 font-semibold">Current Year</th>
-                <th className="text-right p-3 font-semibold">Last Year</th>
-                <th className="text-right p-3 font-semibold">Change</th>
+                <th 
+                  className="text-left p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
+                  onClick={() => handleSort('clientGroup')}
+                >
+                  Client Group<SortIcon column="clientGroup" />
+                </th>
+                <th 
+                  className="text-left p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
+                  onClick={() => handleSort('partner')}
+                >
+                  Partner<SortIcon column="partner" />
+                </th>
+                <th 
+                  className="text-left p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
+                  onClick={() => handleSort('clientManager')}
+                >
+                  Client Manager<SortIcon column="clientManager" />
+                </th>
+                <th 
+                  className="text-right p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
+                  onClick={() => handleSort('currentYear')}
+                >
+                  Current Year<SortIcon column="currentYear" />
+                </th>
+                <th 
+                  className="text-right p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
+                  onClick={() => handleSort('lastYear')}
+                >
+                  Last Year<SortIcon column="lastYear" />
+                </th>
+                <th 
+                  className="text-right p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
+                  onClick={() => handleSort('change')}
+                >
+                  Change<SortIcon column="change" />
+                </th>
               </tr>
             </thead>
             <tbody>
-              {filteredData.map((item, index) => {
+              {sortedData.map((item, index) => {
                 const change = calculateChange(item.currentYear, item.lastYear)
                 const changeColor = change >= 0 ? 'text-green-600' : 'text-red-600'
                 
