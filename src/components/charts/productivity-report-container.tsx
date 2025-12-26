@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { ProductivityMonthlyChartClient } from './productivity-monthly-chart-client'
+import { ProductivityStandardHoursChartClient } from './productivity-standard-hours-chart-client'
 import { ProductivityClientGroupsTable } from './productivity-client-groups-table'
 import { ProductivityReportHeader } from './productivity-report-header'
 
@@ -71,6 +72,10 @@ export function ProductivityReportContainer({ organizationId }: ProductivityRepo
         selectedStaff={selectedStaff}
         selectedMonth={selectedMonth}
         onMonthClick={setSelectedMonth}
+      />
+      <ProductivityStandardHoursChartClient 
+        organizationId={organizationId} 
+        selectedStaff={selectedStaff}
       />
       <ProductivityClientGroupsTable 
         organizationId={organizationId} 
