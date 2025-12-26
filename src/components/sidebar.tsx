@@ -35,6 +35,11 @@ const navigation = [
         icon: Clock,
       },
       {
+        name: 'Recoverability',
+        href: '/reports/recoverability',
+        icon: BarChart3,
+      },
+      {
         name: 'Work In Progress',
         href: '/reports/workinprogress',
         icon: Briefcase,
