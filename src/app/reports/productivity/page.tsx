@@ -1,5 +1,6 @@
 import { requireOrg, loadUserOrganizations, getActiveOrgId } from '@/lib/auth'
 import { AppLayout } from '@/components/layout/app-layout'
+import { ProductivityReportContainer } from '@/components/charts/productivity-report-container'
 
 export default async function ProductivityReportPage() {
   const org = await requireOrg()
@@ -9,15 +10,7 @@ export default async function ProductivityReportPage() {
   return (
     <AppLayout organizations={organizations} activeOrgId={activeOrgId}>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Productivity Analytics</h1>
-          <p className="text-muted-foreground">
-            Analyze team and individual productivity metrics
-          </p>
-        </div>
-        <div className="rounded-lg border p-8 text-center text-muted-foreground">
-          Report content coming soon - Connect Xero and sync data first
-        </div>
+        <ProductivityReportContainer organizationId={org.id} />
       </div>
     </AppLayout>
   )

@@ -1,10 +1,19 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Users, Save } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
 
 interface StaffTarget {
   id: string
@@ -47,10 +56,114 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   // Track editing values for each staff member by xpm_id
   const [editingValues, setEditingValues] = useState<Map<string, EditingValues>>(new Map())
+  // Track original values (saved values) to detect unsaved changes
+  const [originalValues, setOriginalValues] = useState<Map<string, EditingValues>>(new Map())
+  // Dialog state for unsaved changes warning
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false)
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null)
+  const router = useRouter()
+  const pathname = usePathname()
+  const navigationBlockedRef = useRef(false)
 
   useEffect(() => {
     loadStaff()
   }, [organizationId])
+
+  // Check if there are unsaved changes
+  const hasUnsavedChanges = useCallback(() => {
+    if (editingValues.size === 0) return false
+
+    for (const [xpmId, currentValues] of editingValues) {
+      const original = originalValues.get(xpmId)
+      if (!original) {
+        // New staff member with any non-default values
+        if (
+          currentValues.target_billable_percentage !== '' ||
+          currentValues.fte !== '' ||
+          currentValues.default_daily_hours !== '' ||
+          currentValues.job_title !== '' ||
+          currentValues.team !== '' ||
+          currentValues.email !== '' ||
+          currentValues.is_hidden !== false ||
+          currentValues.report !== true
+        ) {
+          return true
+        }
+        continue
+      }
+
+      // Compare all fields
+      if (
+        currentValues.target_billable_percentage !== original.target_billable_percentage ||
+        currentValues.fte !== original.fte ||
+        currentValues.default_daily_hours !== original.default_daily_hours ||
+        currentValues.job_title !== original.job_title ||
+        currentValues.team !== original.team ||
+        currentValues.email !== original.email ||
+        currentValues.is_hidden !== original.is_hidden ||
+        currentValues.report !== original.report
+      ) {
+        return true
+      }
+    }
+    return false
+  }, [editingValues, originalValues])
+
+  // Intercept navigation attempts
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges()) {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [hasUnsavedChanges])
+
+  // Intercept link clicks
+  useEffect(() => {
+    const handleLinkClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      const link = target.closest('a')
+      if (!link || !hasUnsavedChanges()) return
+
+      const href = link.getAttribute('href')
+      if (href && href.startsWith('/') && href !== pathname) {
+        e.preventDefault()
+        setPendingNavigation(href)
+        setShowUnsavedDialog(true)
+        navigationBlockedRef.current = true
+      }
+    }
+
+    document.addEventListener('click', handleLinkClick, true)
+
+    return () => {
+      document.removeEventListener('click', handleLinkClick, true)
+    }
+  }, [hasUnsavedChanges, pathname])
+
+  // Handle dialog actions
+  const handleSaveAndNavigate = async () => {
+    await handleSaveAll()
+    setShowUnsavedDialog(false)
+    if (pendingNavigation) {
+      navigationBlockedRef.current = false
+      router.push(pendingNavigation)
+      setPendingNavigation(null)
+    }
+  }
+
+  const handleCancelNavigation = () => {
+    setShowUnsavedDialog(false)
+    setPendingNavigation(null)
+    navigationBlockedRef.current = false
+  }
 
   const loadStaff = async () => {
     try {
@@ -73,6 +186,8 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
           })
         })
         setEditingValues(initialValues)
+        // Also store as original values for comparison
+        setOriginalValues(new Map(initialValues))
       } else {
         console.error('Failed to load staff')
       }
@@ -220,7 +335,7 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
       })
 
       await Promise.all(savePromises)
-      loadStaff()
+      await loadStaff() // loadStaff already updates originalValues
     } catch (error: any) {
       alert(error.message || 'Failed to save staff settings')
     } finally {
@@ -327,8 +442,36 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center pt-4">
+    <>
+      <Dialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Unsaved Changes</DialogTitle>
+            <DialogDescription>
+              You have unsaved changes. Do you want to save all changes before leaving?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleCancelNavigation}
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveAndNavigate}
+              disabled={saving}
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {saving ? 'Saving...' : 'Save All'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <div className="space-y-4">
+        <div className="flex justify-between items-center pt-4">
         <div>
           <p className="text-xs text-muted-foreground">
             {visibleStaff.length} of {staffList.length} staff member{staffList.length !== 1 ? 's' : ''} shown
@@ -544,6 +687,7 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   )
 }
