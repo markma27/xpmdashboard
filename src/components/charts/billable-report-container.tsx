@@ -11,6 +11,7 @@ interface BillableReportContainerProps {
 
 export function BillableReportContainer({ organizationId }: BillableReportContainerProps) {
   const [selectedStaff, setSelectedStaff] = useState<string | null>(null)
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null)
   const [staffList, setStaffList] = useState<string[]>([])
   const [lastUpdated, setLastUpdated] = useState<string | null>(null)
 
@@ -68,11 +69,14 @@ export function BillableReportContainer({ organizationId }: BillableReportContai
       <BillableMonthlyChartClient 
         organizationId={organizationId} 
         selectedStaff={selectedStaff}
+        selectedMonth={selectedMonth}
+        onMonthClick={setSelectedMonth}
       />
       <BillableClientGroupsTable 
         organizationId={organizationId} 
         selectedStaff={selectedStaff}
         onStaffChange={setSelectedStaff}
+        selectedMonth={selectedMonth}
       />
     </>
   )

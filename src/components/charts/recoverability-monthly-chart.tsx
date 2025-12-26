@@ -8,6 +8,7 @@ import {
   Legend,
   ResponsiveContainer,
   LabelList,
+  Cell,
 } from 'recharts'
 
 interface MonthlyRecoverabilityData {
@@ -18,9 +19,11 @@ interface MonthlyRecoverabilityData {
 
 interface RecoverabilityMonthlyChartProps {
   data: MonthlyRecoverabilityData[]
+  selectedMonth?: string | null
+  onMonthClick?: (month: string | null) => void
 }
 
-export function RecoverabilityMonthlyChart({ data }: RecoverabilityMonthlyChartProps) {
+export function RecoverabilityMonthlyChart({ data, selectedMonth, onMonthClick }: RecoverabilityMonthlyChartProps) {
   // Calculate financial year based on current date
   const now = new Date()
   const currentMonth = now.getMonth() // 0-11
@@ -89,11 +92,26 @@ export function RecoverabilityMonthlyChart({ data }: RecoverabilityMonthlyChartP
     )
   }
 
+  const handleBarClick = (data: any) => {
+    if (onMonthClick && data && data.activePayload && data.activePayload.length > 0) {
+      const clickedMonth = data.activePayload[0].payload.month
+      if (clickedMonth) {
+        // Toggle: if clicking the same month, deselect it
+        if (selectedMonth === clickedMonth) {
+          onMonthClick(null)
+        } else {
+          onMonthClick(clickedMonth)
+        }
+      }
+    }
+  }
+
   return (
     <ResponsiveContainer width="100%" height={400}>
       <RechartsBarChart
         data={data}
         margin={{ top: 40, right: 30, left: 5, bottom: 5 }}
+        onClick={handleBarClick}
       >
         <XAxis 
           dataKey="month" 
@@ -103,10 +121,20 @@ export function RecoverabilityMonthlyChart({ data }: RecoverabilityMonthlyChartP
         <Legend />
         <Bar 
           dataKey="Current Year" 
-          fill="#ffb366" 
           name="Current Year"
+          fill="#ffb366"
           radius={[4, 4, 0, 0]}
+          cursor="pointer"
         >
+          {data.map((entry, index) => {
+            const isSelected = selectedMonth === entry.month
+            return (
+              <Cell 
+                key={`cell-current-${index}`} 
+                fill={isSelected ? '#f97316' : '#ffb366'}
+              />
+            )
+          })}
           <LabelList 
             dataKey="Current Year" 
             position="top"
@@ -123,10 +151,20 @@ export function RecoverabilityMonthlyChart({ data }: RecoverabilityMonthlyChartP
         </Bar>
         <Bar 
           dataKey="Last Year" 
-          fill="#9ca3af" 
           name="Last Year"
+          fill="#9ca3af"
           radius={[4, 4, 0, 0]}
+          cursor="pointer"
         >
+          {data.map((entry, index) => {
+            const isSelected = selectedMonth === entry.month
+            return (
+              <Cell 
+                key={`cell-last-${index}`} 
+                fill={isSelected ? '#6b7280' : '#9ca3af'}
+              />
+            )
+          })}
           <LabelList 
             dataKey="Last Year" 
             position="top"

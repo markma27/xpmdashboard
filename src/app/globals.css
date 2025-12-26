@@ -58,3 +58,10 @@
   }
 }
 
+/* Prevent layout shift when scrollbar appears/disappears */
+@layer utilities {
+  .scrollbar-gutter-stable {
+    scrollbar-gutter: stable;
+  }
+}
+

@@ -14,11 +14,15 @@ interface MonthlyBillableData {
 interface BillableMonthlyChartClientProps {
   organizationId: string
   selectedStaff?: string | null
+  selectedMonth?: string | null
+  onMonthClick?: (month: string | null) => void
 }
 
 export function BillableMonthlyChartClient({ 
   organizationId, 
-  selectedStaff
+  selectedStaff,
+  selectedMonth,
+  onMonthClick
 }: BillableMonthlyChartClientProps) {
   const [data, setData] = useState<MonthlyBillableData[]>([])
   const [loading, setLoading] = useState(true)
@@ -103,7 +107,11 @@ export function BillableMonthlyChartClient({
         <CardDescription>Monthly billable amount comparison</CardDescription>
       </CardHeader>
       <CardContent>
-        <BillableMonthlyChart data={data} />
+        <BillableMonthlyChart 
+          data={data} 
+          selectedMonth={selectedMonth}
+          onMonthClick={onMonthClick}
+        />
       </CardContent>
     </Card>
   )

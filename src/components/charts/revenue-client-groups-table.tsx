@@ -19,12 +19,14 @@ interface RevenueClientGroupsTableProps {
   organizationId: string
   selectedPartner?: string | null
   selectedClientManager?: string | null
+  selectedMonth?: string | null
 }
 
 export function RevenueClientGroupsTable({ 
   organizationId,
   selectedPartner: externalSelectedPartner,
-  selectedClientManager: externalSelectedClientManager
+  selectedClientManager: externalSelectedClientManager,
+  selectedMonth
 }: RevenueClientGroupsTableProps) {
   const [data, setData] = useState<ClientGroupData[]>([])
   const [loading, setLoading] = useState(true)
@@ -44,15 +46,16 @@ export function RevenueClientGroupsTable({
         setLoading(true)
         setError(null)
         // Add cache control and timestamp to ensure fresh data on every fetch
-        const response = await fetch(
-          `/api/revenue/client-groups?organizationId=${organizationId}&t=${Date.now()}`,
-          {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache',
-            },
-          }
-        )
+        let url = `/api/revenue/client-groups?organizationId=${organizationId}&t=${Date.now()}`
+        if (selectedMonth) {
+          url += `&month=${encodeURIComponent(selectedMonth)}`
+        }
+        const response = await fetch(url, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+          },
+        })
         
         if (!response.ok) {
           throw new Error('Failed to fetch client group data')
@@ -68,7 +71,7 @@ export function RevenueClientGroupsTable({
     }
 
     fetchData()
-  }, [organizationId])
+  }, [organizationId, selectedMonth])
 
   const formatCurrency = (amount: number) => {
     if (amount === 0) return '-'

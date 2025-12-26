@@ -19,12 +19,14 @@ interface BillableClientGroupsTableProps {
   organizationId: string
   selectedStaff?: string | null
   onStaffChange?: (staff: string | null) => void
+  selectedMonth?: string | null
 }
 
 export function BillableClientGroupsTable({ 
   organizationId, 
   selectedStaff: externalSelectedStaff,
-  onStaffChange 
+  onStaffChange,
+  selectedMonth
 }: BillableClientGroupsTableProps) {
   const [data, setData] = useState<ClientGroupData[]>([])
   const [loading, setLoading] = useState(true)
@@ -42,10 +44,13 @@ export function BillableClientGroupsTable({
       try {
         setLoading(true)
         setError(null)
-        // Build query with optional staff filter
+        // Build query with optional staff and month filters
         let url = `/api/billable/client-groups?organizationId=${organizationId}&t=${Date.now()}`
         if (selectedStaff) {
           url += `&staff=${encodeURIComponent(selectedStaff)}`
+        }
+        if (selectedMonth) {
+          url += `&month=${encodeURIComponent(selectedMonth)}`
         }
         
         const response = await fetch(url, {
@@ -69,7 +74,7 @@ export function BillableClientGroupsTable({
     }
 
     fetchData()
-  }, [organizationId, selectedStaff])
+  }, [organizationId, selectedStaff, selectedMonth])
 
   const formatCurrency = (amount: number) => {
     if (amount === 0) return '-'

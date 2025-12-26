@@ -8,6 +8,7 @@ import {
   Legend,
   ResponsiveContainer,
   LabelList,
+  Cell,
 } from 'recharts'
 
 interface MonthlyBillableData {
@@ -18,9 +19,11 @@ interface MonthlyBillableData {
 
 interface BillableMonthlyChartProps {
   data: MonthlyBillableData[]
+  selectedMonth?: string | null
+  onMonthClick?: (month: string | null) => void
 }
 
-export function BillableMonthlyChart({ data }: BillableMonthlyChartProps) {
+export function BillableMonthlyChart({ data, selectedMonth, onMonthClick }: BillableMonthlyChartProps) {
   // Calculate financial year based on current date
   const now = new Date()
   const currentMonth = now.getMonth() // 0-11
@@ -89,11 +92,26 @@ export function BillableMonthlyChart({ data }: BillableMonthlyChartProps) {
     )
   }
 
+  const handleBarClick = (data: any) => {
+    if (onMonthClick && data && data.activePayload && data.activePayload.length > 0) {
+      const clickedMonth = data.activePayload[0].payload.month
+      if (clickedMonth) {
+        // Toggle: if clicking the same month, deselect it
+        if (selectedMonth === clickedMonth) {
+          onMonthClick(null)
+        } else {
+          onMonthClick(clickedMonth)
+        }
+      }
+    }
+  }
+
   return (
     <ResponsiveContainer width="100%" height={400}>
       <RechartsBarChart
         data={data}
         margin={{ top: 40, right: 30, left: 5, bottom: 5 }}
+        onClick={handleBarClick}
       >
         <XAxis 
           dataKey="month" 
@@ -106,7 +124,17 @@ export function BillableMonthlyChart({ data }: BillableMonthlyChartProps) {
           fill="#75CBA8" 
           name="Current Year"
           radius={[4, 4, 0, 0]}
+          cursor="pointer"
         >
+          {data.map((entry, index) => {
+            const isSelected = selectedMonth === entry.month
+            return (
+              <Cell 
+                key={`cell-current-${index}`} 
+                fill={isSelected ? '#059669' : '#75CBA8'}
+              />
+            )
+          })}
           <LabelList 
             dataKey="Current Year" 
             position="top"
@@ -126,7 +154,17 @@ export function BillableMonthlyChart({ data }: BillableMonthlyChartProps) {
           fill="#9ca3af" 
           name="Last Year"
           radius={[4, 4, 0, 0]}
+          cursor="pointer"
         >
+          {data.map((entry, index) => {
+            const isSelected = selectedMonth === entry.month
+            return (
+              <Cell 
+                key={`cell-last-${index}`} 
+                fill={isSelected ? '#6b7280' : '#9ca3af'}
+              />
+            )
+          })}
           <LabelList 
             dataKey="Last Year" 
             position="top"

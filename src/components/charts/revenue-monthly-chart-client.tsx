@@ -15,12 +15,16 @@ interface RevenueMonthlyChartClientProps {
   organizationId: string
   selectedPartner?: string | null
   selectedClientManager?: string | null
+  selectedMonth?: string | null
+  onMonthClick?: (month: string | null) => void
 }
 
 export function RevenueMonthlyChartClient({ 
   organizationId,
   selectedPartner,
-  selectedClientManager
+  selectedClientManager,
+  selectedMonth,
+  onMonthClick
 }: RevenueMonthlyChartClientProps) {
   const [data, setData] = useState<MonthlyRevenueData[]>([])
   const [loading, setLoading] = useState(true)
@@ -108,7 +112,11 @@ export function RevenueMonthlyChartClient({
         <CardDescription>Monthly revenue comparison</CardDescription>
       </CardHeader>
       <CardContent>
-        <RevenueMonthlyChart data={data} />
+        <RevenueMonthlyChart 
+          data={data} 
+          selectedMonth={selectedMonth}
+          onMonthClick={onMonthClick}
+        />
       </CardContent>
     </Card>
   )

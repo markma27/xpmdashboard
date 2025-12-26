@@ -20,6 +20,7 @@ interface RevenueReportContainerProps {
 export function RevenueReportContainer({ organizationId }: RevenueReportContainerProps) {
   const [selectedPartner, setSelectedPartner] = useState<string | null>(null)
   const [selectedClientManager, setSelectedClientManager] = useState<string | null>(null)
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null)
   const [data, setData] = useState<ClientGroupData[]>([])
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<string | null>(null)
@@ -93,11 +94,14 @@ export function RevenueReportContainer({ organizationId }: RevenueReportContaine
         organizationId={organizationId}
         selectedPartner={selectedPartner}
         selectedClientManager={selectedClientManager}
+        selectedMonth={selectedMonth}
+        onMonthClick={setSelectedMonth}
       />
       <RevenueClientGroupsTable 
         organizationId={organizationId}
         selectedPartner={selectedPartner}
         selectedClientManager={selectedClientManager}
+        selectedMonth={selectedMonth}
       />
     </>
   )

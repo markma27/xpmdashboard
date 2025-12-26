@@ -15,12 +15,16 @@ interface RecoverabilityMonthlyChartClientProps {
   organizationId: string
   selectedPartner?: string | null
   selectedClientManager?: string | null
+  selectedMonth?: string | null
+  onMonthClick?: (month: string | null) => void
 }
 
 export function RecoverabilityMonthlyChartClient({ 
   organizationId,
   selectedPartner,
-  selectedClientManager
+  selectedClientManager,
+  selectedMonth,
+  onMonthClick
 }: RecoverabilityMonthlyChartClientProps) {
   const [data, setData] = useState<MonthlyRecoverabilityData[]>([])
   const [loading, setLoading] = useState(true)
@@ -108,7 +112,11 @@ export function RecoverabilityMonthlyChartClient({
         <CardDescription>Monthly recoverability comparison</CardDescription>
       </CardHeader>
       <CardContent>
-        <RecoverabilityMonthlyChart data={data} />
+        <RecoverabilityMonthlyChart 
+          data={data} 
+          selectedMonth={selectedMonth}
+          onMonthClick={onMonthClick}
+        />
       </CardContent>
     </Card>
   )

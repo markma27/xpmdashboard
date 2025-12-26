@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
     const organizationId = searchParams.get('organizationId') || org.id
     const partnerFilter = searchParams.get('partner')
     const clientManagerFilter = searchParams.get('clientManager')
+    const monthFilter = searchParams.get('month') // Optional month filter (e.g., "October")
 
     const supabase = await createClient()
 
@@ -40,6 +41,25 @@ export async function GET(request: NextRequest) {
     const lastYearStart = `${lastFYStartYear}-07-01`
     const lastYearEnd = `${lastFYEndYear}-06-30`
 
+    // Helper function to get month date range
+    const getMonthDateRange = (monthName: string, year: number) => {
+      const monthMap: { [key: string]: number } = {
+        'January': 0, 'February': 1, 'March': 2, 'April': 3,
+        'May': 4, 'June': 5, 'July': 6, 'August': 7,
+        'September': 8, 'October': 9, 'November': 10, 'December': 11
+      }
+      const monthIndex = monthMap[monthName]
+      if (monthIndex === undefined) return null
+      
+      const startDate = new Date(year, monthIndex, 1)
+      const endDate = new Date(year, monthIndex + 1, 0)
+      
+      return {
+        start: `${year}-${String(monthIndex + 1).padStart(2, '0')}-01`,
+        end: `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`
+      }
+    }
+
     // Helper function to fetch all data for a date range
     const fetchAllData = async (startDate: string, endDate: string): Promise<any[]> => {
       let allData: any[] = []
@@ -50,7 +70,7 @@ export async function GET(request: NextRequest) {
       while (hasMore) {
         let query = supabase
           .from('recoverability_timesheet_uploads')
-          .select('client_group, write_on_amount, account_manager, job_manager')
+          .select('client_group, write_on_amount, account_manager, job_manager, date')
           .eq('organization_id', organizationId)
           .gte('date', startDate)
           .lte('date', endDate)
@@ -84,11 +104,51 @@ export async function GET(request: NextRequest) {
       return allData
     }
 
-    // Fetch current year and last year data in parallel
-    const [currentYearData, lastYearData] = await Promise.all([
-      fetchAllData(currentYearStart, currentYearEnd),
-      fetchAllData(lastYearStart, lastYearEnd),
-    ])
+    // Determine date ranges based on month filter
+    let currentYearData: any[] = []
+    let lastYearData: any[] = []
+    
+    if (monthFilter) {
+      // Filter by specific month
+      const monthMap: { [key: string]: number } = {
+        'January': 0, 'February': 1, 'March': 2, 'April': 3,
+        'May': 4, 'June': 5, 'July': 6, 'August': 7,
+        'September': 8, 'October': 9, 'November': 10, 'December': 11
+      }
+      const monthIndex = monthMap[monthFilter]
+      
+      if (monthIndex !== undefined) {
+        // Determine which financial year this month belongs to
+        let currentYear: number
+        let lastYear: number
+        
+        if (monthIndex >= 6) {
+          // July-December: belongs to current FY start year
+          currentYear = currentFYStartYear
+          lastYear = lastFYStartYear
+        } else {
+          // January-June: belongs to current FY end year
+          currentYear = currentFYEndYear
+          lastYear = lastFYEndYear
+        }
+        
+        const currentRange = getMonthDateRange(monthFilter, currentYear)
+        const lastRange = getMonthDateRange(monthFilter, lastYear)
+        
+        if (currentRange && lastRange) {
+          [currentYearData, lastYearData] = await Promise.all([
+            fetchAllData(currentRange.start, currentRange.end),
+            fetchAllData(lastRange.start, lastRange.end),
+          ])
+        }
+      }
+    } else {
+      // Fetch all data for current and last financial year
+      [currentYearData, lastYearData] = await Promise.all([
+        fetchAllData(currentYearStart, currentYearEnd),
+        fetchAllData(lastYearStart, lastYearEnd),
+      ])
+    }
 
     // Aggregate by client_group
     // Store account_manager and job_manager (use the most common one for each group)
