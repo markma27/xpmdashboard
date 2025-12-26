@@ -39,7 +39,7 @@ export function RecoverabilityReportHeader({
       <div className="flex-1">
         <h1 className="text-3xl font-bold">Recoverability Report</h1>
         <p className="text-muted-foreground">
-          View recoverability data by month, client groups, and partners/managers
+          View recoverability data by month and client groups
         </p>
         {formattedDate && (
           <p className="text-sm text-red-800 mt-1">

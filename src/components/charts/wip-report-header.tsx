@@ -39,7 +39,7 @@ export function WIPReportHeader({
       <div className="flex-1">
         <h1 className="text-3xl font-bold">Work In Progress Report</h1>
         <p className="text-muted-foreground">
-          View WIP amounts by partner, client manager, and client groups
+          View WIP amounts by partner, client manager and client groups
         </p>
         {formattedDate && (
           <p className="text-sm text-red-800 mt-1">
