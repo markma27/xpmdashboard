@@ -65,3 +65,38 @@
   }
 }
 
+/* Hide placeholder for empty date inputs */
+input[type="date"]:not([value]),
+input[type="date"][value=""] {
+  color: transparent;
+}
+
+input[type="date"]:not([value]):focus,
+input[type="date"][value=""]:focus,
+input[type="date"]:not([value]):valid,
+input[type="date"][value=""]:valid {
+  color: inherit;
+}
+
+input[type="date"]:not([value])::-webkit-datetime-edit-text,
+input[type="date"][value=""]::-webkit-datetime-edit-text,
+input[type="date"]:not([value])::-webkit-datetime-edit-month-field,
+input[type="date"][value=""]::-webkit-datetime-edit-month-field,
+input[type="date"]:not([value])::-webkit-datetime-edit-day-field,
+input[type="date"][value=""]::-webkit-datetime-edit-day-field,
+input[type="date"]:not([value])::-webkit-datetime-edit-year-field,
+input[type="date"][value=""]::-webkit-datetime-edit-year-field {
+  opacity: 0;
+}
+
+input[type="date"]:not([value]):focus::-webkit-datetime-edit-text,
+input[type="date"][value=""]:focus::-webkit-datetime-edit-text,
+input[type="date"]:not([value]):focus::-webkit-datetime-edit-month-field,
+input[type="date"][value=""]:focus::-webkit-datetime-edit-month-field,
+input[type="date"]:not([value]):focus::-webkit-datetime-edit-day-field,
+input[type="date"][value=""]:focus::-webkit-datetime-edit-day-field,
+input[type="date"]:not([value]):focus::-webkit-datetime-edit-year-field,
+input[type="date"][value=""]:focus::-webkit-datetime-edit-year-field {
+  opacity: 1;
+}
+

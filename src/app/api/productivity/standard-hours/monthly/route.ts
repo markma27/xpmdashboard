@@ -22,38 +22,29 @@ function getWeekdaysInMonth(year: number, month: number): number {
 }
 
 /**
- * Extract staff name from raw_data (XPM API XML format parsed by xml2js)
+ * Calculate the number of weekdays (Monday-Friday) in a date range
  */
-function extractStaffName(rawData: any): string {
-  if (!rawData) return 'Unknown'
+function getWeekdaysInDateRange(startDate: Date, endDate: Date): number {
+  let weekdays = 0
+  const current = new Date(startDate)
   
-  const extractValue = (obj: any, key: string): string | null => {
-    if (!obj || !obj[key]) return null
-    const value = obj[key]
-    if (Array.isArray(value) && value.length > 0) {
-      return String(value[0])
+  // Normalize to start of day
+  current.setHours(0, 0, 0, 0)
+  const end = new Date(endDate)
+  end.setHours(23, 59, 59, 999)
+  
+  while (current <= end) {
+    const dayOfWeek = current.getDay()
+    // 0 = Sunday, 1 = Monday, ..., 5 = Friday, 6 = Saturday
+    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+      weekdays++
     }
-    return String(value)
+    current.setDate(current.getDate() + 1)
   }
   
-  const firstName = extractValue(rawData, 'FirstName')
-  const lastName = extractValue(rawData, 'LastName')
-  const name = extractValue(rawData, 'Name')
-  
-  if (firstName && lastName) {
-    return `${firstName} ${lastName}`.trim()
-  } else if (firstName) {
-    return firstName
-  } else if (lastName) {
-    return lastName
-  } else if (name) {
-    return name
-  } else if (typeof rawData === 'string') {
-    return rawData
-  }
-  
-  return 'Unknown'
+  return weekdays
 }
+
 
 export async function GET(request: NextRequest) {
   try {
@@ -81,54 +72,112 @@ export async function GET(request: NextRequest) {
     const lastFYStartYear = currentFYStartYear - 1
     const lastFYEndYear = currentFYStartYear
 
-    // Get all staff from xpm_staff table
-    const { data: staffData, error: staffError } = await supabase
-      .from('xpm_staff')
-      .select('id, xpm_id, raw_data')
-      .eq('organization_id', organizationId)
-
-    if (staffError) {
-      throw new Error(`Failed to fetch staff: ${staffError.message}`)
+    // Get unique staff names from timesheet_uploads table
+    // Use pagination to ensure we get all records
+    let allTimesheetData: any[] = []
+    let page = 0
+    const pageSize = 1000
+    let hasMore = true
+    
+    while (hasMore) {
+      const { data: pageData, error: pageError } = await supabase
+        .from('timesheet_uploads')
+        .select('staff')
+        .eq('organization_id', organizationId)
+        .not('staff', 'is', null)
+        .neq('staff', '')
+        .range(page * pageSize, (page + 1) * pageSize - 1)
+      
+      if (pageError) {
+        throw new Error(`Failed to fetch staff from timesheets: ${pageError.message}`)
+      }
+      
+      if (pageData && pageData.length > 0) {
+        allTimesheetData = allTimesheetData.concat(pageData)
+        page++
+        hasMore = pageData.length === pageSize
+      } else {
+        hasMore = false
+      }
     }
 
-    // Get staff settings (default_daily_hours)
+    // Extract unique staff names
+    const uniqueStaffNames = new Set<string>()
+    if (allTimesheetData) {
+      allTimesheetData.forEach((record) => {
+        if (record.staff && record.staff.trim()) {
+          const trimmedName = record.staff.trim()
+          // Exclude 'disbursement' (case-insensitive)
+          if (trimmedName.toLowerCase() !== 'disbursement') {
+            uniqueStaffNames.add(trimmedName)
+          }
+        }
+      })
+    }
+
+    // Convert to sorted array
+    const staffNames = Array.from(uniqueStaffNames).sort()
+
+    // Get staff settings (default_daily_hours, start_date, end_date, is_hidden)
     const { data: targetData, error: targetError } = await supabase
-      .from('staff_target_billable')
-      .select('xpm_id, default_daily_hours')
+      .from('staff_settings')
+      .select('staff_name, default_daily_hours, start_date, end_date, is_hidden')
       .eq('organization_id', organizationId)
 
     if (targetError) {
       throw new Error(`Failed to fetch staff settings: ${targetError.message}`)
     }
 
-    // Create a map of xpm_id -> default_daily_hours
-    const dailyHoursMap = new Map<string, number>()
+    // Create a map of staff name -> settings
+    interface StaffSettings {
+      default_daily_hours: number
+      start_date: string | null
+      end_date: string | null
+      is_hidden: boolean
+    }
+    const staffSettingsMap = new Map<string, StaffSettings>()
     if (targetData) {
       targetData.forEach((item) => {
-        if (item.default_daily_hours) {
-          dailyHoursMap.set(item.xpm_id, Number(item.default_daily_hours))
+        if (item.staff_name) {
+          // Skip hidden staff
+          if (item.is_hidden) {
+            return
+          }
+          staffSettingsMap.set(item.staff_name, {
+            default_daily_hours: item.default_daily_hours ? Number(item.default_daily_hours) : 8,
+            start_date: item.start_date || null,
+            end_date: item.end_date || null,
+            is_hidden: item.is_hidden || false,
+          })
         }
       })
     }
-
-    // Create a map of staff name -> default_daily_hours
-    const staffNameToHoursMap = new Map<string, number>()
-    if (staffData) {
-      staffData.forEach((staff) => {
-        const staffName = extractStaffName(staff.raw_data)
-        const dailyHours = dailyHoursMap.get(staff.xpm_id) || 8 // Default to 8 hours if not set
-        staffNameToHoursMap.set(staffName, dailyHours)
-      })
-    }
+    
+    // For staff names from timesheet_uploads that don't have settings, default to 8 hours
+    staffNames.forEach((staffName) => {
+      if (!staffSettingsMap.has(staffName)) {
+        staffSettingsMap.set(staffName, {
+          default_daily_hours: 8, // Default to 8 hours if not set
+          start_date: null,
+          end_date: null,
+          is_hidden: false,
+        })
+      }
+    })
 
     // Filter staff if staffFilter is provided
     let selectedStaffNames: string[] = []
     if (staffFilter) {
-      // Single staff selected
-      selectedStaffNames = [staffFilter]
+      // Single staff selected - check if not hidden
+      const settings = staffSettingsMap.get(staffFilter)
+      if (settings && !settings.is_hidden) {
+        selectedStaffNames = [staffFilter]
+      }
     } else {
-      // All staff selected
-      selectedStaffNames = Array.from(staffNameToHoursMap.keys())
+      // All staff selected - exclude hidden staff
+      selectedStaffNames = Array.from(staffSettingsMap.entries())
+        .filter(([_, settings]) => !settings.is_hidden)
+        .map(([staffName, _]) => staffName)
     }
 
     // Initialize months array (July to June)
@@ -182,10 +231,87 @@ export async function GET(request: NextRequest) {
       let currentYearTotal = 0
       let lastYearTotal = 0
 
+      // Calculate month start and end dates
+      const currentYearMonthStart = new Date(currentYearForMonth, monthIndex, 1)
+      const currentYearMonthEnd = new Date(currentYearForMonth, monthIndex + 1, 0)
+      const lastYearMonthStart = new Date(lastYearForMonth, monthIndex, 1)
+      const lastYearMonthEnd = new Date(lastYearForMonth, monthIndex + 1, 0)
+
       selectedStaffNames.forEach((staffName) => {
-        const dailyHours = staffNameToHoursMap.get(staffName) || 8
-        currentYearTotal += currentYearWeekdays * dailyHours
-        lastYearTotal += lastYearWeekdays * dailyHours
+        const settings = staffSettingsMap.get(staffName)
+        if (!settings) return
+
+        const dailyHours = settings.default_daily_hours || 8
+
+        // Calculate effective date range for current year month
+        let currentYearEffectiveStart: Date | null = currentYearMonthStart
+        let currentYearEffectiveEnd: Date | null = currentYearMonthEnd
+        
+        if (settings.start_date) {
+          const startDate = new Date(settings.start_date)
+          startDate.setHours(0, 0, 0, 0)
+          // If start date is after month end, exclude this staff
+          if (startDate > currentYearMonthEnd) {
+            currentYearEffectiveStart = null // Mark as excluded
+          } else if (startDate > currentYearMonthStart) {
+            // Staff started during the month - use start date as effective start
+            currentYearEffectiveStart = startDate
+          }
+        }
+        
+        if (settings.end_date && currentYearEffectiveStart !== null) {
+          const endDate = new Date(settings.end_date)
+          endDate.setHours(23, 59, 59, 999)
+          // If end date is before month start, exclude this staff
+          if (endDate < currentYearMonthStart) {
+            currentYearEffectiveStart = null // Mark as excluded
+          } else if (endDate < currentYearMonthEnd) {
+            // Staff ended during the month - use end date as effective end
+            currentYearEffectiveEnd = endDate
+          }
+        }
+
+        // Calculate effective date range for last year month
+        let lastYearEffectiveStart: Date | null = lastYearMonthStart
+        let lastYearEffectiveEnd: Date | null = lastYearMonthEnd
+        
+        if (settings.start_date) {
+          const startDate = new Date(settings.start_date)
+          startDate.setHours(0, 0, 0, 0)
+          if (startDate > lastYearMonthEnd) {
+            lastYearEffectiveStart = null // Mark as excluded
+          } else if (startDate > lastYearMonthStart) {
+            lastYearEffectiveStart = startDate
+          }
+        }
+        
+        if (settings.end_date && lastYearEffectiveStart !== null) {
+          const endDate = new Date(settings.end_date)
+          endDate.setHours(23, 59, 59, 999)
+          if (endDate < lastYearMonthStart) {
+            lastYearEffectiveStart = null // Mark as excluded
+          } else if (endDate < lastYearMonthEnd) {
+            lastYearEffectiveEnd = endDate
+          }
+        }
+
+        // Calculate weekdays for effective date ranges
+        // Only calculate if effective start and end are valid
+        if (currentYearEffectiveStart !== null && currentYearEffectiveEnd !== null) {
+          const currentYearEffectiveWeekdays = getWeekdaysInDateRange(
+            currentYearEffectiveStart,
+            currentYearEffectiveEnd
+          )
+          currentYearTotal += currentYearEffectiveWeekdays * dailyHours
+        }
+        
+        if (lastYearEffectiveStart !== null && lastYearEffectiveEnd !== null) {
+          const lastYearEffectiveWeekdays = getWeekdaysInDateRange(
+            lastYearEffectiveStart,
+            lastYearEffectiveEnd
+          )
+          lastYearTotal += lastYearEffectiveWeekdays * dailyHours
+        }
       })
 
       monthlyData[i].currentYear = Math.round(currentYearTotal * 100) / 100

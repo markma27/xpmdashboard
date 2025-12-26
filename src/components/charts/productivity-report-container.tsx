@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { ProductivityMonthlyChartClient } from './productivity-monthly-chart-client'
+import { ProductivityPercentageChartClient } from './productivity-percentage-chart-client'
 import { ProductivityStandardHoursChartClient } from './productivity-standard-hours-chart-client'
+import { ProductivityCapacityReducingChartClient } from './productivity-capacity-reducing-chart-client'
+import { ProductivityTotalHoursChartClient } from './productivity-total-hours-chart-client'
 import { ProductivityClientGroupsTable } from './productivity-client-groups-table'
 import { ProductivityReportHeader } from './productivity-report-header'
 
@@ -73,7 +76,19 @@ export function ProductivityReportContainer({ organizationId }: ProductivityRepo
         selectedMonth={selectedMonth}
         onMonthClick={setSelectedMonth}
       />
+      <ProductivityPercentageChartClient 
+        organizationId={organizationId} 
+        selectedStaff={selectedStaff}
+      />
       <ProductivityStandardHoursChartClient 
+        organizationId={organizationId} 
+        selectedStaff={selectedStaff}
+      />
+      <ProductivityCapacityReducingChartClient 
+        organizationId={organizationId} 
+        selectedStaff={selectedStaff}
+      />
+      <ProductivityTotalHoursChartClient 
         organizationId={organizationId} 
         selectedStaff={selectedStaff}
       />

@@ -36,24 +36,20 @@ export async function GET(request: NextRequest) {
     const org = await requireOrg()
     const searchParams = request.nextUrl.searchParams
     const organizationId = searchParams.get('organizationId') || org.id
+    const staffFilter = searchParams.get('staff') // Optional staff filter
 
     const supabase = await createClient()
 
     // Calculate financial year based on current date
-    // Financial year runs from July 1 to June 30
     const now = new Date()
-    const currentMonth = now.getMonth() // 0-11 (0=January, 11=December)
+    const currentMonth = now.getMonth() // 0-11
     const currentYear = now.getFullYear()
     
     // Determine current financial year
-    // If current month >= 6 (July-December), FY starts in current year
-    // If current month < 6 (January-June), FY starts in previous year
     let currentFYStartYear: number
     if (currentMonth >= 6) {
-      // July-December: FY starts this year
       currentFYStartYear = currentYear
     } else {
-      // January-June: FY started last year
       currentFYStartYear = currentYear - 1
     }
     
@@ -75,13 +71,20 @@ export async function GET(request: NextRequest) {
       let hasMore = true
       
       while (hasMore) {
-        const { data: pageData, error: pageError } = await supabase
+        let query = supabase
           .from('timesheet_uploads')
-          .select('staff, time')
+          .select('date, time')
           .eq('organization_id', organizationId)
-          .eq('billable', true)
+          .eq('capacity_reducing', true)
           .gte('date', startDate)
           .lte('date', endDate)
+        
+        // Apply staff filter if provided
+        if (staffFilter) {
+          query = query.eq('staff', staffFilter)
+        }
+        
+        const { data: pageData, error: pageError } = await query
           .range(page * pageSize, (page + 1) * pageSize - 1)
         
         if (pageError) {
@@ -106,77 +109,71 @@ export async function GET(request: NextRequest) {
       fetchAllData(lastYearStart, lastYearEnd),
     ])
 
-    // Aggregate hours by staff for both years
-    const staffHours = new Map<string, { currentYear: number; lastYear: number }>()
+    // Initialize months array (July to June)
+    const months = [
+      'July', 'August', 'September', 'October', 'November', 'December',
+      'January', 'February', 'March', 'April', 'May', 'June'
+    ]
 
-    // Process current year data
+    // Initialize data structure
+    const monthlyData = months.map((month) => {
+      return {
+        month,
+        currentYear: 0,
+        lastYear: 0,
+      }
+    })
+
+    // Aggregate current year data
     if (currentYearData) {
-      currentYearData.forEach((record) => {
-        if (record.staff) {
-          const staffName = record.staff.trim()
-          // Exclude 'disbursement' (case-insensitive)
-          if (staffName && staffName.toLowerCase() !== 'disbursement') {
-            if (!staffHours.has(staffName)) {
-              staffHours.set(staffName, { currentYear: 0, lastYear: 0 })
-            }
-            const staff = staffHours.get(staffName)!
-            const hours = convertTimeToHours(record.time)
-            staff.currentYear += hours
-          }
+      currentYearData.forEach((timesheet) => {
+        const date = new Date(timesheet.date + 'T00:00:00')
+        const month = date.getMonth()
+        const year = date.getFullYear()
+
+        // Verify this belongs to current financial year period
+        if (!((year === currentFYStartYear && month >= 6) || (year === currentFYEndYear && month < 6))) {
+          return
         }
+
+        // Map month to our array index
+        const monthIndex = month >= 6 ? month - 6 : month + 6
+
+        // Convert time to hours and add to monthly total
+        const hours = convertTimeToHours(timesheet.time)
+        monthlyData[monthIndex].currentYear += hours
       })
     }
 
-    // Process last year data
+    // Aggregate last year data
     if (lastYearData) {
-      lastYearData.forEach((record) => {
-        if (record.staff) {
-          const staffName = record.staff.trim()
-          // Exclude 'disbursement' (case-insensitive)
-          if (staffName && staffName.toLowerCase() !== 'disbursement') {
-            if (!staffHours.has(staffName)) {
-              staffHours.set(staffName, { currentYear: 0, lastYear: 0 })
-            }
-            const staff = staffHours.get(staffName)!
-            const hours = convertTimeToHours(record.time)
-            staff.lastYear += hours
-          }
+      lastYearData.forEach((timesheet) => {
+        const date = new Date(timesheet.date + 'T00:00:00')
+        const month = date.getMonth()
+        const year = date.getFullYear()
+
+        // Verify this belongs to last financial year period
+        if (!((year === lastFYStartYear && month >= 6) || (year === lastFYEndYear && month < 6))) {
+          return
         }
+
+        // Map month to our array index
+        const monthIndex = month >= 6 ? month - 6 : month + 6
+
+        // Convert time to hours and add to monthly total
+        const hours = convertTimeToHours(timesheet.time)
+        monthlyData[monthIndex].lastYear += hours
       })
     }
 
-    // Get staff settings to filter out hidden staff
-    const { data: staffSettings } = await supabase
-      .from('staff_settings')
-      .select('staff_name, is_hidden')
-      .eq('organization_id', organizationId)
+    // Return hours (rounded to 2 decimal places)
+    const formattedData = monthlyData.map((item) => ({
+      month: item.month,
+      'Current Year': Math.round(item.currentYear * 100) / 100,
+      'Last Year': Math.round(item.lastYear * 100) / 100,
+    }))
 
-    // Create a set of hidden staff names
-    const hiddenStaffSet = new Set<string>()
-    if (staffSettings) {
-      staffSettings.forEach((setting) => {
-        if (setting.staff_name && setting.is_hidden) {
-          hiddenStaffSet.add(setting.staff_name)
-        }
-      })
-    }
-
-    // Filter staff: only include those with at least one non-zero year and not hidden
-    // Round hours to 2 decimal places first and check if > 0
-    const staffList = Array.from(staffHours.entries())
-      .filter(([staffName, hours]) => {
-        // Exclude hidden staff
-        if (hiddenStaffSet.has(staffName)) {
-          return false
-        }
-        const roundedCurrentYear = Math.round(hours.currentYear * 100) / 100
-        const roundedLastYear = Math.round(hours.lastYear * 100) / 100
-        return roundedCurrentYear > 0 || roundedLastYear > 0
-      })
-      .map(([staffName, _]) => staffName)
-      .sort()
-
-    return NextResponse.json(staffList, {
+    return NextResponse.json(formattedData, {
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
         'Pragma': 'no-cache',

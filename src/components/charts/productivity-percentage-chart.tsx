@@ -1,0 +1,140 @@
+'use client'
+
+import {
+  BarChart as RechartsBarChart,
+  Bar,
+  XAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  LabelList,
+} from 'recharts'
+
+interface MonthlyProductivityPercentageData {
+  month: string
+  'Current Year': number
+  'Last Year': number
+}
+
+interface ProductivityPercentageChartProps {
+  data: MonthlyProductivityPercentageData[]
+}
+
+export function ProductivityPercentageChart({ data }: ProductivityPercentageChartProps) {
+  // Calculate financial year based on current date
+  const now = new Date()
+  const currentMonth = now.getMonth() // 0-11
+  const currentYear = now.getFullYear()
+  
+  // Determine current financial year
+  let currentFYStartYear: number
+  if (currentMonth >= 6) {
+    currentFYStartYear = currentYear
+  } else {
+    currentFYStartYear = currentYear - 1
+  }
+  
+  const currentFYEndYear = currentFYStartYear + 1
+  const lastFYStartYear = currentFYStartYear - 1
+  const lastFYEndYear = currentFYStartYear
+
+  // Custom tooltip content
+  const customTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload || !payload.length) return null
+
+    const monthIndex = data.findIndex((d) => d.month === label)
+    if (monthIndex === -1) return null
+
+    // Determine years based on month index
+    const currentYearValue = monthIndex < 6 ? currentFYStartYear : currentFYEndYear
+    const lastYearValue = monthIndex < 6 ? lastFYStartYear : lastFYEndYear
+
+    // Format month abbreviation (first 3 letters)
+    const monthAbbr = label.substring(0, 3)
+
+    const currentYearPayload = payload.find((p: any) => p.dataKey === 'Current Year')
+    const lastYearPayload = payload.find((p: any) => p.dataKey === 'Last Year')
+    
+    const currentYearPercentage = currentYearPayload?.value || 0
+    const lastYearPercentage = lastYearPayload?.value || 0
+
+    const formatPercentage = (percentage: number) => {
+      if (percentage === 0) return '-'
+      return `${percentage.toFixed(1)}%`
+    }
+
+    return (
+      <div className="rounded-lg border bg-background p-3 shadow-md">
+        <div className="text-sm font-medium flex items-center gap-2">
+          <div 
+            className="w-3 h-3 rounded-sm" 
+            style={{ backgroundColor: currentYearPayload?.color || '#fca5a5' }}
+          />
+          <span>
+            {monthAbbr} {currentYearValue}: {formatPercentage(currentYearPercentage)}
+          </span>
+        </div>
+        <div className="text-sm font-medium flex items-center gap-2">
+          <div 
+            className="w-3 h-3 rounded-sm" 
+            style={{ backgroundColor: lastYearPayload?.color || '#9ca3af' }}
+          />
+          <span>
+            {monthAbbr} {lastYearValue}: {formatPercentage(lastYearPercentage)}
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={400}>
+      <RechartsBarChart
+        data={data}
+        margin={{ top: 40, right: 30, left: 5, bottom: 5 }}
+      >
+        <XAxis 
+          dataKey="month" 
+          tick={{ fontSize: 12 }}
+        />
+        <Tooltip content={customTooltip} />
+        <Legend />
+        <Bar 
+          dataKey="Current Year" 
+          fill="#fca5a5" 
+          name="Current Year"
+          radius={[4, 4, 0, 0]}
+        >
+          <LabelList 
+            dataKey="Current Year" 
+            position="top"
+            formatter={(value: number) => {
+              if (value === 0) return ''
+              // Show percentage with 1 decimal place
+              return `${value.toFixed(1)}%`
+            }}
+            style={{ fontSize: '11px', fill: '#666' }}
+          />
+        </Bar>
+        <Bar 
+          dataKey="Last Year" 
+          fill="#9ca3af" 
+          name="Last Year"
+          radius={[4, 4, 0, 0]}
+        >
+          <LabelList 
+            dataKey="Last Year" 
+            position="top"
+            formatter={(value: number) => {
+              if (value === 0) return ''
+              // Show percentage with 1 decimal place
+              return `${value.toFixed(1)}%`
+            }}
+            style={{ fontSize: '11px', fill: '#666' }}
+          />
+        </Bar>
+      </RechartsBarChart>
+    </ResponsiveContainer>
+  )
+}
+

@@ -17,7 +17,7 @@ import {
 
 interface StaffTarget {
   id: string
-  xpm_id: string
+  staff_name: string
   name: string
   target_billable_percentage: number | null
   fte: number | null
@@ -27,6 +27,8 @@ interface StaffTarget {
   team: string | null
   email: string | null
   report: boolean
+  start_date: string | null
+  end_date: string | null
 }
 
 interface StaffTargetListProps {
@@ -42,9 +44,11 @@ interface EditingValues {
   team: string
   email: string
   report: boolean
+  start_date: string
+  end_date: string
 }
 
-type SortColumn = 'name' | 'job_title' | 'team' | 'email' | 'target_billable_percentage' | 'fte' | 'default_daily_hours' | 'report'
+type SortColumn = 'name' | 'job_title' | 'team' | 'email' | 'target_billable_percentage' | 'fte' | 'default_daily_hours' | 'report' | 'start_date' | 'end_date'
 type SortDirection = 'asc' | 'desc'
 
 export function StaffTargetList({ organizationId }: StaffTargetListProps) {
@@ -52,9 +56,10 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
   const [loading, setLoading] = useState(true)
   const [showHidden, setShowHidden] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [saveProgress, setSaveProgress] = useState<{ current: number; total: number } | null>(null)
   const [sortColumn, setSortColumn] = useState<SortColumn>('name')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
-  // Track editing values for each staff member by xpm_id
+  // Track editing values for each staff member by staff_name
   const [editingValues, setEditingValues] = useState<Map<string, EditingValues>>(new Map())
   // Track original values (saved values) to detect unsaved changes
   const [originalValues, setOriginalValues] = useState<Map<string, EditingValues>>(new Map())
@@ -73,8 +78,8 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
   const hasUnsavedChanges = useCallback(() => {
     if (editingValues.size === 0) return false
 
-    for (const [xpmId, currentValues] of editingValues) {
-      const original = originalValues.get(xpmId)
+    for (const [staffName, currentValues] of editingValues) {
+      const original = originalValues.get(staffName)
       if (!original) {
         // New staff member with any non-default values
         if (
@@ -84,6 +89,8 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
           currentValues.job_title !== '' ||
           currentValues.team !== '' ||
           currentValues.email !== '' ||
+          currentValues.start_date !== '' ||
+          currentValues.end_date !== '' ||
           currentValues.is_hidden !== false ||
           currentValues.report !== true
         ) {
@@ -100,6 +107,8 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
         currentValues.job_title !== original.job_title ||
         currentValues.team !== original.team ||
         currentValues.email !== original.email ||
+        currentValues.start_date !== original.start_date ||
+        currentValues.end_date !== original.end_date ||
         currentValues.is_hidden !== original.is_hidden ||
         currentValues.report !== original.report
       ) {
@@ -174,7 +183,7 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
         // Initialize editing values with current values
         const initialValues = new Map<string, EditingValues>()
         data.forEach((staff: StaffTarget) => {
-          initialValues.set(staff.xpm_id, {
+          initialValues.set(staff.staff_name, {
             target_billable_percentage: staff.target_billable_percentage?.toString() || '',
             fte: staff.fte?.toString() || '',
             default_daily_hours: staff.default_daily_hours?.toString() || '',
@@ -183,6 +192,8 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
             team: staff.team || '',
             email: staff.email || '',
             report: staff.report !== undefined ? staff.report : true,
+            start_date: staff.start_date || '',
+            end_date: staff.end_date || '',
           })
         })
         setEditingValues(initialValues)
@@ -198,10 +209,10 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
     }
   }
 
-  const updateEditingValue = (xpmId: string, field: keyof EditingValues, value: string | boolean) => {
+  const updateEditingValue = (staffName: string, field: keyof EditingValues, value: string | boolean) => {
     setEditingValues((prev) => {
       const newMap = new Map(prev)
-      const current = newMap.get(xpmId) || {
+      const current = newMap.get(staffName) || {
         target_billable_percentage: '',
         fte: '',
         default_daily_hours: '',
@@ -210,16 +221,18 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
         team: '',
         email: '',
         report: true,
+        start_date: '',
+        end_date: '',
       }
-      newMap.set(xpmId, { ...current, [field]: value })
+      newMap.set(staffName, { ...current, [field]: value })
       return newMap
     })
   }
 
-  const getEditingValue = (xpmId: string, field: keyof EditingValues): string | boolean => {
-    const values = editingValues.get(xpmId)
+  const getEditingValue = (staffName: string, field: keyof EditingValues): string | boolean => {
+    const values = editingValues.get(staffName)
     if (!values) {
-      const staff = staffList.find((s) => s.xpm_id === xpmId)
+      const staff = staffList.find((s) => s.staff_name === staffName)
       if (!staff) return field === 'is_hidden' ? false : ''
       return field === 'is_hidden'
         ? staff.is_hidden
@@ -237,38 +250,42 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
         ? staff.email || ''
         : field === 'report'
         ? (staff.report !== undefined ? staff.report : true)
+        : field === 'start_date'
+        ? staff.start_date || ''
+        : field === 'end_date'
+        ? staff.end_date || ''
         : ''
     }
     return values[field]
   }
 
-  const handleToggleHidden = async (xpmId: string, newHiddenValue: boolean) => {
+  const handleToggleHidden = async (staffName: string, newHiddenValue: boolean) => {
     setSaving(true)
     try {
       const response = await fetch('/api/staff/target-billable', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          xpm_id: xpmId,
+          staff_name: staffName,
           is_hidden: newHiddenValue,
         }),
       })
 
       if (response.ok) {
         // Update local state immediately
-        updateEditingValue(xpmId, 'is_hidden', newHiddenValue)
+        updateEditingValue(staffName, 'is_hidden', newHiddenValue)
         loadStaff()
       } else {
         const data = await response.json()
         alert(data.error || 'Failed to update hidden status')
         // Revert the change
-        updateEditingValue(xpmId, 'is_hidden', !newHiddenValue)
+        updateEditingValue(staffName, 'is_hidden', !newHiddenValue)
       }
     } catch (error) {
       console.error('Toggle hidden error:', error)
       alert('Failed to update hidden status')
       // Revert the change
-      updateEditingValue(xpmId, 'is_hidden', !newHiddenValue)
+      updateEditingValue(staffName, 'is_hidden', !newHiddenValue)
     } finally {
       setSaving(false)
     }
@@ -278,68 +295,145 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
     // Filter staff based on showHidden setting
     const visibleStaff = staffList.filter((staff) => !staff.is_hidden || showHidden)
 
+    // Only include staff with changes
+    const staffToSave: any[] = []
+    visibleStaff.forEach((staff) => {
+      const values = editingValues.get(staff.staff_name)
+      if (!values) return
+
+      const original = originalValues.get(staff.staff_name)
+      
+      // Check if there are any changes
+      const hasChanges = !original || 
+        values.target_billable_percentage !== original.target_billable_percentage ||
+        values.fte !== original.fte ||
+        values.default_daily_hours !== original.default_daily_hours ||
+        values.job_title !== original.job_title ||
+        values.team !== original.team ||
+        values.email !== original.email ||
+        values.start_date !== original.start_date ||
+        values.end_date !== original.end_date ||
+        values.is_hidden !== original.is_hidden ||
+        values.report !== original.report
+
+      if (!hasChanges) return
+
+      const payload: any = {
+        staff_name: staff.staff_name,
+        is_hidden: values.is_hidden,
+      }
+
+      // Include all fields, even if empty (let API handle null values)
+      if (values.target_billable_percentage && values.target_billable_percentage.trim() !== '') {
+        const percentage = parseFloat(values.target_billable_percentage)
+        if (!isNaN(percentage)) {
+          payload.target_billable_percentage = percentage
+        }
+      }
+      if (values.fte && values.fte.trim() !== '') {
+        const fte = parseFloat(values.fte)
+        if (!isNaN(fte)) {
+          payload.fte = fte
+        }
+      }
+      if (values.default_daily_hours && values.default_daily_hours.trim() !== '') {
+        const dailyHours = parseFloat(values.default_daily_hours)
+        if (!isNaN(dailyHours)) {
+          payload.default_daily_hours = dailyHours
+        }
+      }
+      if (values.job_title && values.job_title.trim() !== '') {
+        payload.job_title = values.job_title.trim()
+      }
+      if (values.team && values.team.trim() !== '') {
+        payload.team = values.team.trim()
+      }
+      if (values.email && values.email.trim() !== '') {
+        payload.email = values.email.trim()
+      }
+      if (values.report !== undefined) {
+        payload.report = values.report
+      }
+      if (values.start_date && values.start_date.trim() !== '') {
+        payload.start_date = values.start_date.trim()
+      }
+      if (values.end_date && values.end_date.trim() !== '') {
+        payload.end_date = values.end_date.trim()
+      }
+
+      staffToSave.push(payload)
+    })
+
+    if (staffToSave.length === 0) {
+      // No changes to save
+      alert('No changes to save')
+      return
+    }
+
     setSaving(true)
+    setSaveProgress({ current: 0, total: staffToSave.length })
     try {
-      // Save all visible staff - allow all fields to be empty
-      const savePromises = visibleStaff.map(async (staff) => {
-        const values = editingValues.get(staff.xpm_id)
-        if (!values) return
-
-        const payload: any = {
-          xpm_id: staff.xpm_id,
-          is_hidden: values.is_hidden,
-        }
-
-        // Include all fields, even if empty (let API handle null values)
-        if (values.target_billable_percentage && values.target_billable_percentage.trim() !== '') {
-          const percentage = parseFloat(values.target_billable_percentage)
-          if (!isNaN(percentage)) {
-            payload.target_billable_percentage = percentage
-          }
-        }
-        if (values.fte && values.fte.trim() !== '') {
-          const fte = parseFloat(values.fte)
-          if (!isNaN(fte)) {
-            payload.fte = fte
-          }
-        }
-        if (values.default_daily_hours && values.default_daily_hours.trim() !== '') {
-          const dailyHours = parseFloat(values.default_daily_hours)
-          if (!isNaN(dailyHours)) {
-            payload.default_daily_hours = dailyHours
-          }
-        }
-        if (values.job_title && values.job_title.trim() !== '') {
-          payload.job_title = values.job_title.trim()
-        }
-        if (values.team && values.team.trim() !== '') {
-          payload.team = values.team.trim()
-        }
-        if (values.email && values.email.trim() !== '') {
-          payload.email = values.email.trim()
-        }
-        if (values.report !== undefined) {
-          payload.report = values.report
-        }
-
-        const response = await fetch('/api/staff/target-billable', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-
-        if (!response.ok) {
-          const data = await response.json()
-          throw new Error(`${staff.name}: ${data.error || 'Failed to save'}`)
-        }
+      // Use batch update API
+      const response = await fetch('/api/staff/target-billable', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ staff: staffToSave }),
       })
 
-      await Promise.all(savePromises)
-      await loadStaff() // loadStaff already updates originalValues
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to save staff settings')
+      }
+
+      const result = await response.json()
+      setSaveProgress({ current: staffToSave.length, total: staffToSave.length })
+      
+      // Update local state without reloading all data
+      // Update originalValues to match current editingValues for saved staff
+      setOriginalValues((prev) => {
+        const newMap = new Map(prev)
+        staffToSave.forEach((savedStaff) => {
+          const values = editingValues.get(savedStaff.staff_name)
+          if (values) {
+            newMap.set(savedStaff.staff_name, { ...values })
+          }
+        })
+        return newMap
+      })
+
+      // Update staffList with saved values
+      setStaffList((prev) => {
+        return prev.map((staff) => {
+          const savedData = staffToSave.find(s => s.staff_name === staff.staff_name)
+          if (!savedData) return staff
+
+          const values = editingValues.get(staff.staff_name)
+          if (!values) return staff
+
+          return {
+            ...staff,
+            target_billable_percentage: savedData.target_billable_percentage !== undefined 
+              ? savedData.target_billable_percentage 
+              : staff.target_billable_percentage,
+            fte: savedData.fte !== undefined ? savedData.fte : staff.fte,
+            default_daily_hours: savedData.default_daily_hours !== undefined 
+              ? savedData.default_daily_hours 
+              : staff.default_daily_hours,
+            job_title: savedData.job_title !== undefined ? savedData.job_title : staff.job_title,
+            team: savedData.team !== undefined ? savedData.team : staff.team,
+            email: savedData.email !== undefined ? savedData.email : staff.email,
+            start_date: savedData.start_date !== undefined ? savedData.start_date : staff.start_date,
+            end_date: savedData.end_date !== undefined ? savedData.end_date : staff.end_date,
+            is_hidden: values.is_hidden,
+            report: values.report,
+          }
+        })
+      })
     } catch (error: any) {
       alert(error.message || 'Failed to save staff settings')
     } finally {
       setSaving(false)
+      setTimeout(() => setSaveProgress(null), 1000) // Clear progress after 1 second
     }
   }
 
@@ -357,50 +451,64 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
         bValue = b.name || ''
         break
       case 'job_title': {
-        const aJobTitle = getEditingValue(a.xpm_id, 'job_title') as string
-        const bJobTitle = getEditingValue(b.xpm_id, 'job_title') as string
+        const aJobTitle = getEditingValue(a.staff_name, 'job_title') as string
+        const bJobTitle = getEditingValue(b.staff_name, 'job_title') as string
         aValue = aJobTitle || ''
         bValue = bJobTitle || ''
         break
       }
       case 'team': {
-        const aTeam = getEditingValue(a.xpm_id, 'team') as string
-        const bTeam = getEditingValue(b.xpm_id, 'team') as string
+        const aTeam = getEditingValue(a.staff_name, 'team') as string
+        const bTeam = getEditingValue(b.staff_name, 'team') as string
         aValue = aTeam || ''
         bValue = bTeam || ''
         break
       }
       case 'target_billable_percentage': {
-        const aPercent = getEditingValue(a.xpm_id, 'target_billable_percentage') as string
-        const bPercent = getEditingValue(b.xpm_id, 'target_billable_percentage') as string
+        const aPercent = getEditingValue(a.staff_name, 'target_billable_percentage') as string
+        const bPercent = getEditingValue(b.staff_name, 'target_billable_percentage') as string
         aValue = aPercent ? parseFloat(aPercent) : null
         bValue = bPercent ? parseFloat(bPercent) : null
         break
       }
       case 'fte': {
-        const aFte = getEditingValue(a.xpm_id, 'fte') as string
-        const bFte = getEditingValue(b.xpm_id, 'fte') as string
+        const aFte = getEditingValue(a.staff_name, 'fte') as string
+        const bFte = getEditingValue(b.staff_name, 'fte') as string
         aValue = aFte ? parseFloat(aFte) : null
         bValue = bFte ? parseFloat(bFte) : null
         break
       }
       case 'default_daily_hours': {
-        const aHours = getEditingValue(a.xpm_id, 'default_daily_hours') as string
-        const bHours = getEditingValue(b.xpm_id, 'default_daily_hours') as string
+        const aHours = getEditingValue(a.staff_name, 'default_daily_hours') as string
+        const bHours = getEditingValue(b.staff_name, 'default_daily_hours') as string
         aValue = aHours ? parseFloat(aHours) : null
         bValue = bHours ? parseFloat(bHours) : null
         break
       }
       case 'email': {
-        const aEmail = getEditingValue(a.xpm_id, 'email') as string
-        const bEmail = getEditingValue(b.xpm_id, 'email') as string
+        const aEmail = getEditingValue(a.staff_name, 'email') as string
+        const bEmail = getEditingValue(b.staff_name, 'email') as string
         aValue = aEmail || ''
         bValue = bEmail || ''
         break
       }
       case 'report': {
-        aValue = getEditingValue(a.xpm_id, 'report') ? 1 : 0
-        bValue = getEditingValue(b.xpm_id, 'report') ? 1 : 0
+        aValue = getEditingValue(a.staff_name, 'report') ? 1 : 0
+        bValue = getEditingValue(b.staff_name, 'report') ? 1 : 0
+        break
+      }
+      case 'start_date': {
+        const aStartDate = getEditingValue(a.staff_name, 'start_date') as string
+        const bStartDate = getEditingValue(b.staff_name, 'start_date') as string
+        aValue = aStartDate || ''
+        bValue = bStartDate || ''
+        break
+      }
+      case 'end_date': {
+        const aEndDate = getEditingValue(a.staff_name, 'end_date') as string
+        const bEndDate = getEditingValue(b.staff_name, 'end_date') as string
+        aValue = aEndDate || ''
+        bValue = bEndDate || ''
         break
       }
       default:
@@ -492,7 +600,11 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
           </div>
           <Button onClick={handleSaveAll} disabled={saving} size="default">
             <Save className="mr-2 h-4 w-4" />
-            {saving ? 'Saving...' : 'Save All'}
+            {saving 
+              ? saveProgress 
+                ? `Saving... (${saveProgress.current}/${saveProgress.total})`
+                : 'Saving...'
+              : 'Save All'}
           </Button>
         </div>
       </div>
@@ -501,182 +613,231 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
         <div className="rounded-lg border border-dashed p-8 text-center">
           <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
           <p className="text-sm text-muted-foreground">
-            No staff members found. Please sync staff data from XPM first.
+            No staff members found. Please upload timesheet data first.
           </p>
         </div>
       ) : (
         <div className="rounded-md border">
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
+            <table className="w-full border-collapse text-xs">
               <thead>
                 <tr className="border-b bg-muted/50">
                   <th
-                    className="text-left p-3 font-semibold text-sm cursor-pointer hover:bg-muted/50 select-none"
+                    className="text-left p-2 font-semibold text-xs cursor-pointer hover:bg-muted/50 select-none"
                     onClick={() => handleSort('name')}
                   >
                     Name<SortIcon column="name" />
                   </th>
                   <th
-                    className="text-left p-3 font-semibold text-sm cursor-pointer hover:bg-muted/50 select-none"
+                    className="text-left p-2 font-semibold text-xs cursor-pointer hover:bg-muted/50 select-none"
                     onClick={() => handleSort('job_title')}
                   >
                     Job Title<SortIcon column="job_title" />
                   </th>
                   <th
-                    className="text-left p-3 font-semibold text-sm cursor-pointer hover:bg-muted/50 select-none"
+                    className="text-left p-2 font-semibold text-xs cursor-pointer hover:bg-muted/50 select-none"
                     onClick={() => handleSort('team')}
                   >
                     Team<SortIcon column="team" />
                   </th>
                   <th
-                    className="text-left p-3 font-semibold text-sm cursor-pointer hover:bg-muted/50 select-none"
+                    className="text-left p-2 font-semibold text-xs cursor-pointer hover:bg-muted/50 select-none"
                     onClick={() => handleSort('email')}
                   >
                     Email<SortIcon column="email" />
                   </th>
                   <th
-                    className="text-left p-3 font-semibold text-sm cursor-pointer hover:bg-muted/50 select-none"
+                    className="text-left p-2 font-semibold text-xs cursor-pointer hover:bg-muted/50 select-none"
                     onClick={() => handleSort('target_billable_percentage')}
                   >
                     Target Billable (%)<SortIcon column="target_billable_percentage" />
                   </th>
                   <th
-                    className="text-left p-3 font-semibold text-sm cursor-pointer hover:bg-muted/50 select-none"
+                    className="text-left p-2 font-semibold text-xs cursor-pointer hover:bg-muted/50 select-none"
                     onClick={() => handleSort('fte')}
                   >
                     FTE<SortIcon column="fte" />
                   </th>
                   <th
-                    className="text-left p-3 font-semibold text-sm cursor-pointer hover:bg-muted/50 select-none"
+                    className="text-left p-2 font-semibold text-xs cursor-pointer hover:bg-muted/50 select-none"
                     onClick={() => handleSort('default_daily_hours')}
                   >
                     Daily Hours<SortIcon column="default_daily_hours" />
                   </th>
                   <th
-                    className="text-center p-3 font-semibold text-sm cursor-pointer hover:bg-muted/50 select-none"
+                    className="text-left p-2 font-semibold text-xs cursor-pointer hover:bg-muted/50 select-none"
+                    onClick={() => handleSort('start_date')}
+                  >
+                    Start Date<SortIcon column="start_date" />
+                  </th>
+                  <th
+                    className="text-left p-2 font-semibold text-xs cursor-pointer hover:bg-muted/50 select-none"
+                    onClick={() => handleSort('end_date')}
+                  >
+                    End Date<SortIcon column="end_date" />
+                  </th>
+                  <th
+                    className="text-center p-2 font-semibold text-xs cursor-pointer hover:bg-muted/50 select-none"
                     onClick={() => handleSort('report')}
                   >
                     Report<SortIcon column="report" />
                   </th>
-                  <th className="text-center p-3 font-semibold text-sm">Actions</th>
+                  <th className="text-center p-2 font-semibold text-xs">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {visibleStaff.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={11} className="p-8 text-center text-muted-foreground">
                       No staff members to display
                     </td>
                   </tr>
                 ) : (
                   visibleStaff.map((staff) => (
-                    <tr key={staff.id} className="border-b hover:bg-muted/30">
-                      <td className="p-3">
-                        <div className="font-medium text-sm">{staff.name}</div>
+                    <tr 
+                      key={staff.id} 
+                      className={`border-b hover:bg-muted/30 ${
+                        staff.is_hidden && showHidden ? 'bg-pink-50' : ''
+                      }`}
+                    >
+                      <td className="p-2">
+                        <div className="font-medium text-xs">{staff.name}</div>
                       </td>
-                      <td className="p-3">
+                      <td className="p-2">
                         <Input
                           type="text"
-                          value={getEditingValue(staff.xpm_id, 'job_title') as string}
+                          value={getEditingValue(staff.staff_name, 'job_title') as string}
                           onChange={(e) =>
-                            updateEditingValue(staff.xpm_id, 'job_title', e.target.value)
+                            updateEditingValue(staff.staff_name, 'job_title', e.target.value)
                           }
-                          className="w-48 text-sm"
+                          className="w-40 text-xs h-7"
                           placeholder="Job Title"
                           disabled={saving}
                         />
                       </td>
-                      <td className="p-3">
+                      <td className="p-2">
                         <Input
                           type="text"
-                          value={getEditingValue(staff.xpm_id, 'team') as string}
-                          onChange={(e) => updateEditingValue(staff.xpm_id, 'team', e.target.value)}
-                          className="w-48 text-sm"
+                          value={getEditingValue(staff.staff_name, 'team') as string}
+                          onChange={(e) => updateEditingValue(staff.staff_name, 'team', e.target.value)}
+                          className="w-40 text-xs h-7"
                           placeholder="Team"
                           disabled={saving}
                         />
                       </td>
-                      <td className="p-3">
+                      <td className="p-2">
                         <Input
                           type="email"
-                          value={getEditingValue(staff.xpm_id, 'email') as string}
-                          onChange={(e) => updateEditingValue(staff.xpm_id, 'email', e.target.value)}
-                          className="w-64 text-sm"
+                          value={getEditingValue(staff.staff_name, 'email') as string}
+                          onChange={(e) => updateEditingValue(staff.staff_name, 'email', e.target.value)}
+                          className="w-48 text-xs h-7"
                           placeholder="Email"
                           disabled={saving}
                         />
                       </td>
-                      <td className="p-3">
+                      <td className="p-2">
                         <Input
                           type="number"
                           min="0"
                           max="100"
                           step="0.01"
-                          value={getEditingValue(staff.xpm_id, 'target_billable_percentage') as string}
+                          value={getEditingValue(staff.staff_name, 'target_billable_percentage') as string}
                           onChange={(e) =>
-                            updateEditingValue(staff.xpm_id, 'target_billable_percentage', e.target.value)
+                            updateEditingValue(staff.staff_name, 'target_billable_percentage', e.target.value)
                           }
-                          className="w-24 text-sm"
+                          className="w-20 text-xs h-7"
                           placeholder="%"
                           disabled={saving}
                         />
                       </td>
-                      <td className="p-3">
+                      <td className="p-2">
                         <Input
                           type="number"
                           min="0"
                           max="1"
                           step="0.01"
-                          value={getEditingValue(staff.xpm_id, 'fte') as string}
-                          onChange={(e) => updateEditingValue(staff.xpm_id, 'fte', e.target.value)}
-                          className="w-24 text-sm"
+                          value={getEditingValue(staff.staff_name, 'fte') as string}
+                          onChange={(e) => updateEditingValue(staff.staff_name, 'fte', e.target.value)}
+                          className="w-20 text-xs h-7"
                           placeholder="0.0-1.0"
                           disabled={saving}
                         />
                       </td>
-                      <td className="p-3">
+                      <td className="p-2">
                         <Input
                           type="number"
                           min="0"
                           max="24"
                           step="0.1"
-                          value={getEditingValue(staff.xpm_id, 'default_daily_hours') as string}
+                          value={getEditingValue(staff.staff_name, 'default_daily_hours') as string}
                           onChange={(e) =>
-                            updateEditingValue(staff.xpm_id, 'default_daily_hours', e.target.value)
+                            updateEditingValue(staff.staff_name, 'default_daily_hours', e.target.value)
                           }
-                          className="w-24 text-sm"
+                          className="w-20 text-xs h-7"
                           placeholder="hours"
                           disabled={saving}
                         />
                       </td>
-                      <td className="p-3">
+                      <td className="p-2">
+                        {(() => {
+                          const dateValue = getEditingValue(staff.staff_name, 'start_date') as string
+                          return (
+                            <Input
+                              type="date"
+                              value={dateValue || ''}
+                              onChange={(e) =>
+                                updateEditingValue(staff.staff_name, 'start_date', e.target.value || '')
+                              }
+                              className="w-32 text-xs h-7"
+                              disabled={saving}
+                            />
+                          )
+                        })()}
+                      </td>
+                      <td className="p-2">
+                        {(() => {
+                          const dateValue = getEditingValue(staff.staff_name, 'end_date') as string
+                          return (
+                            <Input
+                              type="date"
+                              value={dateValue || ''}
+                              onChange={(e) =>
+                                updateEditingValue(staff.staff_name, 'end_date', e.target.value || '')
+                              }
+                              className="w-32 text-xs h-7"
+                              disabled={saving}
+                            />
+                          )
+                        })()}
+                      </td>
+                      <td className="p-2">
                         <div className="flex justify-center">
                           <Button
                             size="sm"
-                            variant={(getEditingValue(staff.xpm_id, 'report') as boolean) ? 'default' : 'outline'}
+                            variant={(getEditingValue(staff.staff_name, 'report') as boolean) ? 'default' : 'outline'}
                             onClick={() => {
-                              const currentReport = getEditingValue(staff.xpm_id, 'report') as boolean
-                              updateEditingValue(staff.xpm_id, 'report', !currentReport)
+                              const currentReport = getEditingValue(staff.staff_name, 'report') as boolean
+                              updateEditingValue(staff.staff_name, 'report', !currentReport)
                             }}
                             disabled={saving}
-                            className="text-sm min-w-[60px]"
+                            className="text-xs h-7 px-2"
                           >
-                            {(getEditingValue(staff.xpm_id, 'report') as boolean) ? 'Yes' : 'No'}
+                            {(getEditingValue(staff.staff_name, 'report') as boolean) ? 'Yes' : 'No'}
                           </Button>
                         </div>
                       </td>
-                      <td className="p-3 text-center">
+                      <td className="p-2 text-center">
                         <Button
                           size="sm"
-                          variant={getEditingValue(staff.xpm_id, 'is_hidden') ? 'outline' : 'secondary'}
+                          variant={getEditingValue(staff.staff_name, 'is_hidden') ? 'outline' : 'secondary'}
                           onClick={() => {
-                            const currentHidden = getEditingValue(staff.xpm_id, 'is_hidden') as boolean
-                            handleToggleHidden(staff.xpm_id, !currentHidden)
+                            const currentHidden = getEditingValue(staff.staff_name, 'is_hidden') as boolean
+                            handleToggleHidden(staff.staff_name, !currentHidden)
                           }}
                           disabled={saving}
-                          className="text-sm"
+                          className="text-xs h-7 px-2"
                         >
-                          {getEditingValue(staff.xpm_id, 'is_hidden') ? 'Unhide' : 'Hide'}
+                          {getEditingValue(staff.staff_name, 'is_hidden') ? 'Unhide' : 'Hide'}
                         </Button>
                       </td>
                     </tr>
