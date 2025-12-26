@@ -12,6 +12,7 @@ import {
   Briefcase,
   BarChart3,
   Upload,
+  Users,
 } from 'lucide-react'
 
 const navigation = [
@@ -64,6 +65,11 @@ const navigation = [
         name: 'Members',
         href: '/settings/members',
         icon: Settings,
+      },
+      {
+        name: 'Staff',
+        href: '/settings/staff',
+        icon: Users,
       },
       {
         name: 'Xero Connection',
