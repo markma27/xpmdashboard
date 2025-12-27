@@ -145,28 +145,31 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Get staff settings to filter out hidden staff
+    // Get staff settings to filter out hidden staff and staff with report = false
     const { data: staffSettings } = await supabase
       .from('staff_settings')
-      .select('staff_name, is_hidden')
+      .select('staff_name, is_hidden, report')
       .eq('organization_id', organizationId)
 
-    // Create a set of hidden staff names
-    const hiddenStaffSet = new Set<string>()
+    // Create a set of excluded staff names (hidden or report = false)
+    const excludedStaffSet = new Set<string>()
     if (staffSettings) {
       staffSettings.forEach((setting) => {
-        if (setting.staff_name && setting.is_hidden) {
-          hiddenStaffSet.add(setting.staff_name)
+        if (setting.staff_name) {
+          // Exclude if hidden or report = false
+          if (setting.is_hidden || setting.report === false) {
+            excludedStaffSet.add(setting.staff_name)
+          }
         }
       })
     }
 
-    // Filter staff: only include those with at least one non-zero year and not hidden
+    // Filter staff: only include those with at least one non-zero year, not hidden, and report = true
     // Round hours to 2 decimal places first and check if > 0
     const staffList = Array.from(staffHours.entries())
       .filter(([staffName, hours]) => {
-        // Exclude hidden staff
-        if (hiddenStaffSet.has(staffName)) {
+        // Exclude hidden staff or staff with report = false
+        if (excludedStaffSet.has(staffName)) {
           return false
         }
         const roundedCurrentYear = Math.round(hours.currentYear * 100) / 100

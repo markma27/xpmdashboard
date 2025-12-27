@@ -127,10 +127,30 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Filter staff: only include those with at least one non-zero year
+    // Get staff settings to filter out staff with report = false
+    const { data: staffSettings } = await supabase
+      .from('staff_settings')
+      .select('staff_name, report')
+      .eq('organization_id', organizationId)
+
+    // Create a set of excluded staff names (report = false)
+    const excludedStaffSet = new Set<string>()
+    if (staffSettings) {
+      staffSettings.forEach((setting) => {
+        if (setting.staff_name && setting.report === false) {
+          excludedStaffSet.add(setting.staff_name)
+        }
+      })
+    }
+
+    // Filter staff: only include those with at least one non-zero year and report = true
     // Round amounts to integers first (matching frontend display) and check if > 0
     const staffList = Array.from(staffAmounts.entries())
-      .filter(([_, amounts]) => {
+      .filter(([staffName, amounts]) => {
+        // Exclude staff with report = false
+        if (excludedStaffSet.has(staffName)) {
+          return false
+        }
         const roundedCurrentYear = Math.round(amounts.currentYear)
         const roundedLastYear = Math.round(amounts.lastYear)
         return roundedCurrentYear > 0 || roundedLastYear > 0
