@@ -28,10 +28,18 @@ interface ProductivityKPIData {
   lastYearAverageRate: number
 }
 
+interface RecoverabilityKPIData {
+  currentYearAmount: number
+  lastYearAmount: number
+  percentageChange: number | null
+  currentYearPercentage: number
+  lastYearPercentage: number
+}
+
 function KPICardSkeleton() {
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {[1, 2, 3, 4].map((i) => (
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {[1, 2, 3, 4, 5, 6].map((i) => (
         <Card key={i} className="overflow-hidden">
           <CardHeader className="pb-3 border-b">
             <CardTitle className="text-sm font-semibold">
@@ -59,26 +67,63 @@ function KPICardSkeleton() {
 export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICardsProps) {
   const [dashboardData, setDashboardData] = useState<DashboardKPIData | null>(null)
   const [productivityData, setProductivityData] = useState<ProductivityKPIData | null>(null)
+  const [recoverabilityData, setRecoverabilityData] = useState<RecoverabilityKPIData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Fetch saved filters first, then fetch data with filters applied
   useEffect(() => {
     async function fetchData() {
       try {
         setLoading(true)
         setError(null)
         
+        // First, fetch saved filters from Billable page
+        let billableFilters: any[] = []
+        try {
+          const filtersResponse = await fetch(
+            `/api/billable/saved-filters?organizationId=${organizationId}&t=${Date.now()}`,
+            {
+              cache: 'no-store',
+              headers: {
+                'Cache-Control': 'no-cache',
+              },
+            }
+          )
+          
+          if (filtersResponse.ok) {
+            const result = await filtersResponse.json()
+            if (result.filters && Array.isArray(result.filters)) {
+              billableFilters = result.filters
+            }
+          }
+        } catch (err) {
+          // Silently fail - filters are optional
+          console.error('Failed to fetch saved filters:', err)
+        }
+        
         const baseParams = `organizationId=${organizationId}&t=${Date.now()}${asOfDate ? `&asOfDate=${asOfDate}` : ''}`
         
-        // Fetch dashboard KPI data and productivity KPI data in parallel
-        const [dashboardResponse, productivityResponse] = await Promise.all([
-          fetch(`/api/dashboard/kpi?${baseParams}`, {
+        // Add filters parameter if filters exist
+        const filtersParam = billableFilters.length > 0 
+          ? `&filters=${encodeURIComponent(JSON.stringify(billableFilters))}`
+          : ''
+        
+        // Fetch dashboard KPI data, productivity KPI data, and recoverability KPI data in parallel
+        const [dashboardResponse, productivityResponse, recoverabilityResponse] = await Promise.all([
+          fetch(`/api/dashboard/kpi?${baseParams}${filtersParam}`, {
             cache: 'no-store',
             headers: {
               'Cache-Control': 'no-cache',
             },
           }),
-          fetch(`/api/productivity/kpi?${baseParams}`, {
+          fetch(`/api/productivity/kpi?${baseParams}${filtersParam}`, {
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache',
+            },
+          }),
+          fetch(`/api/recoverability/kpi?${baseParams}${filtersParam}`, {
             cache: 'no-store',
             headers: {
               'Cache-Control': 'no-cache',
@@ -94,11 +139,17 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
           throw new Error('Failed to fetch productivity KPI data')
         }
         
+        if (!recoverabilityResponse.ok) {
+          throw new Error('Failed to fetch recoverability KPI data')
+        }
+        
         const dashboardKpiData = await dashboardResponse.json()
         const productivityKpiData = await productivityResponse.json()
+        const recoverabilityKpiData = await recoverabilityResponse.json()
         
         setDashboardData(dashboardKpiData)
         setProductivityData(productivityKpiData)
+        setRecoverabilityData(recoverabilityKpiData)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
       } finally {
@@ -119,22 +170,29 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
     return `$${formatted}`
   }
 
-  // Calculate percentage changes for Billable % and Hourly Rate
-  const billablePercentageChange = productivityData && productivityData.lastYearBillablePercentage > 0
-    ? ((productivityData.ytdBillablePercentage - productivityData.lastYearBillablePercentage) / productivityData.lastYearBillablePercentage) * 100
+  // Calculate percentage changes
+  // For percentage metrics (Billable %, Recoverability %), use absolute difference (percentage points)
+  // For dollar/rate metrics (Hourly Rate), use percentage change rate
+  const billablePercentageChange = productivityData !== null
+    ? productivityData.ytdBillablePercentage - productivityData.lastYearBillablePercentage
     : null
 
   const hourlyRatePercentageChange = productivityData && productivityData.lastYearAverageRate > 0
     ? ((productivityData.ytdAverageRate - productivityData.lastYearAverageRate) / productivityData.lastYearAverageRate) * 100
     : null
 
+  // Calculate percentage change for Recoverability % (absolute difference in percentage points)
+  const recoverabilityPercentageChange = recoverabilityData !== null
+    ? recoverabilityData.currentYearPercentage - recoverabilityData.lastYearPercentage
+    : null
+
   if (loading) {
     return <KPICardSkeleton />
   }
 
-  if (error || !dashboardData || !productivityData) {
+  if (error || !dashboardData || !productivityData || !recoverabilityData) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Error</CardTitle>
@@ -148,11 +206,11 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {/* Total Revenue $ Card */}
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {/* Total Invoice $ Card */}
       <Card className="overflow-hidden">
-        <CardHeader className="pt-3 pb-3 bg-orange-100/50 border-b">
-          <CardTitle className="text-sm font-semibold text-black">Revenue $</CardTitle>
+        <CardHeader className="pt-3 pb-3 bg-blue-100/50 border-b">
+          <CardTitle className="text-sm font-semibold text-black">Invoice $</CardTitle>
         </CardHeader>
         <CardContent className="pt-4 pb-3 bg-white">
           <div className="grid grid-cols-2 gap-3 mb-4">
@@ -188,7 +246,7 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
 
       {/* Billable $ Card */}
       <Card className="overflow-hidden">
-        <CardHeader className="pt-3 pb-3 bg-orange-100/50 border-b">
+        <CardHeader className="pt-3 pb-3 bg-purple-100/50 border-b">
           <CardTitle className="text-sm font-semibold text-black">Billable $</CardTitle>
         </CardHeader>
         <CardContent className="pt-4 pb-3 bg-white">
@@ -258,7 +316,7 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
 
       {/* Hourly Rate Card */}
       <Card className="overflow-hidden">
-        <CardHeader className="pt-3 pb-3 bg-orange-100/50 border-b">
+        <CardHeader className="pt-3 pb-3 bg-yellow-100/50 border-b">
           <CardTitle className="text-sm font-semibold text-black">Hourly Rate $</CardTitle>
         </CardHeader>
         <CardContent className="pt-4 pb-3 bg-white">
@@ -283,6 +341,76 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
                 hourlyRatePercentageChange >= 0 ? 'text-green-600' : 'text-red-600'
               }`}>
                 {hourlyRatePercentageChange >= 0 ? '+' : ''}{hourlyRatePercentageChange.toFixed(1)}%
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Recoverability $ Card */}
+      <Card className="overflow-hidden">
+        <CardHeader className="pt-3 pb-3 bg-orange-100/50 border-b">
+          <CardTitle className="text-sm font-semibold text-black">Write On / (Off) $</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4 pb-3 bg-white">
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="text-center">
+              <div className="text-xs text-muted-foreground mb-2 font-medium">Current Year</div>
+              <div className={`text-2xl font-bold ${
+                recoverabilityData.currentYearAmount < 0 ? 'text-red-600' : 'text-black'
+              }`}>
+                {formatCurrency(recoverabilityData.currentYearAmount)}
+              </div>
+            </div>
+            <div className="text-center border-l border-gray-200">
+              <div className="text-xs text-muted-foreground mb-2 font-medium">Last Year</div>
+              <div className={`text-2xl font-bold ${
+                recoverabilityData.lastYearAmount < 0 ? 'text-red-600' : 'text-black'
+              }`}>
+                {formatCurrency(recoverabilityData.lastYearAmount)}
+              </div>
+            </div>
+          </div>
+          {recoverabilityData.percentageChange !== null && (
+            <div className="pt-3 border-t border-gray-200 text-center">
+              <div className="text-xs text-muted-foreground font-medium mb-1">% Change</div>
+              <div className={`text-base font-semibold ${
+                recoverabilityData.percentageChange >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {recoverabilityData.percentageChange >= 0 ? '+' : ''}{recoverabilityData.percentageChange.toFixed(1)}%
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Recoverability % Card */}
+      <Card className="overflow-hidden">
+        <CardHeader className="pt-3 pb-3 bg-green-100/50 border-b">
+          <CardTitle className="text-sm font-semibold text-black">Recoverability %</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4 pb-3 bg-white">
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="text-center">
+              <div className="text-xs text-muted-foreground mb-2 font-medium">Current Year</div>
+              <div className="text-2xl font-bold text-black">
+                {recoverabilityData.currentYearPercentage.toFixed(1)}%
+              </div>
+            </div>
+            <div className="text-center border-l border-gray-200">
+              <div className="text-xs text-muted-foreground mb-2 font-medium">Last Year</div>
+              <div className="text-2xl font-bold text-black">
+                {recoverabilityData.lastYearPercentage.toFixed(1)}%
+              </div>
+            </div>
+          </div>
+          {recoverabilityPercentageChange !== null && (
+            <div className="pt-3 border-t border-gray-200 text-center">
+              <div className="text-xs text-muted-foreground font-medium mb-1">% Change</div>
+              <div className={`text-base font-semibold ${
+                recoverabilityPercentageChange >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {recoverabilityPercentageChange >= 0 ? '+' : ''}{recoverabilityPercentageChange.toFixed(1)}%
               </div>
             </div>
           )}

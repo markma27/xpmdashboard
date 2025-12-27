@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const organizationId = searchParams.get('organizationId') || org.id
     const filtersParam = searchParams.get('filters') // JSON string of filters array
+    const asOfDateParam = searchParams.get('asOfDate')
 
     const supabase = await createClient()
 
@@ -21,10 +22,10 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Calculate financial year based on current date
-    const now = new Date()
-    const currentMonth = now.getMonth() // 0-11
-    const currentYear = now.getFullYear()
+    // Use provided date or default to today
+    const asOfDate = asOfDateParam ? new Date(asOfDateParam) : new Date()
+    const currentMonth = asOfDate.getMonth() // 0-11
+    const currentYear = asOfDate.getFullYear()
     
     let currentFYStartYear: number
     if (currentMonth >= 6) {
@@ -38,13 +39,22 @@ export async function GET(request: NextRequest) {
     const lastFYEndYear = currentFYStartYear
     
     // Format dates as YYYY-MM-DD
+    // For "same time" comparison, use selected date for current year
     const currentYearStart = `${currentFYStartYear}-07-01`
-    const currentYearEnd = now.toISOString().split('T')[0] // Today's date for YTD
+    const currentYearEnd = asOfDate.toISOString().split('T')[0] // Selected date
+    
+    // For last year "same time", calculate the same day last year
+    // But ensure it doesn't exceed last year's financial year end (June 30)
+    const lastYearSameDate = new Date(asOfDate)
+    lastYearSameDate.setFullYear(lastYearSameDate.getFullYear() - 1)
+    const lastYearEndDate = lastYearSameDate.toISOString().split('T')[0]
+    const lastYearFYEnd = `${lastFYEndYear}-06-30`
+    // Use the earlier of last year same date or last year FY end
+    const lastYearEnd = lastYearEndDate <= lastYearFYEnd ? lastYearEndDate : lastYearFYEnd
     const lastYearStart = `${lastFYStartYear}-07-01`
-    const lastYearEnd = `${lastFYEndYear}-06-30`
 
     // Helper function to fetch all recoverability data for a date range
-    async function fetchRecoverabilityData(startDate: string, endDate: string): Promise<{ amount: number, writeOnAmount: number, invoicedAmount: number }> {
+    const fetchRecoverabilityData = async (startDate: string, endDate: string): Promise<{ amount: number, writeOnAmount: number, invoicedAmount: number }> => {
       let allData: any[] = []
       let page = 0
       const pageSize = 1000
@@ -101,7 +111,7 @@ export async function GET(request: NextRequest) {
         writeOnAmount: totalWriteOnAmount,
         invoicedAmount: totalInvoicedAmount,
       }
-    }
+    };
 
     // Fetch current year and last year data in parallel
     const [currentYearData, lastYearData] = await Promise.all([
@@ -119,13 +129,15 @@ export async function GET(request: NextRequest) {
       percentageChange = currentYearData.amount > 0 ? 100 : -100
     }
 
-    // Calculate Recoverability % = 1 + (write_on_amount / invoiced_amount) * 100
-    const currentYearPercentage = currentYearData.invoicedAmount > 0
-      ? (1 + (currentYearData.writeOnAmount / currentYearData.invoicedAmount)) * 100
+    // Calculate Recoverability % = (1 + write_on_amount / (invoiced_amount - write_on_amount)) * 100
+    const currentYearDenominator = currentYearData.invoicedAmount - currentYearData.writeOnAmount
+    const currentYearPercentage = currentYearDenominator > 0
+      ? (1 + (currentYearData.writeOnAmount / currentYearDenominator)) * 100
       : 0
     
-    const lastYearPercentage = lastYearData.invoicedAmount > 0
-      ? (1 + (lastYearData.writeOnAmount / lastYearData.invoicedAmount)) * 100
+    const lastYearDenominator = lastYearData.invoicedAmount - lastYearData.writeOnAmount
+    const lastYearPercentage = lastYearDenominator > 0
+      ? (1 + (lastYearData.writeOnAmount / lastYearDenominator)) * 100
       : 0
 
     return NextResponse.json({

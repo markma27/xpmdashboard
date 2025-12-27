@@ -117,10 +117,10 @@ export function RecoverabilityKPICards({ organizationId, filters = [] }: Recover
     fetchData()
   }, [organizationId, JSON.stringify(filters)])
 
-  // Calculate percentage change for Recoverability %
-  const recoverabilityPercentageChange = data && data.lastYearPercentage > 0
-    ? ((data.currentYearPercentage - data.lastYearPercentage) / data.lastYearPercentage) * 100
-    : (data && data.currentYearPercentage > 0 && data.lastYearPercentage === 0 ? 100 : null)
+  // Calculate percentage change for Recoverability % (absolute difference in percentage points)
+  const recoverabilityPercentageChange = data !== null
+    ? data.currentYearPercentage - data.lastYearPercentage
+    : null
 
   // Format currency with parentheses for negative values and red color
   const formatCurrency = (amount: number) => {

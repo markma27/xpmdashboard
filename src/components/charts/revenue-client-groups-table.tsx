@@ -97,7 +97,7 @@ export function RevenueClientGroupsTable({
       <Card>
         <CardHeader>
           <CardTitle>Billings by Client Group</CardTitle>
-          <CardDescription>Detailed revenue breakdown by client group</CardDescription>
+          <CardDescription>Detailed invoice breakdown by client group</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[200px]">
@@ -113,7 +113,7 @@ export function RevenueClientGroupsTable({
       <Card>
         <CardHeader>
           <CardTitle>Billings by Client Group</CardTitle>
-          <CardDescription>Detailed revenue breakdown by client group</CardDescription>
+          <CardDescription>Detailed invoice breakdown by client group</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[200px]">
@@ -209,7 +209,7 @@ export function RevenueClientGroupsTable({
     <Card>
       <CardHeader>
         <CardTitle>Billings by Client Group</CardTitle>
-        <CardDescription>Detailed revenue breakdown by client group</CardDescription>
+        <CardDescription>Detailed invoice breakdown by client group</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">

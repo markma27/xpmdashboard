@@ -52,7 +52,7 @@ export function RevenueMonthlyChartClient({
         })
         
         if (!response.ok) {
-          throw new Error('Failed to fetch revenue data')
+          throw new Error('Failed to fetch invoice data')
         }
         
         const result = await response.json()
@@ -76,7 +76,7 @@ export function RevenueMonthlyChartClient({
       <Card>
         <CardHeader>
           <CardTitle>Billings - monthly</CardTitle>
-          <CardDescription>Monthly revenue comparison</CardDescription>
+          <CardDescription>Monthly invoice comparison</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[400px]">
@@ -92,7 +92,7 @@ export function RevenueMonthlyChartClient({
       <Card>
         <CardHeader>
           <CardTitle>Billings - monthly</CardTitle>
-          <CardDescription>Monthly revenue comparison</CardDescription>
+          <CardDescription>Monthly invoice comparison</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[400px]">

@@ -17,7 +17,7 @@ import {
 
 const navigation = [
   {
-    name: 'Dashboard',
+    name: 'Firm Dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
   },
@@ -26,7 +26,7 @@ const navigation = [
     icon: FileText,
     children: [
       {
-        name: 'Revenue',
+        name: 'Invoice',
         href: '/reports/revenue',
         icon: DollarSign,
       },
@@ -111,7 +111,7 @@ export function Sidebar() {
   return (
     <div className="flex h-full w-64 flex-col border-r bg-card">
       <div className="flex h-16 items-center border-b px-6">
-        <h1 className="text-xl font-semibold">XPM Analytics</h1>
+        <h1 className="text-xl font-semibold">XPM Dashboard</h1>
       </div>
       <nav className="flex-1 space-y-1 p-4">
         {navigation.map((item) => {

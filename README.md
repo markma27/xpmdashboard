@@ -1,4 +1,4 @@
-# XPM Analytics Platform
+# XPM Dashboard
 
 Multi-tenant SaaS analytics platform for Xero Practice Manager.
 

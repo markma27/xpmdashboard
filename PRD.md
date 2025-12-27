@@ -1,4 +1,4 @@
-# PRD – XPM Analytics Platform (Multi-Tenant SaaS)
+# PRD – XPM Dashboard (Multi-Tenant SaaS)
 
 ## 1. Project Overview
 

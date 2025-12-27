@@ -28,7 +28,7 @@ export function DashboardRevenueByPartnerChart({ data, loading }: DashboardReven
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Revenue $ by Partner</CardTitle>
+          <CardTitle>Invoice $ by Partner</CardTitle>
           <CardDescription>Current year vs last year</CardDescription>
         </CardHeader>
         <CardContent>
@@ -63,7 +63,7 @@ export function DashboardRevenueByPartnerChart({ data, loading }: DashboardReven
         <div className="text-sm font-medium flex items-center gap-2">
           <div 
             className="w-3 h-3 rounded-sm" 
-            style={{ backgroundColor: currentYearPayload?.color || '#60a5fa' }}
+            style={{ backgroundColor: currentYearPayload?.color || '#75CBA8' }}
           />
           <span>
             Current Year: {formatCurrency(currentYearValue)}
@@ -85,7 +85,7 @@ export function DashboardRevenueByPartnerChart({ data, loading }: DashboardReven
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Revenue $ by Partner</CardTitle>
+        <CardTitle>Invoice $ by Partner</CardTitle>
         <CardDescription>Current year vs last year</CardDescription>
       </CardHeader>
       <CardContent>
@@ -100,10 +100,10 @@ export function DashboardRevenueByPartnerChart({ data, loading }: DashboardReven
               tickLine={false}
             />
             <Tooltip content={customTooltip} />
-            <Legend />
+            <Legend wrapperStyle={{ fontSize: '12px' }} />
             <Bar 
               dataKey="Current Year" 
-              fill="#60a5fa" 
+              fill="#75CBA8" 
               name="Current Year"
               radius={[4, 4, 0, 0]}
             >

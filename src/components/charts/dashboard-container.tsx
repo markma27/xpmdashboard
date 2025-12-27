@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { DashboardKPICards } from './dashboard-kpi-cards'
 import { DashboardPartnerChartsClient } from './dashboard-partner-charts-client'
+import { DashboardStaffPerformanceTable } from './dashboard-staff-performance-table'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -53,6 +54,8 @@ export function DashboardContainer({ organizationId }: DashboardContainerProps) 
       <DashboardKPICards organizationId={organizationId} asOfDate={activeDate} />
 
       <DashboardPartnerChartsClient organizationId={organizationId} asOfDate={activeDate} />
+
+      <DashboardStaffPerformanceTable organizationId={organizationId} asOfDate={activeDate} />
     </div>
   )
 }

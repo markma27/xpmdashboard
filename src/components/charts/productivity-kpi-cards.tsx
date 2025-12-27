@@ -87,10 +87,39 @@ export function ProductivityKPICards({ organizationId, selectedStaff }: Producti
         setLoading(true)
         setError(null)
         
+        // First, fetch saved filters from Billable page
+        let billableFilters: any[] = []
+        try {
+          const filtersResponse = await fetch(
+            `/api/billable/saved-filters?organizationId=${organizationId}&t=${Date.now()}`,
+            {
+              cache: 'no-store',
+              headers: {
+                'Cache-Control': 'no-cache',
+              },
+            }
+          )
+          
+          if (filtersResponse.ok) {
+            const result = await filtersResponse.json()
+            if (result.filters && Array.isArray(result.filters)) {
+              billableFilters = result.filters
+            }
+          }
+        } catch (err) {
+          // Silently fail - filters are optional
+          console.error('Failed to fetch saved filters:', err)
+        }
+        
         const baseParams = `organizationId=${organizationId}&t=${Date.now()}`
         const staffParam = selectedStaff ? `&staff=${encodeURIComponent(selectedStaff)}` : ''
         
-        const response = await fetch(`/api/productivity/kpi?${baseParams}${staffParam}`, {
+        // Add filters parameter if filters exist
+        const filtersParam = billableFilters.length > 0 
+          ? `&filters=${encodeURIComponent(JSON.stringify(billableFilters))}`
+          : ''
+        
+        const response = await fetch(`/api/productivity/kpi?${baseParams}${staffParam}${filtersParam}`, {
           cache: 'no-store',
           headers: {
             'Cache-Control': 'no-cache',
@@ -113,12 +142,12 @@ export function ProductivityKPICards({ organizationId, selectedStaff }: Producti
     fetchData()
   }, [organizationId, selectedStaff])
 
-  // Calculate percentage change for Billable %
-  const billablePercentageChange = data && data.lastYearBillablePercentage > 0
-    ? ((data.ytdBillablePercentage - data.lastYearBillablePercentage) / data.lastYearBillablePercentage) * 100
+  // Calculate percentage change for Billable % (absolute difference in percentage points)
+  const billablePercentageChange = data !== null
+    ? data.ytdBillablePercentage - data.lastYearBillablePercentage
     : null
 
-  // Calculate percentage change for Average Rate
+  // Calculate percentage change for Average Rate (percentage change rate)
   const ratePercentageChange = data && data.lastYearAverageRate > 0
     ? ((data.ytdAverageRate - data.lastYearAverageRate) / data.lastYearAverageRate) * 100
     : null

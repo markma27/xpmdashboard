@@ -63,7 +63,7 @@ export default function CreateOrgPage() {
         <CardHeader>
           <CardTitle>Create Organization</CardTitle>
           <CardDescription>
-            Create your first organization to get started with XPM Analytics Platform
+            Create your first organization to get started with XPM Dashboard
           </CardDescription>
         </CardHeader>
         <CardContent>

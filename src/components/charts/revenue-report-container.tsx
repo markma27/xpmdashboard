@@ -61,7 +61,7 @@ export function RevenueReportContainer({ organizationId }: RevenueReportContaine
           setLastUpdated(uploadResult.lastUploadDate)
         }
       } catch (err) {
-        console.error('Failed to fetch revenue data:', err)
+        console.error('Failed to fetch invoice data:', err)
       } finally {
         setLoading(false)
       }

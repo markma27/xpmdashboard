@@ -8,6 +8,28 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const organizationId = searchParams.get('organizationId') || org.id
     const asOfDateParam = searchParams.get('asOfDate')
+    
+    // Parse filters from query params (same format as Billable page)
+    const filtersParam = searchParams.get('filters')
+    const filters: Array<{ type: string; value: string; operator?: string }> = []
+    if (filtersParam) {
+      try {
+        const parsedFilters = JSON.parse(filtersParam)
+        if (Array.isArray(parsedFilters)) {
+          parsedFilters.forEach((filter: any) => {
+            if (filter.type && filter.value) {
+              filters.push({
+                type: filter.type,
+                value: typeof filter.value === 'string' ? decodeURIComponent(filter.value) : filter.value,
+                operator: filter.operator,
+              })
+            }
+          })
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+    }
 
     const supabase = await createClient()
 
@@ -42,8 +64,8 @@ export async function GET(request: NextRequest) {
     const lastYearEnd = lastYearEndDate <= lastYearFYEnd ? lastYearEndDate : lastYearFYEnd
     const lastYearStart = `${lastFYStartYear}-07-01`
 
-    // Helper function to fetch all revenue data for a date range
-    async function fetchRevenueData(startDate: string, endDate: string): Promise<number> {
+    // Helper function to fetch all invoice data for a date range
+    const fetchRevenueData = async (startDate: string, endDate: string): Promise<number> => {
       let allData: any[] = []
       let page = 0
       const pageSize = 1000
@@ -59,7 +81,7 @@ export async function GET(request: NextRequest) {
           .range(page * pageSize, (page + 1) * pageSize - 1)
         
         if (pageError) {
-          throw new Error(`Failed to fetch revenue data: ${pageError.message}`)
+          throw new Error(`Failed to fetch invoice data: ${pageError.message}`)
         }
         
         if (pageData && pageData.length > 0) {
@@ -83,19 +105,48 @@ export async function GET(request: NextRequest) {
     }
 
     // Helper function to fetch all billable amount data for a date range
-    async function fetchBillableAmountData(startDate: string, endDate: string): Promise<number> {
+    const fetchBillableAmountData = async (startDate: string, endDate: string): Promise<number> => {
       let allData: any[] = []
       let page = 0
       const pageSize = 1000
       let hasMore = true
       
       while (hasMore) {
-        const { data: pageData, error: pageError } = await supabase
+        let query = supabase
           .from('timesheet_uploads')
-          .select('billable_amount')
+          .select('billable_amount, client_group, account_manager, job_manager, job_name, staff')
           .eq('organization_id', organizationId)
           .gte('date', startDate)
           .lte('date', endDate)
+        
+        // Apply filters (same logic as Billable page)
+        filters.forEach((filter) => {
+          if (filter.value && filter.value !== 'all') {
+            switch (filter.type) {
+              case 'staff':
+                query = query.eq('staff', filter.value)
+                break
+              case 'client_group':
+                query = query.eq('client_group', filter.value)
+                break
+              case 'account_manager':
+                query = query.eq('account_manager', filter.value)
+                break
+              case 'job_manager':
+                query = query.eq('job_manager', filter.value)
+                break
+              case 'job_name':
+                if (filter.operator === 'not_contains') {
+                  query = query.or(`job_name.not.ilike.%${filter.value}%,job_name.is.null`)
+                } else {
+                  query = query.ilike('job_name', `%${filter.value}%`)
+                }
+                break
+            }
+          }
+        })
+        
+        const { data: pageData, error: pageError } = await query
           .range(page * pageSize, (page + 1) * pageSize - 1)
         
         if (pageError) {
@@ -123,7 +174,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Helper function to fetch total WIP amount
-    async function fetchTotalWIPAmount(): Promise<number> {
+    const fetchTotalWIPAmount = async (): Promise<number> => {
       let allData: any[] = []
       let page = 0
       const pageSize = 1000

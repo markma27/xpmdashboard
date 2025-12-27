@@ -51,6 +51,28 @@ export async function GET(request: NextRequest) {
     const organizationId = searchParams.get('organizationId') || org.id
     const staffFilter = searchParams.get('staff') // Optional staff filter
     const asOfDateParam = searchParams.get('asOfDate')
+    
+    // Parse filters from query params (same format as Billable page)
+    const filtersParam = searchParams.get('filters')
+    const filters: Array<{ type: string; value: string; operator?: string }> = []
+    if (filtersParam) {
+      try {
+        const parsedFilters = JSON.parse(filtersParam)
+        if (Array.isArray(parsedFilters)) {
+          parsedFilters.forEach((filter: any) => {
+            if (filter.type && filter.value) {
+              filters.push({
+                type: filter.type,
+                value: typeof filter.value === 'string' ? decodeURIComponent(filter.value) : filter.value,
+                operator: filter.operator,
+              })
+            }
+          })
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+    }
 
     const supabase = await createClient()
 
@@ -72,10 +94,19 @@ export async function GET(request: NextRequest) {
     const lastFYEndYear = currentFYStartYear
     
     // Format dates as YYYY-MM-DD
+    // For "same time" comparison, use selected date for current year
     const currentYearStart = `${currentFYStartYear}-07-01`
-    const currentYearEnd = asOfDate.toISOString().split('T')[0] // Selected date for YTD
+    const currentYearEnd = asOfDate.toISOString().split('T')[0] // Selected date
+    
+    // For last year "same time", calculate the same day last year
+    // But ensure it doesn't exceed last year's financial year end (June 30)
+    const lastYearSameDate = new Date(asOfDate)
+    lastYearSameDate.setFullYear(lastYearSameDate.getFullYear() - 1)
+    const lastYearEndDate = lastYearSameDate.toISOString().split('T')[0]
+    const lastYearFYEnd = `${lastFYEndYear}-06-30`
+    // Use the earlier of last year same date or last year FY end
+    const lastYearEnd = lastYearEndDate <= lastYearFYEnd ? lastYearEndDate : lastYearFYEnd
     const lastYearStart = `${lastFYStartYear}-07-01`
-    const lastYearEnd = `${lastFYEndYear}-06-30`
 
     // Helper function to fetch all billable data for a date range
     async function fetchBillableData(startDate: string, endDate: string): Promise<{ hours: number, amount: number }> {
@@ -87,15 +118,46 @@ export async function GET(request: NextRequest) {
       while (hasMore) {
         let query = supabase
           .from('timesheet_uploads')
-          .select('time, billable_amount')
+          .select('time, billable_amount, client_group, account_manager, job_manager, job_name, staff')
           .eq('organization_id', organizationId)
           .eq('billable', true)
           .gte('date', startDate)
           .lte('date', endDate)
         
-        if (staffFilter) {
-          query = query.eq('staff', staffFilter)
+        // Apply staff filter if provided (from URL param or filter)
+        let staffFilterValue = staffFilter
+        filters.forEach((filter) => {
+          if (filter.type === 'staff' && filter.value && filter.value !== 'all') {
+            staffFilterValue = filter.value
+          }
+        })
+        if (staffFilterValue) {
+          query = query.eq('staff', staffFilterValue)
         }
+        
+        // Apply additional filters (same logic as Billable page)
+        filters.forEach((filter) => {
+          if (filter.value && filter.value !== 'all' && filter.type !== 'staff') {
+            switch (filter.type) {
+              case 'client_group':
+                query = query.eq('client_group', filter.value)
+                break
+              case 'account_manager':
+                query = query.eq('account_manager', filter.value)
+                break
+              case 'job_manager':
+                query = query.eq('job_manager', filter.value)
+                break
+              case 'job_name':
+                if (filter.operator === 'not_contains') {
+                  query = query.or(`job_name.not.ilike.%${filter.value}%,job_name.is.null`)
+                } else {
+                  query = query.ilike('job_name', `%${filter.value}%`)
+                }
+                break
+            }
+          }
+        })
         
         const { data: pageData, error: pageError } = await query
           .range(page * pageSize, (page + 1) * pageSize - 1)

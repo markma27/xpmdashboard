@@ -52,7 +52,7 @@ export function DashboardPartnerChartsClient({ organizationId, asOfDate }: Dashb
         ])
         
         if (!revenueResponse.ok) {
-          throw new Error('Failed to fetch revenue by partner data')
+          throw new Error('Failed to fetch invoice by partner data')
         }
         
         if (!billableResponse.ok) {

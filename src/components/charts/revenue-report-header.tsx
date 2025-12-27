@@ -37,9 +37,9 @@ export function RevenueReportHeader({
   return (
     <div className="flex items-start justify-between gap-4">
       <div className="flex-1">
-        <h1 className="text-3xl font-bold">Revenue Report</h1>
+        <h1 className="text-3xl font-bold">Invoice Report</h1>
         <p className="text-muted-foreground">
-          View revenue data by month and client groups
+          View invoice data by month and client groups
         </p>
         {formattedDate && (
           <p className="text-sm text-red-800 mt-1">
