@@ -9,6 +9,7 @@ import { ProductivityPercentageChartClient } from './productivity-percentage-cha
 // import { ProductivityTotalHoursChartClient } from './productivity-total-hours-chart-client'
 import { ProductivityClientGroupsTable } from './productivity-client-groups-table'
 import { ProductivityReportHeader } from './productivity-report-header'
+import { ProductivityKPICards } from './productivity-kpi-cards'
 
 interface ProductivityReportContainerProps {
   organizationId: string
@@ -70,6 +71,10 @@ export function ProductivityReportContainer({ organizationId }: ProductivityRepo
         staffList={staffList}
         onStaffChange={setSelectedStaff}
         lastUpdated={lastUpdated}
+      />
+      <ProductivityKPICards
+        organizationId={organizationId}
+        selectedStaff={selectedStaff}
       />
       <ProductivityMonthlyChartClient 
         organizationId={organizationId} 

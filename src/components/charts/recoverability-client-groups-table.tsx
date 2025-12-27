@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { TableSkeleton } from './chart-skeleton'
+import { BillableFilter } from './billable-filters'
 
 interface ClientGroupData {
   clientGroup: string
@@ -17,28 +18,20 @@ type SortDirection = 'asc' | 'desc'
 
 interface RecoverabilityClientGroupsTableProps {
   organizationId: string
-  selectedPartner?: string | null
-  selectedClientManager?: string | null
   selectedMonth?: string | null
+  filters?: BillableFilter[]
 }
 
 export function RecoverabilityClientGroupsTable({ 
   organizationId,
-  selectedPartner: externalSelectedPartner,
-  selectedClientManager: externalSelectedClientManager,
-  selectedMonth
+  selectedMonth,
+  filters = []
 }: RecoverabilityClientGroupsTableProps) {
   const [data, setData] = useState<ClientGroupData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [internalSelectedPartner, setInternalSelectedPartner] = useState<string | null>(null)
-  const [internalSelectedClientManager, setInternalSelectedClientManager] = useState<string | null>(null)
   const [sortColumn, setSortColumn] = useState<SortColumn>('currentYear')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
-  
-  // Use external values if provided, otherwise use internal state
-  const selectedPartner = externalSelectedPartner !== undefined ? externalSelectedPartner : internalSelectedPartner
-  const selectedClientManager = externalSelectedClientManager !== undefined ? externalSelectedClientManager : internalSelectedClientManager
 
   useEffect(() => {
     async function fetchData() {
@@ -49,6 +42,9 @@ export function RecoverabilityClientGroupsTable({
         let url = `/api/recoverability/client-groups?organizationId=${organizationId}&t=${Date.now()}`
         if (selectedMonth) {
           url += `&month=${encodeURIComponent(selectedMonth)}`
+        }
+        if (filters.length > 0) {
+          url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`
         }
         const response = await fetch(url, {
           cache: 'no-store',
@@ -71,7 +67,7 @@ export function RecoverabilityClientGroupsTable({
     }
 
     fetchData()
-  }, [organizationId, selectedMonth])
+  }, [organizationId, selectedMonth, JSON.stringify(filters)])
 
   const formatCurrency = (amount: number) => {
     if (amount === 0) return '-'
@@ -126,25 +122,8 @@ export function RecoverabilityClientGroupsTable({
     )
   }
 
-  // Get unique partners from data
-  const partners = Array.from(
-    new Set(data.map((item) => item.partner).filter(Boolean))
-  ).sort() as string[]
-
-  // Get unique client managers from data
-  const clientManagers = Array.from(
-    new Set(data.map((item) => item.clientManager).filter(Boolean))
-  ).sort() as string[]
-
-  // Filter data by selected partner and client manager
-  const filteredData = data.filter((item) => {
-    const matchesPartner = !selectedPartner || item.partner === selectedPartner
-    const matchesClientManager = !selectedClientManager || item.clientManager === selectedClientManager
-    return matchesPartner && matchesClientManager
-  })
-
-  // Sort data
-  const sortedData = [...filteredData].sort((a, b) => {
+  // Sort data (filtering is done at API level)
+  const sortedData = [...data].sort((a, b) => {
     let aValue: string | number
     let bValue: string | number
 

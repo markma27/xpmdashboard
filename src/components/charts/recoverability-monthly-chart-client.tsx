@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { RecoverabilityMonthlyChart } from './recoverability-monthly-chart'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartSkeleton } from './chart-skeleton'
+import { BillableFilter } from './billable-filters'
 
 interface MonthlyRecoverabilityData {
   month: string
@@ -13,18 +14,16 @@ interface MonthlyRecoverabilityData {
 
 interface RecoverabilityMonthlyChartClientProps {
   organizationId: string
-  selectedPartner?: string | null
-  selectedClientManager?: string | null
   selectedMonth?: string | null
   onMonthClick?: (month: string | null) => void
+  filters?: BillableFilter[]
 }
 
 export function RecoverabilityMonthlyChartClient({ 
   organizationId,
-  selectedPartner,
-  selectedClientManager,
   selectedMonth,
-  onMonthClick
+  onMonthClick,
+  filters = []
 }: RecoverabilityMonthlyChartClientProps) {
   const [data, setData] = useState<MonthlyRecoverabilityData[]>([])
   const [loading, setLoading] = useState(true)
@@ -35,13 +34,10 @@ export function RecoverabilityMonthlyChartClient({
       try {
         setLoading(true)
         setError(null)
-        // Build query with optional filters
+        // Build query with filters
         let url = `/api/recoverability/monthly?organizationId=${organizationId}&t=${Date.now()}`
-        if (selectedPartner) {
-          url += `&partner=${encodeURIComponent(selectedPartner)}`
-        }
-        if (selectedClientManager) {
-          url += `&clientManager=${encodeURIComponent(selectedClientManager)}`
+        if (filters.length > 0) {
+          url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`
         }
         
         const response = await fetch(url, {
@@ -65,7 +61,7 @@ export function RecoverabilityMonthlyChartClient({
     }
 
     fetchData()
-  }, [organizationId, selectedPartner, selectedClientManager])
+  }, [organizationId, JSON.stringify(filters)])
 
   if (loading) {
     return <ChartSkeleton />

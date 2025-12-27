@@ -7,10 +7,19 @@ export async function GET(request: NextRequest) {
     const org = await requireOrg()
     const searchParams = request.nextUrl.searchParams
     const organizationId = searchParams.get('organizationId') || org.id
-    const partnerFilter = searchParams.get('partner') // Optional partner filter (account_manager)
-    const clientManagerFilter = searchParams.get('clientManager') // Optional client manager filter (job_manager)
+    const filtersParam = searchParams.get('filters') // JSON string of filters array
 
     const supabase = await createClient()
+
+    // Parse filters
+    let filters: any[] = []
+    if (filtersParam) {
+      try {
+        filters = JSON.parse(decodeURIComponent(filtersParam))
+      } catch (e) {
+        // Invalid JSON, ignore filters
+      }
+    }
 
     // Calculate financial year based on current date
     // Financial year runs from July 1 to June 30
@@ -50,20 +59,24 @@ export async function GET(request: NextRequest) {
       while (hasMore) {
         let query = supabase
           .from('recoverability_timesheet_uploads')
-          .select('date, write_on_amount, account_manager, job_manager')
+          .select('date, write_on_amount, account_manager, job_manager, client_group, staff')
           .eq('organization_id', organizationId)
           .gte('date', startDate)
           .lte('date', endDate)
         
-        // Apply partner filter if provided
-        if (partnerFilter) {
-          query = query.eq('account_manager', partnerFilter)
-        }
-        
-        // Apply client manager filter if provided
-        if (clientManagerFilter) {
-          query = query.eq('job_manager', clientManagerFilter)
-        }
+        // Apply filters (note: job_name filter is not supported for recoverability)
+        filters.forEach((filter) => {
+          if (filter.type === 'account_manager' && filter.value && filter.value !== 'all') {
+            query = query.eq('account_manager', filter.value)
+          } else if (filter.type === 'job_manager' && filter.value && filter.value !== 'all') {
+            query = query.eq('job_manager', filter.value)
+          } else if (filter.type === 'client_group' && filter.value) {
+            query = query.eq('client_group', filter.value)
+          } else if (filter.type === 'staff' && filter.value && filter.value !== 'all') {
+            query = query.eq('staff', filter.value)
+          }
+          // job_name filter is ignored for recoverability (not available in this table)
+        })
         
         const { data: pageData, error: pageError } = await query
           .range(page * pageSize, (page + 1) * pageSize - 1)

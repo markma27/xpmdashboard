@@ -31,6 +31,7 @@ interface BillableFiltersProps {
   staffList?: string[]
   partnerList?: string[]
   clientManagerList?: string[]
+  filterOptionsApi?: string // Optional API endpoint for filter options (defaults to 'billable')
 }
 
 interface FilterOptions {
@@ -49,6 +50,7 @@ export function BillableFilters({
   staffList = [],
   partnerList = [],
   clientManagerList = [],
+  filterOptionsApi = 'billable',
 }: BillableFiltersProps) {
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     clientGroups: [],
@@ -61,7 +63,7 @@ export function BillableFilters({
     async function fetchFilterOptions() {
       try {
         const response = await fetch(
-          `/api/billable/filter-options?organizationId=${organizationId}&t=${Date.now()}`,
+          `/api/${filterOptionsApi}/filter-options?organizationId=${organizationId}&t=${Date.now()}`,
           {
             cache: 'no-store',
             headers: {
@@ -82,7 +84,7 @@ export function BillableFilters({
     }
 
     fetchFilterOptions()
-  }, [organizationId])
+  }, [organizationId, filterOptionsApi])
 
   // Debug: Log when partnerList or clientManagerList changes
   useEffect(() => {

@@ -1,25 +1,33 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
+import { BillableFilters, BillableFilter } from './billable-filters'
 
 interface RecoverabilityReportHeaderProps {
-  selectedPartner: string | null
-  selectedClientManager: string | null
-  partners: string[]
-  clientManagers: string[]
-  onPartnerChange: (partner: string | null) => void
-  onClientManagerChange: (manager: string | null) => void
   lastUpdated?: string | null
+  pendingFilters: BillableFilter[]
+  appliedFilters: BillableFilter[]
+  onPendingFiltersChange: (filters: BillableFilter[]) => void
+  onApplyFilters: () => void
+  onSaveFilters?: () => void
+  savingFilters?: boolean
+  organizationId: string
+  staffList: string[]
+  partnerList: string[]
+  clientManagerList: string[]
 }
 
 export function RecoverabilityReportHeader({
-  selectedPartner,
-  selectedClientManager,
-  partners,
-  clientManagers,
-  onPartnerChange,
-  onClientManagerChange,
   lastUpdated,
+  pendingFilters,
+  appliedFilters,
+  onPendingFiltersChange,
+  onApplyFilters,
+  onSaveFilters,
+  savingFilters = false,
+  organizationId,
+  staffList,
+  partnerList,
+  clientManagerList,
 }: RecoverabilityReportHeaderProps) {
   // Format date as DD MMM YYYY
   const formatDate = (dateString: string | null) => {
@@ -47,48 +55,19 @@ export function RecoverabilityReportHeader({
           </p>
         )}
       </div>
-      <div className="flex flex-col items-end gap-2 pt-2">
-        {/* Partner Filter Slicers */}
-        <div className="flex flex-wrap gap-2 justify-end">
-          <Button
-            variant={selectedPartner === null ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => onPartnerChange(null)}
-          >
-            All Partners
-          </Button>
-          {partners.map((partner) => (
-            <Button
-              key={partner}
-              variant={selectedPartner === partner ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => onPartnerChange(partner)}
-            >
-              {partner}
-            </Button>
-          ))}
-        </div>
-        
-        {/* Client Manager Filter Slicers */}
-        <div className="flex flex-wrap gap-2 justify-end">
-          <Button
-            variant={selectedClientManager === null ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => onClientManagerChange(null)}
-          >
-            All Managers
-          </Button>
-          {clientManagers.map((manager) => (
-            <Button
-              key={manager}
-              variant={selectedClientManager === manager ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => onClientManagerChange(manager)}
-            >
-              {manager}
-            </Button>
-          ))}
-        </div>
+      <div className="flex items-start gap-4">
+        <BillableFilters
+          organizationId={organizationId}
+          filters={pendingFilters}
+          onFiltersChange={onPendingFiltersChange}
+          onApplyFilters={onApplyFilters}
+          onSaveFilters={onSaveFilters}
+          saving={savingFilters}
+          staffList={staffList}
+          partnerList={partnerList}
+          clientManagerList={clientManagerList}
+          filterOptionsApi="recoverability"
+        />
       </div>
     </div>
   )
