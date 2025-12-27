@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
       while (hasMore) {
         let query = supabase
           .from('timesheet_uploads')
-          .select('client_group, time, account_manager, job_manager, staff, date')
+          .select('client_group, time, billable_amount, account_manager, job_manager, staff, date')
           .eq('organization_id', organizationId)
           .eq('billable', true)
           .gte('date', startDate)
@@ -194,11 +194,16 @@ export async function GET(request: NextRequest) {
       currentYearData.forEach((timesheet) => {
         const clientGroup = timesheet.client_group || 'Uncategorized'
         const hours = convertTimeToHours(timesheet.time)
+        const amount = typeof timesheet.billable_amount === 'number' 
+          ? timesheet.billable_amount 
+          : (typeof timesheet.billable_amount === 'string' ? parseFloat(timesheet.billable_amount) || 0 : 0)
         
         if (!clientGroupMap.has(clientGroup)) {
           clientGroupMap.set(clientGroup, { 
             currentYear: 0, 
             lastYear: 0,
+            currentYearAmount: 0,
+            lastYearAmount: 0,
             accountManager: null,
             jobManager: null
           })
@@ -210,6 +215,7 @@ export async function GET(request: NextRequest) {
         
         const group = clientGroupMap.get(clientGroup)!
         group.currentYear += hours
+        group.currentYearAmount += amount
         
         // Track managers
         const managers = managerMap.get(clientGroup)!
@@ -229,11 +235,16 @@ export async function GET(request: NextRequest) {
       lastYearData.forEach((timesheet) => {
         const clientGroup = timesheet.client_group || 'Uncategorized'
         const hours = convertTimeToHours(timesheet.time)
+        const amount = typeof timesheet.billable_amount === 'number' 
+          ? timesheet.billable_amount 
+          : (typeof timesheet.billable_amount === 'string' ? parseFloat(timesheet.billable_amount) || 0 : 0)
         
         if (!clientGroupMap.has(clientGroup)) {
           clientGroupMap.set(clientGroup, { 
             currentYear: 0, 
             lastYear: 0,
+            currentYearAmount: 0,
+            lastYearAmount: 0,
             accountManager: null,
             jobManager: null
           })
@@ -245,6 +256,7 @@ export async function GET(request: NextRequest) {
         
         const group = clientGroupMap.get(clientGroup)!
         group.lastYear += hours
+        group.lastYearAmount += amount
         
         // Track managers
         const managers = managerMap.get(clientGroup)!
@@ -295,6 +307,8 @@ export async function GET(request: NextRequest) {
         clientGroup,
         currentYear: Math.round(data.currentYear * 100) / 100,
         lastYear: Math.round(data.lastYear * 100) / 100,
+        currentYearAmount: Math.round(data.currentYearAmount * 100) / 100,
+        lastYearAmount: Math.round(data.lastYearAmount * 100) / 100,
         partner: data.accountManager,
         clientManager: data.jobManager,
       }))

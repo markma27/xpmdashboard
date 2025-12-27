@@ -17,26 +17,20 @@ type SortDirection = 'asc' | 'desc'
 
 interface BillableClientGroupsTableProps {
   organizationId: string
-  selectedStaff?: string | null
-  onStaffChange?: (staff: string | null) => void
   selectedMonth?: string | null
+  filters?: BillableFilter[]
 }
 
 export function BillableClientGroupsTable({ 
   organizationId, 
-  selectedStaff: externalSelectedStaff,
-  onStaffChange,
-  selectedMonth
+  selectedMonth,
+  filters = []
 }: BillableClientGroupsTableProps) {
   const [data, setData] = useState<ClientGroupData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [internalSelectedStaff, setInternalSelectedStaff] = useState<string | null>(null)
   const [sortColumn, setSortColumn] = useState<SortColumn>('currentYear')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
-  
-  // Use external selectedStaff if provided, otherwise use internal state
-  const selectedStaff = externalSelectedStaff !== undefined ? externalSelectedStaff : internalSelectedStaff
 
   // Fetch client group data
   useEffect(() => {
@@ -44,13 +38,26 @@ export function BillableClientGroupsTable({
       try {
         setLoading(true)
         setError(null)
-        // Build query with optional staff and month filters
+        // Build query with optional month and filters (staff filter is now part of filters array)
         let url = `/api/billable/client-groups?organizationId=${organizationId}&t=${Date.now()}`
-        if (selectedStaff) {
-          url += `&staff=${encodeURIComponent(selectedStaff)}`
-        }
         if (selectedMonth) {
           url += `&month=${encodeURIComponent(selectedMonth)}`
+        }
+        
+        // Add filters to URL
+        if (filters.length > 0) {
+          const filtersParam = filters
+            .filter((f) => f.value && f.value !== 'all' && f.value.trim() !== '') // Exclude 'all' values and empty strings
+            .map((f) => {
+              if (f.operator) {
+                return `${f.type}:${f.operator}:${encodeURIComponent(f.value)}`
+              }
+              return `${f.type}:${encodeURIComponent(f.value)}`
+            })
+            .join('|')
+          if (filtersParam) {
+            url += `&filters=${encodeURIComponent(filtersParam)}`
+          }
         }
         
         const response = await fetch(url, {
@@ -74,7 +81,7 @@ export function BillableClientGroupsTable({
     }
 
     fetchData()
-  }, [organizationId, selectedStaff, selectedMonth])
+  }, [organizationId, selectedMonth, filters])
 
   const formatCurrency = (amount: number) => {
     if (amount === 0) return '-'

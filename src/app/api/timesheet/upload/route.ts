@@ -175,6 +175,7 @@ export async function POST(request: NextRequest) {
                   const jobManager = getColumnValue(row, ['Job Manager', '[Client] Job Manager'])
                   const staff = getColumnValue(row, ['Staff', '[Ledger] Staff'])
                   const dateValue = getColumnValue(row, ['Date', '[Ledger] Date'])
+                  const jobName = getColumnValue(row, ['Name', '[Job] Name'])
                   const timeValue = getColumnValue(row, ['Time', '[Ledger] Time'])
                   const billableRateValue = getColumnValue(row, ['Billable Rate', '[Ledger] Billable Rate'])
                   const billableAmountValue = getColumnValue(row, ['Billable Amount', '[Ledger] Billable Amount'])
@@ -230,6 +231,7 @@ export async function POST(request: NextRequest) {
                     job_manager: jobManager || null,
                     staff: staff,
                     date: parsedDateStr, // Use normalized date string (YYYY-MM-DD)
+                    job_name: jobName || null,
                     time: parsedTime,
                     billable_rate: parsedBillableRate,
                     billable_amount: parsedBillableAmount,

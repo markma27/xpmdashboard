@@ -8,6 +8,31 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const organizationId = searchParams.get('organizationId') || org.id
     const staffFilter = searchParams.get('staff') // Optional staff filter
+    
+    // Parse filters from query params
+    // Format: filters=type1:value1|type2:value2 or filters=type1:operator:value1
+    const filtersParam = searchParams.get('filters')
+    const filters: Array<{ type: string; value: string; operator?: string }> = []
+    if (filtersParam) {
+      filtersParam.split('|').forEach((filterStr) => {
+        const parts = filterStr.split(':')
+        if (parts.length >= 2) {
+          if (parts.length === 3) {
+            // Has operator (for job_name)
+            filters.push({ 
+              type: parts[0], 
+              operator: decodeURIComponent(parts[1]), 
+              value: decodeURIComponent(parts[2]) 
+            })
+          } else {
+            filters.push({ 
+              type: parts[0], 
+              value: decodeURIComponent(parts[1]) 
+            })
+          }
+        }
+      })
+    }
 
     const supabase = await createClient()
 
@@ -49,15 +74,47 @@ export async function GET(request: NextRequest) {
       while (hasMore) {
         let query = supabase
           .from('timesheet_uploads')
-          .select('date, billable_amount')
+          .select('date, billable_amount, client_group, account_manager, job_manager, job_name, staff')
           .eq('organization_id', organizationId)
           .gte('date', startDate)
           .lte('date', endDate)
         
-        // Apply staff filter if provided
-        if (staffFilter) {
-          query = query.eq('staff', staffFilter)
+        // Apply staff filter if provided (from URL param or filter)
+        let staffFilterValue = staffFilter
+        filters.forEach((filter) => {
+          if (filter.type === 'staff' && filter.value && filter.value !== 'all') {
+            staffFilterValue = filter.value
+          }
+        })
+        if (staffFilterValue) {
+          query = query.eq('staff', staffFilterValue)
         }
+        
+        // Apply additional filters
+        filters.forEach((filter) => {
+          if (filter.value && filter.value !== 'all' && filter.type !== 'staff') {
+            switch (filter.type) {
+              case 'client_group':
+                query = query.eq('client_group', filter.value)
+                break
+              case 'account_manager':
+                query = query.eq('account_manager', filter.value)
+                break
+              case 'job_manager':
+                query = query.eq('job_manager', filter.value)
+                break
+              case 'job_name':
+                if (filter.operator === 'not_contains') {
+                  // For not_contains, we need to include NULL values
+                  // Use or() to include records where job_name is NULL or doesn't contain the value
+                  query = query.or(`job_name.not.ilike.%${filter.value}%,job_name.is.null`)
+                } else {
+                  query = query.ilike('job_name', `%${filter.value}%`)
+                }
+                break
+            }
+          }
+        })
         
         const { data: pageData, error: pageError } = await query
           .range(page * pageSize, (page + 1) * pageSize - 1)

@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import { ProductivityMonthlyChartClient } from './productivity-monthly-chart-client'
 import { ProductivityPercentageChartClient } from './productivity-percentage-chart-client'
-import { ProductivityStandardHoursChartClient } from './productivity-standard-hours-chart-client'
-import { ProductivityCapacityReducingChartClient } from './productivity-capacity-reducing-chart-client'
-import { ProductivityTotalHoursChartClient } from './productivity-total-hours-chart-client'
+// Hidden charts - Standard Hours, Capacity Reducing Hours, and Total Hours
+// import { ProductivityStandardHoursChartClient } from './productivity-standard-hours-chart-client'
+// import { ProductivityCapacityReducingChartClient } from './productivity-capacity-reducing-chart-client'
+// import { ProductivityTotalHoursChartClient } from './productivity-total-hours-chart-client'
 import { ProductivityClientGroupsTable } from './productivity-client-groups-table'
 import { ProductivityReportHeader } from './productivity-report-header'
 
@@ -80,7 +81,8 @@ export function ProductivityReportContainer({ organizationId }: ProductivityRepo
         organizationId={organizationId} 
         selectedStaff={selectedStaff}
       />
-      <ProductivityStandardHoursChartClient 
+      {/* Hidden charts - Standard Hours, Capacity Reducing Hours, and Total Hours */}
+      {/* <ProductivityStandardHoursChartClient 
         organizationId={organizationId} 
         selectedStaff={selectedStaff}
       />
@@ -91,7 +93,7 @@ export function ProductivityReportContainer({ organizationId }: ProductivityRepo
       <ProductivityTotalHoursChartClient 
         organizationId={organizationId} 
         selectedStaff={selectedStaff}
-      />
+      /> */}
       <ProductivityClientGroupsTable 
         organizationId={organizationId} 
         selectedStaff={selectedStaff}

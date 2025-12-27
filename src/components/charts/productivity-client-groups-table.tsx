@@ -8,11 +8,13 @@ interface ClientGroupData {
   clientGroup: string
   currentYear: number
   lastYear: number
+  currentYearAmount?: number
+  lastYearAmount?: number
   partner: string | null
   clientManager: string | null
 }
 
-type SortColumn = 'clientGroup' | 'partner' | 'clientManager' | 'currentYear' | 'lastYear' | 'change'
+type SortColumn = 'clientGroup' | 'partner' | 'clientManager' | 'currentYear' | 'lastYear' | 'currentYearAmount' | 'lastYearAmount' | 'currentYearRate' | 'lastYearRate' | 'change'
 type SortDirection = 'asc' | 'desc'
 
 interface ProductivityClientGroupsTableProps {
@@ -79,6 +81,27 @@ export function ProductivityClientGroupsTable({
   const formatHours = (hours: number) => {
     if (hours === 0) return '-'
     return Math.round(hours).toLocaleString('en-US')
+  }
+
+  const formatCurrency = (amount: number) => {
+    if (amount === 0) return '-'
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount)
+  }
+
+  const formatRate = (amount: number, hours: number) => {
+    if (hours === 0 || amount === 0) return '-'
+    const rate = amount / hours
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(rate)
   }
 
   const calculateChange = (current: number, last: number) => {
@@ -153,6 +176,22 @@ export function ProductivityClientGroupsTable({
         aValue = a.lastYear
         bValue = b.lastYear
         break
+      case 'currentYearAmount':
+        aValue = a.currentYearAmount || 0
+        bValue = b.currentYearAmount || 0
+        break
+      case 'lastYearAmount':
+        aValue = a.lastYearAmount || 0
+        bValue = b.lastYearAmount || 0
+        break
+      case 'currentYearRate':
+        aValue = (a.currentYearAmount || 0) / (a.currentYear || 1)
+        bValue = (b.currentYearAmount || 0) / (b.currentYear || 1)
+        break
+      case 'lastYearRate':
+        aValue = (a.lastYearAmount || 0) / (a.lastYear || 1)
+        bValue = (b.lastYearAmount || 0) / (b.lastYear || 1)
+        break
       case 'change':
         aValue = calculateChange(a.currentYear, a.lastYear)
         bValue = calculateChange(b.currentYear, b.lastYear)
@@ -201,40 +240,83 @@ export function ProductivityClientGroupsTable({
             <thead>
               <tr className="border-b">
                 <th 
-                  className="text-left p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
+                  rowSpan={2}
+                  className="text-left p-2 font-semibold cursor-pointer hover:bg-muted/50 select-none align-bottom"
                   onClick={() => handleSort('clientGroup')}
                 >
                   Client Group<SortIcon column="clientGroup" />
                 </th>
                 <th 
-                  className="text-left p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
+                  rowSpan={2}
+                  className="text-left p-2 font-semibold cursor-pointer hover:bg-muted/50 select-none align-bottom"
                   onClick={() => handleSort('partner')}
                 >
                   Partner<SortIcon column="partner" />
                 </th>
                 <th 
-                  className="text-left p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
+                  rowSpan={2}
+                  className="text-left p-2 font-semibold cursor-pointer hover:bg-muted/50 select-none align-bottom"
                   onClick={() => handleSort('clientManager')}
                 >
                   Client Manager<SortIcon column="clientManager" />
                 </th>
                 <th 
-                  className="text-right p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
-                  onClick={() => handleSort('currentYear')}
+                  colSpan={3}
+                  className="text-center p-2 font-semibold border-l border-r bg-muted/30"
                 >
-                  Current Year<SortIcon column="currentYear" />
+                  Current Year
                 </th>
                 <th 
-                  className="text-right p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
-                  onClick={() => handleSort('lastYear')}
+                  colSpan={3}
+                  className="text-center p-2 font-semibold border-r bg-muted/20"
                 >
-                  Last Year<SortIcon column="lastYear" />
+                  Last Year
                 </th>
                 <th 
-                  className="text-right p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
+                  rowSpan={2}
+                  className="text-right p-2 font-semibold cursor-pointer hover:bg-muted/50 select-none whitespace-nowrap align-bottom"
                   onClick={() => handleSort('change')}
                 >
                   Change<SortIcon column="change" />
+                  <div className="text-xs font-normal text-muted-foreground mt-1">(Hours)</div>
+                </th>
+              </tr>
+              <tr className="border-b">
+                <th 
+                  className="text-right p-2 font-semibold cursor-pointer hover:bg-muted/50 select-none whitespace-nowrap border-l"
+                  onClick={() => handleSort('currentYear')}
+                >
+                  Billable Hours<SortIcon column="currentYear" />
+                </th>
+                <th 
+                  className="text-right p-2 font-semibold cursor-pointer hover:bg-muted/50 select-none whitespace-nowrap"
+                  onClick={() => handleSort('currentYearAmount')}
+                >
+                  Billable $<SortIcon column="currentYearAmount" />
+                </th>
+                <th 
+                  className="text-right p-2 font-semibold cursor-pointer hover:bg-muted/50 select-none whitespace-nowrap border-r"
+                  onClick={() => handleSort('currentYearRate')}
+                >
+                  Ave. Rate<SortIcon column="currentYearRate" />
+                </th>
+                <th 
+                  className="text-right p-2 font-semibold cursor-pointer hover:bg-muted/50 select-none whitespace-nowrap"
+                  onClick={() => handleSort('lastYear')}
+                >
+                  Billable Hours<SortIcon column="lastYear" />
+                </th>
+                <th 
+                  className="text-right p-2 font-semibold cursor-pointer hover:bg-muted/50 select-none whitespace-nowrap"
+                  onClick={() => handleSort('lastYearAmount')}
+                >
+                  Billable $<SortIcon column="lastYearAmount" />
+                </th>
+                <th 
+                  className="text-right p-2 font-semibold cursor-pointer hover:bg-muted/50 select-none whitespace-nowrap border-r"
+                  onClick={() => handleSort('lastYearRate')}
+                >
+                  Ave. Rate<SortIcon column="lastYearRate" />
                 </th>
               </tr>
             </thead>
@@ -242,35 +324,67 @@ export function ProductivityClientGroupsTable({
               {sortedData.map((item, index) => {
                 const change = calculateChange(item.currentYear, item.lastYear)
                 const changeColor = change >= 0 ? 'text-green-600' : 'text-red-600'
+                const currentYearAmount = item.currentYearAmount || 0
+                const lastYearAmount = item.lastYearAmount || 0
                 
                 return (
                   <tr key={index} className="border-b hover:bg-muted/50">
-                    <td className="p-3">{item.clientGroup}</td>
-                    <td className="p-3">{item.partner || '-'}</td>
-                    <td className="p-3">{item.clientManager || '-'}</td>
-                    <td className="p-3 text-right font-medium">
+                    <td className="p-2">{item.clientGroup}</td>
+                    <td className="p-2">{item.partner || '-'}</td>
+                    <td className="p-2">{item.clientManager || '-'}</td>
+                    <td className="p-2 text-right font-medium whitespace-nowrap">
                       {formatHours(item.currentYear)}
                     </td>
-                    <td className="p-3 text-right text-muted-foreground">
+                    <td className="p-2 text-right font-medium whitespace-nowrap">
+                      {formatCurrency(currentYearAmount)}
+                    </td>
+                    <td className="p-2 text-right whitespace-nowrap">
+                      {formatRate(currentYearAmount, item.currentYear)}
+                    </td>
+                    <td className="p-2 text-right text-muted-foreground whitespace-nowrap">
                       {formatHours(item.lastYear)}
                     </td>
-                    <td className={`p-3 text-right ${changeColor}`}>
+                    <td className="p-2 text-right text-muted-foreground whitespace-nowrap">
+                      {formatCurrency(lastYearAmount)}
+                    </td>
+                    <td className="p-2 text-right text-muted-foreground whitespace-nowrap">
+                      {formatRate(lastYearAmount, item.lastYear)}
+                    </td>
+                    <td className={`p-2 text-right whitespace-nowrap ${changeColor}`}>
                       {change >= 0 ? '+' : ''}{change.toFixed(1)}%
                     </td>
                   </tr>
                 )
               })}
               <tr className="border-t-2 font-semibold bg-muted/30">
-                <td className="p-3">Total</td>
-                <td className="p-3"></td>
-                <td className="p-3"></td>
-                <td className="p-3 text-right">
+                <td className="p-2">Total</td>
+                <td className="p-2"></td>
+                <td className="p-2"></td>
+                <td className="p-2 text-right whitespace-nowrap">
                   {formatHours(totalCurrentYear)}
                 </td>
-                <td className="p-3 text-right">
+                <td className="p-2 text-right whitespace-nowrap">
+                  {formatCurrency(sortedData.reduce((sum, item) => sum + (item.currentYearAmount || 0), 0))}
+                </td>
+                <td className="p-2 text-right whitespace-nowrap">
+                  {formatRate(
+                    sortedData.reduce((sum, item) => sum + (item.currentYearAmount || 0), 0),
+                    totalCurrentYear
+                  )}
+                </td>
+                <td className="p-2 text-right whitespace-nowrap">
                   {formatHours(totalLastYear)}
                 </td>
-                <td className={`p-3 text-right ${calculateChange(totalCurrentYear, totalLastYear) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <td className="p-2 text-right whitespace-nowrap">
+                  {formatCurrency(sortedData.reduce((sum, item) => sum + (item.lastYearAmount || 0), 0))}
+                </td>
+                <td className="p-2 text-right whitespace-nowrap">
+                  {formatRate(
+                    sortedData.reduce((sum, item) => sum + (item.lastYearAmount || 0), 0),
+                    totalLastYear
+                  )}
+                </td>
+                <td className={`p-2 text-right whitespace-nowrap ${calculateChange(totalCurrentYear, totalLastYear) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {calculateChange(totalCurrentYear, totalLastYear) >= 0 ? '+' : ''}
                   {calculateChange(totalCurrentYear, totalLastYear).toFixed(1)}%
                 </td>

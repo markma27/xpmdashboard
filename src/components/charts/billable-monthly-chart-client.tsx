@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { BillableMonthlyChart } from './billable-monthly-chart'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartSkeleton } from './chart-skeleton'
+import { BillableFilter } from './billable-filters'
 
 interface MonthlyBillableData {
   month: string
@@ -13,16 +14,16 @@ interface MonthlyBillableData {
 
 interface BillableMonthlyChartClientProps {
   organizationId: string
-  selectedStaff?: string | null
   selectedMonth?: string | null
   onMonthClick?: (month: string | null) => void
+  filters?: BillableFilter[]
 }
 
 export function BillableMonthlyChartClient({ 
   organizationId, 
-  selectedStaff,
   selectedMonth,
-  onMonthClick
+  onMonthClick,
+  filters = []
 }: BillableMonthlyChartClientProps) {
   const [data, setData] = useState<MonthlyBillableData[]>([])
   const [loading, setLoading] = useState(true)
@@ -33,10 +34,23 @@ export function BillableMonthlyChartClient({
       try {
         setLoading(true)
         setError(null)
-        // Build query with optional staff filter
+        // Build query with filters (staff filter is now part of filters array)
         let url = `/api/billable/monthly?organizationId=${organizationId}&t=${Date.now()}`
-        if (selectedStaff) {
-          url += `&staff=${encodeURIComponent(selectedStaff)}`
+        
+        // Add filters to URL
+        if (filters.length > 0) {
+          const filtersParam = filters
+            .filter((f) => f.value && f.value !== 'all' && f.value.trim() !== '') // Exclude 'all' values and empty strings
+            .map((f) => {
+              if (f.operator) {
+                return `${f.type}:${f.operator}:${encodeURIComponent(f.value)}`
+              }
+              return `${f.type}:${encodeURIComponent(f.value)}`
+            })
+            .join('|')
+          if (filtersParam) {
+            url += `&filters=${encodeURIComponent(filtersParam)}`
+          }
         }
         
         const response = await fetch(url, {
@@ -60,7 +74,7 @@ export function BillableMonthlyChartClient({
     }
 
     fetchData()
-  }, [organizationId, selectedStaff])
+  }, [organizationId, filters])
 
   if (loading) {
     return <ChartSkeleton />
