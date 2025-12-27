@@ -1,6 +1,7 @@
 import { requireOrg, loadUserOrganizations, getActiveOrgId } from '@/lib/auth'
 import { AppLayout } from '@/components/layout/app-layout'
 import { DashboardKPICards } from '@/components/charts/dashboard-kpi-cards'
+import { DashboardPartnerChartsClient } from '@/components/charts/dashboard-partner-charts-client'
 
 export default async function DashboardPage() {
   const org = await requireOrg()
@@ -18,6 +19,8 @@ export default async function DashboardPage() {
         </div>
 
         <DashboardKPICards organizationId={org.id} />
+
+        <DashboardPartnerChartsClient organizationId={org.id} />
       </div>
     </AppLayout>
   )
