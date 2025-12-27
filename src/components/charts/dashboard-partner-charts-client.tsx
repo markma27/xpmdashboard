@@ -6,6 +6,7 @@ import { DashboardBillableByPartnerChart } from './dashboard-billable-by-partner
 
 interface DashboardPartnerChartsClientProps {
   organizationId: string
+  asOfDate?: string
 }
 
 interface PartnerRevenueData {
@@ -20,7 +21,7 @@ interface PartnerBillableData {
   'Last Year': number
 }
 
-export function DashboardPartnerChartsClient({ organizationId }: DashboardPartnerChartsClientProps) {
+export function DashboardPartnerChartsClient({ organizationId, asOfDate }: DashboardPartnerChartsClientProps) {
   const [revenueData, setRevenueData] = useState<PartnerRevenueData[]>([])
   const [billableData, setBillableData] = useState<PartnerBillableData[]>([])
   const [loading, setLoading] = useState(true)
@@ -32,7 +33,7 @@ export function DashboardPartnerChartsClient({ organizationId }: DashboardPartne
         setLoading(true)
         setError(null)
         
-        const baseParams = `organizationId=${organizationId}&t=${Date.now()}`
+        const baseParams = `organizationId=${organizationId}&t=${Date.now()}${asOfDate ? `&asOfDate=${asOfDate}` : ''}`
         
         // Fetch both datasets in parallel
         const [revenueResponse, billableResponse] = await Promise.all([
@@ -71,7 +72,7 @@ export function DashboardPartnerChartsClient({ organizationId }: DashboardPartne
     }
 
     fetchData()
-  }, [organizationId])
+  }, [organizationId, asOfDate])
 
   if (error) {
     return (

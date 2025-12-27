@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface DashboardKPICardsProps {
   organizationId: string
+  asOfDate?: string
 }
 
 interface DashboardKPIData {
@@ -55,7 +56,7 @@ function KPICardSkeleton() {
   )
 }
 
-export function DashboardKPICards({ organizationId }: DashboardKPICardsProps) {
+export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICardsProps) {
   const [dashboardData, setDashboardData] = useState<DashboardKPIData | null>(null)
   const [productivityData, setProductivityData] = useState<ProductivityKPIData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -67,7 +68,7 @@ export function DashboardKPICards({ organizationId }: DashboardKPICardsProps) {
         setLoading(true)
         setError(null)
         
-        const baseParams = `organizationId=${organizationId}&t=${Date.now()}`
+        const baseParams = `organizationId=${organizationId}&t=${Date.now()}${asOfDate ? `&asOfDate=${asOfDate}` : ''}`
         
         // Fetch dashboard KPI data and productivity KPI data in parallel
         const [dashboardResponse, productivityResponse] = await Promise.all([
@@ -106,7 +107,7 @@ export function DashboardKPICards({ organizationId }: DashboardKPICardsProps) {
     }
 
     fetchData()
-  }, [organizationId])
+  }, [organizationId, asOfDate])
 
   // Format currency with parentheses for negative values and red color
   const formatCurrency = (amount: number) => {
@@ -150,10 +151,10 @@ export function DashboardKPICards({ organizationId }: DashboardKPICardsProps) {
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {/* Total Revenue $ Card */}
       <Card className="overflow-hidden">
-        <CardHeader className="pb-3 bg-orange-100/50 border-b">
+        <CardHeader className="pt-3 pb-3 bg-orange-100/50 border-b">
           <CardTitle className="text-sm font-semibold text-black">Revenue $</CardTitle>
         </CardHeader>
-        <CardContent className="pt-4 bg-white">
+        <CardContent className="pt-4 pb-3 bg-white">
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="text-center">
               <div className="text-xs text-muted-foreground mb-2 font-medium">Current Year</div>
@@ -187,10 +188,10 @@ export function DashboardKPICards({ organizationId }: DashboardKPICardsProps) {
 
       {/* Billable $ Card */}
       <Card className="overflow-hidden">
-        <CardHeader className="pb-3 bg-orange-100/50 border-b">
+        <CardHeader className="pt-3 pb-3 bg-orange-100/50 border-b">
           <CardTitle className="text-sm font-semibold text-black">Billable $</CardTitle>
         </CardHeader>
-        <CardContent className="pt-4 bg-white">
+        <CardContent className="pt-4 pb-3 bg-white">
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="text-center">
               <div className="text-xs text-muted-foreground mb-2 font-medium">Current Year</div>
@@ -224,10 +225,10 @@ export function DashboardKPICards({ organizationId }: DashboardKPICardsProps) {
 
       {/* Billable % Card */}
       <Card className="overflow-hidden">
-        <CardHeader className="pb-3 bg-green-100/50 border-b">
+        <CardHeader className="pt-3 pb-3 bg-green-100/50 border-b">
           <CardTitle className="text-sm font-semibold text-black">Billable %</CardTitle>
         </CardHeader>
-        <CardContent className="pt-4 bg-white">
+        <CardContent className="pt-4 pb-3 bg-white">
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="text-center">
               <div className="text-xs text-muted-foreground mb-2 font-medium">Current Year</div>
@@ -257,10 +258,10 @@ export function DashboardKPICards({ organizationId }: DashboardKPICardsProps) {
 
       {/* Hourly Rate Card */}
       <Card className="overflow-hidden">
-        <CardHeader className="pb-3 bg-orange-100/50 border-b">
+        <CardHeader className="pt-3 pb-3 bg-orange-100/50 border-b">
           <CardTitle className="text-sm font-semibold text-black">Hourly Rate $</CardTitle>
         </CardHeader>
-        <CardContent className="pt-4 bg-white">
+        <CardContent className="pt-4 pb-3 bg-white">
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="text-center">
               <div className="text-xs text-muted-foreground mb-2 font-medium">Current Year</div>

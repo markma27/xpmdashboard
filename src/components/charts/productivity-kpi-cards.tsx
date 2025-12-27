@@ -8,12 +8,12 @@ function KPICardSkeleton() {
     <div className="grid gap-4 md:grid-cols-2">
       {/* Billable % Card Skeleton */}
       <Card className="overflow-hidden">
-        <CardHeader className="pb-3 bg-green-100/50 border-b">
+        <CardHeader className="pt-3 pb-3 bg-green-100/50 border-b">
           <CardTitle className="text-sm font-semibold">
             <span className="inline-block h-4 w-24 bg-muted animate-pulse rounded" />
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-4 bg-white">
+        <CardContent className="pt-4 pb-3 bg-white">
           <div className="grid grid-cols-3 gap-3 mb-4">
             <div className="text-center">
               <div className="h-3 w-16 bg-muted animate-pulse rounded mx-auto mb-2" />
@@ -37,12 +37,12 @@ function KPICardSkeleton() {
       
       {/* Hourly Rate Card Skeleton */}
       <Card className="overflow-hidden">
-        <CardHeader className="pb-3 bg-orange-100/50 border-b">
+        <CardHeader className="pt-3 pb-3 bg-orange-100/50 border-b">
           <CardTitle className="text-sm font-semibold">
             <span className="inline-block h-4 w-32 bg-muted animate-pulse rounded" />
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-4 bg-white">
+        <CardContent className="pt-4 pb-3 bg-white">
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="text-center">
               <div className="h-3 w-20 bg-muted animate-pulse rounded mx-auto mb-2" />
@@ -146,10 +146,10 @@ export function ProductivityKPICards({ organizationId, selectedStaff }: Producti
     <div className="grid gap-4 md:grid-cols-2">
       {/* Combined Billable % Card */}
       <Card className="overflow-hidden">
-        <CardHeader className="pb-3 bg-green-100/50 border-b">
+        <CardHeader className="pt-3 pb-3 bg-green-100/50 border-b">
           <CardTitle className="text-sm font-semibold text-black">Billable %</CardTitle>
         </CardHeader>
-        <CardContent className="pt-4 bg-white">
+        <CardContent className="pt-4 pb-3 bg-white">
           <div className="grid grid-cols-3 gap-3 mb-4">
             <div className="text-center">
               <div className="text-xs text-muted-foreground mb-2 font-medium">Current Year</div>
@@ -179,10 +179,10 @@ export function ProductivityKPICards({ organizationId, selectedStaff }: Producti
       
       {/* Combined Average Rate Card */}
       <Card className="overflow-hidden">
-        <CardHeader className="pb-3 bg-orange-100/50 border-b">
+        <CardHeader className="pt-3 pb-3 bg-orange-100/50 border-b">
           <CardTitle className="text-sm font-semibold text-black">Hourly Rate $</CardTitle>
         </CardHeader>
-        <CardContent className="pt-4 bg-white">
+        <CardContent className="pt-4 pb-3 bg-white">
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="text-center">
               <div className="text-xs text-muted-foreground mb-2 font-medium">Current Year</div>

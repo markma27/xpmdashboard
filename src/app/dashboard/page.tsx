@@ -1,7 +1,6 @@
 import { requireOrg, loadUserOrganizations, getActiveOrgId } from '@/lib/auth'
 import { AppLayout } from '@/components/layout/app-layout'
-import { DashboardKPICards } from '@/components/charts/dashboard-kpi-cards'
-import { DashboardPartnerChartsClient } from '@/components/charts/dashboard-partner-charts-client'
+import { DashboardContainer } from '@/components/charts/dashboard-container'
 
 export default async function DashboardPage() {
   const org = await requireOrg()
@@ -10,18 +9,7 @@ export default async function DashboardPage() {
 
   return (
     <AppLayout organizations={organizations} activeOrgId={activeOrgId}>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Firm Dashboard</h1>
-          <p className="text-muted-foreground">
-            Welcome back, {org.name}
-          </p>
-        </div>
-
-        <DashboardKPICards organizationId={org.id} />
-
-        <DashboardPartnerChartsClient organizationId={org.id} />
-      </div>
+      <DashboardContainer organizationId={org.id} />
     </AppLayout>
   )
 }

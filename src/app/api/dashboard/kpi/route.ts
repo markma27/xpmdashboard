@@ -7,13 +7,14 @@ export async function GET(request: NextRequest) {
     const org = await requireOrg()
     const searchParams = request.nextUrl.searchParams
     const organizationId = searchParams.get('organizationId') || org.id
+    const asOfDateParam = searchParams.get('asOfDate')
 
     const supabase = await createClient()
 
-    // Calculate financial year based on current date
-    const now = new Date()
-    const currentMonth = now.getMonth() // 0-11
-    const currentYear = now.getFullYear()
+    // Use provided date or default to today
+    const asOfDate = asOfDateParam ? new Date(asOfDateParam) : new Date()
+    const currentMonth = asOfDate.getMonth() // 0-11
+    const currentYear = asOfDate.getFullYear()
     
     let currentFYStartYear: number
     if (currentMonth >= 6) {
@@ -27,13 +28,13 @@ export async function GET(request: NextRequest) {
     const lastFYEndYear = currentFYStartYear
     
     // Format dates as YYYY-MM-DD
-    // For "same time" comparison, use today's date for current year
+    // For "same time" comparison, use selected date for current year
     const currentYearStart = `${currentFYStartYear}-07-01`
-    const currentYearEnd = now.toISOString().split('T')[0] // Today's date
+    const currentYearEnd = asOfDate.toISOString().split('T')[0] // Selected date
     
     // For last year "same time", calculate the same day last year
     // But ensure it doesn't exceed last year's financial year end (June 30)
-    const lastYearSameDate = new Date(now)
+    const lastYearSameDate = new Date(asOfDate)
     lastYearSameDate.setFullYear(lastYearSameDate.getFullYear() - 1)
     const lastYearEndDate = lastYearSameDate.toISOString().split('T')[0]
     const lastYearFYEnd = `${lastFYEndYear}-06-30`
