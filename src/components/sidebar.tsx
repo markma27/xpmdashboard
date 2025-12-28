@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
@@ -110,8 +111,15 @@ export function Sidebar() {
 
   return (
     <div className="flex h-full w-64 flex-col border-r bg-card">
-      <div className="flex h-16 items-center border-b px-6">
-        <h1 className="text-xl font-semibold">XPM Dashboard</h1>
+      <div className="flex h-16 items-center justify-center border-b px-6">
+        <Image
+          src="/logo.svg"
+          alt="XPM Dashboard"
+          width={140}
+          height={44}
+          className="h-auto w-auto object-contain"
+          priority
+        />
       </div>
       <nav className="flex-1 space-y-1 p-4">
         {navigation.map((item) => {
