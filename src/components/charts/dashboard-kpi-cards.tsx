@@ -317,7 +317,7 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
       {/* Hourly Rate Card */}
       <Card className="overflow-hidden">
         <CardHeader className="pt-3 pb-3 bg-yellow-100/50 border-b">
-          <CardTitle className="text-sm font-semibold text-black">Hourly Rate $</CardTitle>
+          <CardTitle className="text-sm font-semibold text-black">Average Hourly Rate $</CardTitle>
         </CardHeader>
         <CardContent className="pt-4 pb-3 bg-white">
           <div className="grid grid-cols-2 gap-3 mb-4">
