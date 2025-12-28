@@ -1,9 +1,11 @@
 import { requireOrg, loadUserOrganizations, getActiveOrgId } from '@/lib/auth'
 import { isAdmin } from '@/lib/rbac'
 import { AppLayout } from '@/components/layout/app-layout'
+import { PageHeader } from '@/components/layout/page-header'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { XeroConnectionList } from '@/components/xero-connection-list'
+import { SyncStatus } from '@/components/sync-status'
 
 export default async function XeroSettingsPage() {
   const org = await requireOrg()
@@ -26,14 +28,17 @@ export default async function XeroSettingsPage() {
   }
 
   return (
-    <AppLayout organizations={organizations} activeOrgId={activeOrgId}>
+    <AppLayout 
+      organizations={organizations} 
+      activeOrgId={activeOrgId}
+      header={
+        <PageHeader 
+          title="Xero Connection"
+          description="Connect your Xero Practice Manager account"
+        />
+      }
+    >
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Xero Connection</h1>
-          <p className="text-muted-foreground">
-            Connect your Xero Practice Manager account
-          </p>
-        </div>
         <Card>
           <CardHeader>
             <CardTitle>Xero Connections</CardTitle>
@@ -43,6 +48,17 @@ export default async function XeroSettingsPage() {
           </CardHeader>
           <CardContent>
             <XeroConnectionList organizationId={org.id} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Sync Status</CardTitle>
+            <CardDescription>
+              Last sync status for all XPM tables
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SyncStatus organizationId={org.id} />
           </CardContent>
         </Card>
       </div>

@@ -22,13 +22,15 @@ interface ProductivityClientGroupsTableProps {
   selectedStaff?: string | null
   onStaffChange?: (staff: string | null) => void
   selectedMonth?: string | null
+  asOfDate?: string
 }
 
 export function ProductivityClientGroupsTable({ 
   organizationId, 
   selectedStaff: externalSelectedStaff,
   onStaffChange,
-  selectedMonth
+  selectedMonth,
+  asOfDate
 }: ProductivityClientGroupsTableProps) {
   const [data, setData] = useState<ClientGroupData[]>([])
   const [loading, setLoading] = useState(true)
@@ -46,8 +48,8 @@ export function ProductivityClientGroupsTable({
       try {
         setLoading(true)
         setError(null)
-        // Build query with optional staff and month filters
-        let url = `/api/productivity/client-groups?organizationId=${organizationId}&t=${Date.now()}`
+        // Build query with optional staff, month, and date filters
+        let url = `/api/productivity/client-groups?organizationId=${organizationId}&t=${Date.now()}${asOfDate ? `&asOfDate=${asOfDate}` : ''}`
         if (selectedStaff) {
           url += `&staff=${encodeURIComponent(selectedStaff)}`
         }
@@ -76,7 +78,7 @@ export function ProductivityClientGroupsTable({
     }
 
     fetchData()
-  }, [organizationId, selectedStaff, selectedMonth])
+  }, [organizationId, selectedStaff, selectedMonth, asOfDate])
 
   const formatHours = (hours: number) => {
     if (hours === 0) return '-'
@@ -117,7 +119,7 @@ export function ProductivityClientGroupsTable({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Productivity by Client Group</CardTitle>
+          <CardTitle>Billable & Average Rate by Client Group</CardTitle>
           <CardDescription>Detailed billable hours breakdown by client group</CardDescription>
         </CardHeader>
         <CardContent>
@@ -133,7 +135,7 @@ export function ProductivityClientGroupsTable({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Productivity by Client Group</CardTitle>
+          <CardTitle>Billable & Average Rate by Client Group</CardTitle>
           <CardDescription>Detailed billable hours breakdown by client group</CardDescription>
         </CardHeader>
         <CardContent>
@@ -231,7 +233,7 @@ export function ProductivityClientGroupsTable({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Productivity by Client Group</CardTitle>
+        <CardTitle>Billable & Average Rate by Client Group</CardTitle>
         <CardDescription>Detailed billable hours breakdown by client group</CardDescription>
       </CardHeader>
       <CardContent>

@@ -1,26 +1,18 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { useRevenueReport } from './revenue-report-context'
 
-interface RevenueReportHeaderProps {
-  selectedPartner: string | null
-  selectedClientManager: string | null
-  partners: string[]
-  clientManagers: string[]
-  onPartnerChange: (partner: string | null) => void
-  onClientManagerChange: (manager: string | null) => void
-  lastUpdated?: string | null
-}
-
-export function RevenueReportHeader({
-  selectedPartner,
-  selectedClientManager,
-  partners,
-  clientManagers,
-  onPartnerChange,
-  onClientManagerChange,
-  lastUpdated,
-}: RevenueReportHeaderProps) {
+export function RevenueReportHeader() {
+  const {
+    selectedPartner,
+    setSelectedPartner,
+    selectedClientManager,
+    setSelectedClientManager,
+    partners,
+    clientManagers,
+    lastUpdated,
+  } = useRevenueReport()
   // Format date as DD MMM YYYY
   const formatDate = (dateString: string | null) => {
     if (!dateString) return null
@@ -53,7 +45,7 @@ export function RevenueReportHeader({
           <Button
             variant={selectedPartner === null ? 'default' : 'outline'}
             size="sm"
-            onClick={() => onPartnerChange(null)}
+            onClick={() => setSelectedPartner(null)}
           >
             All Partners
           </Button>
@@ -62,7 +54,7 @@ export function RevenueReportHeader({
               key={partner}
               variant={selectedPartner === partner ? 'default' : 'outline'}
               size="sm"
-              onClick={() => onPartnerChange(partner)}
+              onClick={() => setSelectedPartner(partner)}
             >
               {partner}
             </Button>
@@ -74,7 +66,7 @@ export function RevenueReportHeader({
           <Button
             variant={selectedClientManager === null ? 'default' : 'outline'}
             size="sm"
-            onClick={() => onClientManagerChange(null)}
+            onClick={() => setSelectedClientManager(null)}
           >
             All Managers
           </Button>
@@ -83,7 +75,7 @@ export function RevenueReportHeader({
               key={manager}
               variant={selectedClientManager === manager ? 'default' : 'outline'}
               size="sm"
-              onClick={() => onClientManagerChange(manager)}
+              onClick={() => setSelectedClientManager(manager)}
             >
               {manager}
             </Button>

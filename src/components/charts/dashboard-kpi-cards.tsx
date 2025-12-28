@@ -209,7 +209,7 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {/* Total Invoice $ Card */}
       <Card className="overflow-hidden">
-        <CardHeader className="pt-3 pb-3 bg-blue-100/50 border-b">
+        <CardHeader className="pt-3 pb-3 bg-green-100/50 border-b">
           <CardTitle className="text-sm font-semibold text-black">Invoice $</CardTitle>
         </CardHeader>
         <CardContent className="pt-4 pb-3 bg-white">
@@ -246,7 +246,7 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
 
       {/* Billable $ Card */}
       <Card className="overflow-hidden">
-        <CardHeader className="pt-3 pb-3 bg-purple-100/50 border-b">
+        <CardHeader className="pt-3 pb-3 bg-green-100/50 border-b">
           <CardTitle className="text-sm font-semibold text-black">Billable $</CardTitle>
         </CardHeader>
         <CardContent className="pt-4 pb-3 bg-white">
@@ -316,7 +316,7 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
 
       {/* Hourly Rate Card */}
       <Card className="overflow-hidden">
-        <CardHeader className="pt-3 pb-3 bg-yellow-100/50 border-b">
+        <CardHeader className="pt-3 pb-3 bg-green-100/50 border-b">
           <CardTitle className="text-sm font-semibold text-black">Average Hourly Rate $</CardTitle>
         </CardHeader>
         <CardContent className="pt-4 pb-3 bg-white">
@@ -349,7 +349,7 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
 
       {/* Recoverability $ Card */}
       <Card className="overflow-hidden">
-        <CardHeader className="pt-3 pb-3 bg-orange-100/50 border-b">
+        <CardHeader className="pt-3 pb-3 bg-green-100/50 border-b">
           <CardTitle className="text-sm font-semibold text-black">Write On / (Off) $</CardTitle>
         </CardHeader>
         <CardContent className="pt-4 pb-3 bg-white">

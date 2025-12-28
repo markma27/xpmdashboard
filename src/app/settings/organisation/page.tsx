@@ -1,6 +1,7 @@
 import { requireOrg, loadUserOrganizations, getActiveOrgId } from '@/lib/auth'
 import { isAdmin } from '@/lib/rbac'
 import { AppLayout } from '@/components/layout/app-layout'
+import { PageHeader } from '@/components/layout/page-header'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default async function OrganisationSettingsPage() {
@@ -24,14 +25,17 @@ export default async function OrganisationSettingsPage() {
   }
 
   return (
-    <AppLayout organizations={organizations} activeOrgId={activeOrgId}>
+    <AppLayout 
+      organizations={organizations} 
+      activeOrgId={activeOrgId}
+      header={
+        <PageHeader 
+          title="Organization Settings"
+          description="Manage your organization information"
+        />
+      }
+    >
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Organization Settings</h1>
-          <p className="text-muted-foreground">
-            Manage your organization information
-          </p>
-        </div>
         <Card>
           <CardHeader>
             <CardTitle>Organization Information</CardTitle>

@@ -1,6 +1,7 @@
 import { requireOrg, loadUserOrganizations, getActiveOrgId } from '@/lib/auth'
 import { isAdmin } from '@/lib/rbac'
 import { AppLayout } from '@/components/layout/app-layout'
+import { PageHeader } from '@/components/layout/page-header'
 import { Card, CardContent } from '@/components/ui/card'
 import { StaffTargetList } from '@/components/staff-target-list'
 
@@ -25,14 +26,17 @@ export default async function StaffSettingsPage() {
   }
 
   return (
-    <AppLayout organizations={organizations} activeOrgId={activeOrgId}>
+    <AppLayout 
+      organizations={organizations} 
+      activeOrgId={activeOrgId}
+      header={
+        <PageHeader 
+          title="Staff Settings"
+          description="Set target billable percentage, FTE, and default daily hours for each staff member"
+        />
+      }
+    >
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Staff Settings</h1>
-          <p className="text-muted-foreground">
-            Set target billable percentage, FTE, and default daily hours for each staff member
-          </p>
-        </div>
         <Card>
           <CardContent>
             <StaffTargetList organizationId={org.id} />

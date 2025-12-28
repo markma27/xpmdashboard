@@ -1,5 +1,8 @@
 'use client'
 
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectContent,
@@ -7,21 +10,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useProductivityReport } from './productivity-report-context'
 
-interface ProductivityReportHeaderProps {
-  selectedStaff: string | null
-  staffList: string[]
-  onStaffChange: (staff: string | null) => void
-  lastUpdated?: string | null
-}
+export function ProductivityReportHeader() {
+  const {
+    displayDate,
+    setDisplayDate,
+    displayStaff,
+    setDisplayStaff,
+    staffList,
+    lastUpdated,
+    handleUpdate,
+  } = useProductivityReport()
 
-export function ProductivityReportHeader({
-  selectedStaff,
-  staffList,
-  onStaffChange,
-  lastUpdated,
-}: ProductivityReportHeaderProps) {
-  // Format date as DD MMM YYYY
   const formatDate = (dateString: string | null) => {
     if (!dateString) return null
     const date = new Date(dateString)
@@ -35,11 +36,11 @@ export function ProductivityReportHeader({
   const formattedDate = formatDate(lastUpdated || null)
 
   return (
-    <div className="flex items-start justify-between gap-4">
+    <div className="flex items-start justify-between">
       <div className="flex-1">
         <h1 className="text-3xl font-bold">Productivity Analytics</h1>
         <p className="text-muted-foreground">
-          Analyze team and individual productivity metrics
+          Analyse team and individual productivity metrics
         </p>
         {formattedDate && (
           <p className="text-sm text-red-800 mt-1">
@@ -47,26 +48,48 @@ export function ProductivityReportHeader({
           </p>
         )}
       </div>
-      <div className="flex items-center gap-2 pt-2">
-        <span className="text-sm text-muted-foreground">Staff:</span>
-        <Select
-          value={selectedStaff || 'all'}
-          onValueChange={(value) => onStaffChange(value === 'all' ? null : value)}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <Label htmlFor="productivity-date" className="text-sm font-medium whitespace-nowrap">
+            Date:
+          </Label>
+          <Input
+            id="productivity-date"
+            type="date"
+            value={displayDate}
+            onChange={(e) => setDisplayDate(e.target.value)}
+            className="w-40 h-10"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Label htmlFor="productivity-staff" className="text-sm font-medium whitespace-nowrap">
+            Staff:
+          </Label>
+          <Select
+            value={displayStaff || 'all'}
+            onValueChange={(value) => setDisplayStaff(value === 'all' ? null : value)}
+          >
+            <SelectTrigger id="productivity-staff" className="w-[200px] h-10">
+              <SelectValue placeholder="All Staff">
+                {displayStaff || 'All Staff'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Staff</SelectItem>
+              {staffList.map((staff) => (
+                <SelectItem key={staff} value={staff}>
+                  {staff}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button
+          onClick={handleUpdate}
+          className="bg-black text-white hover:bg-black/90 h-10"
         >
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="All Staff">
-              {selectedStaff || 'All Staff'}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Staff</SelectItem>
-            {staffList.map((staff) => (
-              <SelectItem key={staff} value={staff}>
-                {staff}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          Update
+        </Button>
       </div>
     </div>
   )

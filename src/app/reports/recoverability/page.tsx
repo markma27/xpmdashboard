@@ -1,5 +1,7 @@
 import { requireOrg, loadUserOrganizations, getActiveOrgId } from '@/lib/auth'
 import { AppLayout } from '@/components/layout/app-layout'
+import { RecoverabilityReportProvider } from '@/components/charts/recoverability-report-context'
+import { RecoverabilityReportHeader } from '@/components/charts/recoverability-report-header'
 import { RecoverabilityReportContainer } from '@/components/charts/recoverability-report-container'
 
 export default async function RecoverabilityReportPage() {
@@ -8,11 +10,17 @@ export default async function RecoverabilityReportPage() {
   const activeOrgId = await getActiveOrgId()
 
   return (
-    <AppLayout organizations={organizations} activeOrgId={activeOrgId}>
-      <div className="space-y-6">
-        <RecoverabilityReportContainer organizationId={org.id} />
-      </div>
-    </AppLayout>
+    <RecoverabilityReportProvider organizationId={org.id}>
+      <AppLayout 
+        organizations={organizations} 
+        activeOrgId={activeOrgId}
+        header={<RecoverabilityReportHeader />}
+      >
+        <div className="space-y-6">
+          <RecoverabilityReportContainer organizationId={org.id} />
+        </div>
+      </AppLayout>
+    </RecoverabilityReportProvider>
   )
 }
 

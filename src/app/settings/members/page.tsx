@@ -1,6 +1,7 @@
 import { requireOrg, loadUserOrganizations, getActiveOrgId } from '@/lib/auth'
 import { isAdmin } from '@/lib/rbac'
 import { AppLayout } from '@/components/layout/app-layout'
+import { PageHeader } from '@/components/layout/page-header'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { MemberList } from '@/components/member-list'
 
@@ -25,14 +26,17 @@ export default async function MembersSettingsPage() {
   }
 
   return (
-    <AppLayout organizations={organizations} activeOrgId={activeOrgId}>
+    <AppLayout 
+      organizations={organizations} 
+      activeOrgId={activeOrgId}
+      header={
+        <PageHeader 
+          title="Member Management"
+          description="Manage organization members and permissions"
+        />
+      }
+    >
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Member Management</h1>
-          <p className="text-muted-foreground">
-            Manage organization members and permissions
-          </p>
-        </div>
         <Card>
           <CardHeader>
             <CardTitle>Organization Members</CardTitle>

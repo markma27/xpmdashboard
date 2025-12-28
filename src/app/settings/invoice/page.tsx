@@ -1,6 +1,7 @@
 import { requireOrg, loadUserOrganizations, getActiveOrgId } from '@/lib/auth'
 import { isAdmin } from '@/lib/rbac'
 import { AppLayout } from '@/components/layout/app-layout'
+import { PageHeader } from '@/components/layout/page-header'
 import { InvoiceUploadForm } from '@/components/invoice-upload-form'
 
 export default async function InvoiceUploadPage() {
@@ -24,14 +25,17 @@ export default async function InvoiceUploadPage() {
   }
 
   return (
-    <AppLayout organizations={organizations} activeOrgId={activeOrgId}>
+    <AppLayout 
+      organizations={organizations} 
+      activeOrgId={activeOrgId}
+      header={
+        <PageHeader 
+          title="Invoice Upload"
+          description="Upload CSV files exported from XPM for invoice reporting"
+        />
+      }
+    >
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Invoice Upload</h1>
-          <p className="text-muted-foreground">
-            Upload CSV files exported from XPM for invoice reporting
-          </p>
-        </div>
         <InvoiceUploadForm />
       </div>
     </AppLayout>

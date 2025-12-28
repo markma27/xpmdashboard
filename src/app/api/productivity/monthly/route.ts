@@ -37,14 +37,14 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const organizationId = searchParams.get('organizationId') || org.id
     const staffFilter = searchParams.get('staff') // Optional staff filter
+    const asOfDateParam = searchParams.get('asOfDate')
 
     const supabase = await createClient()
 
-    // Calculate financial year based on current date
-    // Financial year runs from July 1 to June 30
-    const now = new Date()
-    const currentMonth = now.getMonth() // 0-11 (0=January, 11=December)
-    const currentYear = now.getFullYear()
+    // Use provided date or default to today
+    const asOfDate = asOfDateParam ? new Date(asOfDateParam) : new Date()
+    const currentMonth = asOfDate.getMonth() // 0-11 (0=January, 11=December)
+    const currentYear = asOfDate.getFullYear()
     
     // Determine current financial year
     // If current month >= 6 (July-December), FY starts in current year
@@ -63,8 +63,11 @@ export async function GET(request: NextRequest) {
     const lastFYEndYear = currentFYStartYear
     
     // Format dates as YYYY-MM-DD
+    // For "same time" comparison, use selected date for current year
     const currentYearStart = `${currentFYStartYear}-07-01`
-    const currentYearEnd = `${currentFYEndYear}-06-30`
+    const currentYearEnd = asOfDate.toISOString().split('T')[0] // Selected date
+    
+    // For last year, always use full financial year (July to June)
     const lastYearStart = `${lastFYStartYear}-07-01`
     const lastYearEnd = `${lastFYEndYear}-06-30`
 
@@ -130,15 +133,19 @@ export async function GET(request: NextRequest) {
     })
 
     // Aggregate current year data
-    // Current financial year: July currentFYStartYear to June currentFYEndYear
+    // Current financial year: July currentFYStartYear to asOfDate
     if (currentYearData) {
       currentYearData.forEach((timesheet) => {
         const date = new Date(timesheet.date + 'T00:00:00') // Ensure consistent date parsing
         const month = date.getMonth()
         const year = date.getFullYear()
 
-        // Verify this belongs to current financial year period
-        // July currentFYStartYear to June currentFYEndYear
+        // Verify this belongs to current financial year period and is not after asOfDate
+        // July currentFYStartYear to asOfDate
+        const timesheetDateStr = timesheet.date
+        if (timesheetDateStr > currentYearEnd) {
+          return // Skip if after selected date
+        }
         if (!((year === currentFYStartYear && month >= 6) || (year === currentFYEndYear && month < 6))) {
           return // Skip if not in current financial year range
         }
@@ -155,14 +162,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Aggregate last year data
-    // Last financial year: July lastFYStartYear to June lastFYEndYear
+    // Last financial year: July lastFYStartYear to June lastFYEndYear (full 12 months)
     if (lastYearData) {
       lastYearData.forEach((timesheet) => {
         const date = new Date(timesheet.date + 'T00:00:00') // Ensure consistent date parsing
         const month = date.getMonth()
         const year = date.getFullYear()
 
-        // Verify this belongs to last financial year period
+        // Verify this belongs to last financial year period (full 12 months)
         // July lastFYStartYear to June lastFYEndYear
         if (!((year === lastFYStartYear && month >= 6) || (year === lastFYEndYear && month < 6))) {
           return // Skip if not in last financial year range

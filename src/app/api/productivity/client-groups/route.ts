@@ -38,14 +38,14 @@ export async function GET(request: NextRequest) {
     const organizationId = searchParams.get('organizationId') || org.id
     const staffFilter = searchParams.get('staff') // Optional staff filter
     const monthFilter = searchParams.get('month') // Optional month filter (e.g., "October")
+    const asOfDateParam = searchParams.get('asOfDate')
 
     const supabase = await createClient()
 
-    // Calculate financial year based on current date
-    // Financial year runs from July 1 to June 30
-    const now = new Date()
-    const currentMonth = now.getMonth() // 0-11 (0=January, 11=December)
-    const currentYear = now.getFullYear()
+    // Use provided date or default to today
+    const asOfDate = asOfDateParam ? new Date(asOfDateParam) : new Date()
+    const currentMonth = asOfDate.getMonth() // 0-11 (0=January, 11=December)
+    const currentYear = asOfDate.getFullYear()
     
     // Determine current financial year
     // If current month >= 6 (July-December), FY starts in current year
@@ -64,8 +64,11 @@ export async function GET(request: NextRequest) {
     const lastFYEndYear = currentFYStartYear
     
     // Format dates as YYYY-MM-DD
+    // For "same time" comparison, use selected date for current year
     const currentYearStart = `${currentFYStartYear}-07-01`
-    const currentYearEnd = `${currentFYEndYear}-06-30`
+    const currentYearEnd = asOfDate.toISOString().split('T')[0] // Selected date
+    
+    // For last year, always use full financial year (July to June)
     const lastYearStart = `${lastFYStartYear}-07-01`
     const lastYearEnd = `${lastFYEndYear}-06-30`
 

@@ -1,34 +1,26 @@
 'use client'
 
-import { BillableFilters, BillableFilter } from './billable-filters'
+import { BillableFilters } from './billable-filters'
+import { useRecoverabilityReport } from './recoverability-report-context'
 
-interface RecoverabilityReportHeaderProps {
-  lastUpdated?: string | null
-  pendingFilters: BillableFilter[]
-  appliedFilters: BillableFilter[]
-  onPendingFiltersChange: (filters: BillableFilter[]) => void
-  onApplyFilters: () => void
-  onSaveFilters?: () => void
-  savingFilters?: boolean
-  organizationId: string
-  staffList: string[]
-  partnerList: string[]
-  clientManagerList: string[]
-}
+export function RecoverabilityReportHeader() {
+  const {
+    lastUpdated,
+    pendingFilters,
+    appliedFilters,
+    setPendingFilters,
+    setAppliedFilters,
+    savingFilters,
+    handleSaveFilters,
+    organizationId,
+    staffList,
+    partnerList,
+    clientManagerList,
+  } = useRecoverabilityReport()
 
-export function RecoverabilityReportHeader({
-  lastUpdated,
-  pendingFilters,
-  appliedFilters,
-  onPendingFiltersChange,
-  onApplyFilters,
-  onSaveFilters,
-  savingFilters = false,
-  organizationId,
-  staffList,
-  partnerList,
-  clientManagerList,
-}: RecoverabilityReportHeaderProps) {
+  const handleApplyFilters = () => {
+    setAppliedFilters([...pendingFilters])
+  }
   // Format date as DD MMM YYYY
   const formatDate = (dateString: string | null) => {
     if (!dateString) return null
@@ -59,9 +51,9 @@ export function RecoverabilityReportHeader({
         <BillableFilters
           organizationId={organizationId}
           filters={pendingFilters}
-          onFiltersChange={onPendingFiltersChange}
-          onApplyFilters={onApplyFilters}
-          onSaveFilters={onSaveFilters}
+          onFiltersChange={setPendingFilters}
+          onApplyFilters={handleApplyFilters}
+          onSaveFilters={handleSaveFilters}
           saving={savingFilters}
           staffList={staffList}
           partnerList={partnerList}

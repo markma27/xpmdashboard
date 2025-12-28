@@ -16,13 +16,15 @@ interface ProductivityMonthlyChartClientProps {
   selectedStaff?: string | null
   selectedMonth?: string | null
   onMonthClick?: (month: string | null) => void
+  asOfDate?: string
 }
 
 export function ProductivityMonthlyChartClient({ 
   organizationId, 
   selectedStaff,
   selectedMonth,
-  onMonthClick
+  onMonthClick,
+  asOfDate
 }: ProductivityMonthlyChartClientProps) {
   const [data, setData] = useState<MonthlyProductivityData[]>([])
   const [loading, setLoading] = useState(true)
@@ -33,8 +35,8 @@ export function ProductivityMonthlyChartClient({
       try {
         setLoading(true)
         setError(null)
-        // Build query with optional staff filter
-        let url = `/api/productivity/monthly?organizationId=${organizationId}&t=${Date.now()}`
+        // Build query with optional staff filter and date
+        let url = `/api/productivity/monthly?organizationId=${organizationId}&t=${Date.now()}${asOfDate ? `&asOfDate=${asOfDate}` : ''}`
         if (selectedStaff) {
           url += `&staff=${encodeURIComponent(selectedStaff)}`
         }
@@ -51,7 +53,41 @@ export function ProductivityMonthlyChartClient({
         }
         
         const result = await response.json()
-        setData(result)
+        
+        // Filter data: only filter Current Year data, keep Last Year data for full 12 months
+        let filteredData = result
+        if (asOfDate) {
+          const selectedDate = new Date(asOfDate)
+          const selectedMonth = selectedDate.getMonth() // 0-11
+          const selectedYear = selectedDate.getFullYear()
+          
+          // Determine financial year for the selected date
+          let currentFYStartYear: number
+          if (selectedMonth >= 6) {
+            currentFYStartYear = selectedYear
+          } else {
+            currentFYStartYear = selectedYear - 1
+          }
+          
+          // Month order: July (0), August (1), September (2), October (3), November (4), December (5),
+          //              January (6), February (7), March (8), April (9), May (10), June (11)
+          // Map actual month to array index
+          const monthIndex = selectedMonth >= 6 ? selectedMonth - 6 : selectedMonth + 6
+          
+          // Filter: set Current Year to 0 for months after selected date, but keep Last Year data
+          filteredData = result.map((item: MonthlyProductivityData, index: number) => {
+            if (index > monthIndex) {
+              // After selected month: keep Last Year, set Current Year to 0
+              return {
+                ...item,
+                'Current Year': 0,
+              }
+            }
+            return item
+          })
+        }
+        
+        setData(filteredData)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
       } finally {
@@ -60,7 +96,7 @@ export function ProductivityMonthlyChartClient({
     }
 
     fetchData()
-  }, [organizationId, selectedStaff])
+  }, [organizationId, selectedStaff, asOfDate])
 
   if (loading) {
     return <ChartSkeleton />
@@ -70,7 +106,7 @@ export function ProductivityMonthlyChartClient({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Productivity - monthly</CardTitle>
+          <CardTitle>Billable Hours</CardTitle>
           <CardDescription>Monthly billable hours comparison</CardDescription>
         </CardHeader>
         <CardContent>
@@ -86,7 +122,7 @@ export function ProductivityMonthlyChartClient({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Productivity - monthly</CardTitle>
+          <CardTitle>Billable Hours</CardTitle>
           <CardDescription>Monthly billable hours comparison</CardDescription>
         </CardHeader>
         <CardContent>
@@ -103,7 +139,7 @@ export function ProductivityMonthlyChartClient({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Productivity - monthly</CardTitle>
+        <CardTitle>Billable Hours</CardTitle>
         <CardDescription>Monthly billable hours comparison</CardDescription>
       </CardHeader>
       <CardContent>

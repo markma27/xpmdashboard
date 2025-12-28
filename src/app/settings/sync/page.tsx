@@ -1,6 +1,7 @@
 import { requireOrg, loadUserOrganizations, getActiveOrgId } from '@/lib/auth'
 import { isAdmin } from '@/lib/rbac'
 import { AppLayout } from '@/components/layout/app-layout'
+import { PageHeader } from '@/components/layout/page-header'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { SyncStatus } from '@/components/sync-status'
 
@@ -25,14 +26,17 @@ export default async function SyncSettingsPage() {
   }
 
   return (
-    <AppLayout organizations={organizations} activeOrgId={activeOrgId}>
+    <AppLayout 
+      organizations={organizations} 
+      activeOrgId={activeOrgId}
+      header={
+        <PageHeader 
+          title="Sync Settings"
+          description="Configure data sync frequency and settings"
+        />
+      }
+    >
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Sync Settings</h1>
-          <p className="text-muted-foreground">
-            Configure data sync frequency and settings
-          </p>
-        </div>
         <Card>
           <CardHeader>
             <CardTitle>Sync Status</CardTitle>

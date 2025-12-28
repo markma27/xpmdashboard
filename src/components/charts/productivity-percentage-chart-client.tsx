@@ -14,11 +14,13 @@ interface MonthlyProductivityPercentageData {
 interface ProductivityPercentageChartClientProps {
   organizationId: string
   selectedStaff?: string | null
+  asOfDate?: string
 }
 
 export function ProductivityPercentageChartClient({ 
   organizationId, 
-  selectedStaff
+  selectedStaff,
+  asOfDate
 }: ProductivityPercentageChartClientProps) {
   const [data, setData] = useState<MonthlyProductivityPercentageData[]>([])
   const [loading, setLoading] = useState(true)
@@ -30,8 +32,8 @@ export function ProductivityPercentageChartClient({
         setLoading(true)
         setError(null)
         
-        // Build query URLs with optional staff filter
-        const baseParams = `organizationId=${organizationId}&t=${Date.now()}`
+        // Build query URLs with optional staff filter and date
+        const baseParams = `organizationId=${organizationId}&t=${Date.now()}${asOfDate ? `&asOfDate=${asOfDate}` : ''}`
         const staffParam = selectedStaff ? `&staff=${encodeURIComponent(selectedStaff)}` : ''
         
         // Fetch billable hours, standard hours, and capacity reducing hours
@@ -103,7 +105,40 @@ export function ProductivityPercentageChartClient({
           }
         })
         
-        setData(percentageData)
+        // Filter data: only filter Current Year data, keep Last Year data for full 12 months
+        let filteredData = percentageData
+        if (asOfDate) {
+          const selectedDate = new Date(asOfDate)
+          const selectedMonth = selectedDate.getMonth() // 0-11
+          const selectedYear = selectedDate.getFullYear()
+          
+          // Determine financial year for the selected date
+          let currentFYStartYear: number
+          if (selectedMonth >= 6) {
+            currentFYStartYear = selectedYear
+          } else {
+            currentFYStartYear = selectedYear - 1
+          }
+          
+          // Month order: July (0), August (1), September (2), October (3), November (4), December (5),
+          //              January (6), February (7), March (8), April (9), May (10), June (11)
+          // Map actual month to array index
+          const monthIndex = selectedMonth >= 6 ? selectedMonth - 6 : selectedMonth + 6
+          
+          // Filter: set Current Year to 0 for months after selected date, but keep Last Year data
+          filteredData = percentageData.map((item: MonthlyProductivityPercentageData, index: number) => {
+            if (index > monthIndex) {
+              // After selected month: keep Last Year, set Current Year to 0
+              return {
+                ...item,
+                'Current Year': 0,
+              }
+            }
+            return item
+          })
+        }
+        
+        setData(filteredData)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
       } finally {
@@ -112,7 +147,7 @@ export function ProductivityPercentageChartClient({
     }
 
     fetchData()
-  }, [organizationId, selectedStaff])
+  }, [organizationId, selectedStaff, asOfDate])
 
   if (loading) {
     return <ChartSkeleton />
@@ -122,8 +157,8 @@ export function ProductivityPercentageChartClient({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Productivity % - Monthly</CardTitle>
-          <CardDescription>Productivity percentage = Monthly billable hours / Total hours (Total hours = Standard hours - Capacity reducing hours)</CardDescription>
+          <CardTitle>Billable %</CardTitle>
+          <CardDescription>Billable % = Billable Hours / Total Hours (Total Hours = Standard Hours - Capacity Reducing Hours)</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[400px]">
@@ -138,8 +173,8 @@ export function ProductivityPercentageChartClient({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Productivity % - Monthly</CardTitle>
-          <CardDescription>Productivity percentage = Monthly billable hours / Total hours (Total hours = Standard hours - Capacity reducing hours)</CardDescription>
+          <CardTitle>Billable %</CardTitle>
+          <CardDescription>Billable % = Billable Hours / Total Hours (Total Hours = Standard Hours - Capacity Reducing Hours)</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[400px]">
@@ -155,8 +190,8 @@ export function ProductivityPercentageChartClient({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Productivity % - Monthly</CardTitle>
-        <CardDescription>Productivity percentage = Monthly billable hours / Total hours</CardDescription>
+        <CardTitle>Billable %</CardTitle>
+        <CardDescription>Billable % = Billable Hours / Total Hours (Total Hours = Standard Hours - Capacity Reducing Hours)</CardDescription>
       </CardHeader>
       <CardContent>
         <ProductivityPercentageChart data={data} />

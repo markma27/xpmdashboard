@@ -1,6 +1,7 @@
 import { requireOrg, loadUserOrganizations, getActiveOrgId } from '@/lib/auth'
 import { isAdmin } from '@/lib/rbac'
 import { AppLayout } from '@/components/layout/app-layout'
+import { PageHeader } from '@/components/layout/page-header'
 import { TimesheetUploadForm } from '@/components/timesheet-upload-form'
 
 export default async function TimesheetUploadPage() {
@@ -24,14 +25,17 @@ export default async function TimesheetUploadPage() {
   }
 
   return (
-    <AppLayout organizations={organizations} activeOrgId={activeOrgId}>
+    <AppLayout 
+      organizations={organizations} 
+      activeOrgId={activeOrgId}
+      header={
+        <PageHeader 
+          title="Timesheet Upload"
+          description="Upload CSV files exported from XPM to supplement billable rate information"
+        />
+      }
+    >
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Timesheet Upload</h1>
-          <p className="text-muted-foreground">
-            Upload CSV files exported from XPM to supplement billable rate information
-          </p>
-        </div>
         <TimesheetUploadForm />
       </div>
     </AppLayout>

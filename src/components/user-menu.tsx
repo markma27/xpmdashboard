@@ -45,10 +45,16 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex items-center gap-2 rounded-full p-1 hover:bg-accent">
-          <Avatar>
-            <AvatarFallback>{initials}</AvatarFallback>
+        <button className="flex w-full items-center gap-3 rounded-md px-3 py-2 hover:bg-slate-200/50 transition-colors">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback className="text-xs">{initials}</AvatarFallback>
           </Avatar>
+          <div className="flex-1 text-left min-w-0">
+            <p className="text-sm font-medium text-slate-900 truncate">
+              {email?.split('@')[0] || 'User'}
+            </p>
+            <p className="text-xs text-slate-500 truncate">{email}</p>
+          </div>
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
