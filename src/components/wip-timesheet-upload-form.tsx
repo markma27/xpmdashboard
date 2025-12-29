@@ -218,7 +218,7 @@ export function WIPTimesheetUploadForm() {
                       Auto-filled Records ({autoFilled.length}):
                     </h4>
                     <p className="text-xs text-blue-600 dark:text-blue-400 mb-2">
-                      These records were successfully uploaded with staff name set to "Disbursement"
+                      These records were successfully uploaded with staff name set to &quot;Disbursement&quot;
                     </p>
                     <ul className="space-y-1 text-xs text-blue-800 dark:text-blue-300">
                       {autoFilled.slice(0, 50).map((info, index) => (
