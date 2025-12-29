@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
     // Read and parse CSV file
     const fileText = await file.text()
     
-    return new Promise((resolve) => {
+    return new Promise<NextResponse>((resolve) => {
       Papa.parse<WIPTimesheetRow>(fileText, {
         header: true,
         skipEmptyLines: true,
