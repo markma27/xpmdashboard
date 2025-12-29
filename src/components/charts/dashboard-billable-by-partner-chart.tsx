@@ -25,17 +25,7 @@ interface DashboardBillableByPartnerChartProps {
 
 export function DashboardBillableByPartnerChart({ data, loading }: DashboardBillableByPartnerChartProps) {
   if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Billable $ by Partner</CardTitle>
-          <CardDescription>Current year vs last year</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChartSkeleton />
-        </CardContent>
-      </Card>
-    )
+    return <ChartSkeleton />
   }
 
   // Custom tooltip content
@@ -83,29 +73,34 @@ export function DashboardBillableByPartnerChart({ data, loading }: DashboardBill
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Billable $ by Partner</CardTitle>
-        <CardDescription>Current year vs last year</CardDescription>
+    <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
+      <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+        <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Billable $ by Partner</CardTitle>
       </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={400}>
+      <CardContent className="px-2 pb-2">
+        <ResponsiveContainer width="100%" height={320}>
           <RechartsBarChart
             data={data}
-            margin={{ top: 40, right: 30, left: 5, bottom: 20 }}
+            margin={{ top: 30, right: 30, left: 5, bottom: 10 }}
           >
             <XAxis 
               dataKey="partner" 
-              tick={{ fontSize: 12 }}
+              tick={{ fontSize: 10, fill: '#64748b', fontWeight: 500 }}
               tickLine={false}
+              axisLine={{ stroke: '#e2e8f0' }}
             />
             <Tooltip content={customTooltip} />
-            <Legend wrapperStyle={{ fontSize: '12px' }} />
+            <Legend 
+              wrapperStyle={{ fontSize: '11px', fontWeight: 600, paddingTop: '10px' }} 
+              iconType="circle"
+              iconSize={8}
+            />
             <Bar 
               dataKey="Current Year" 
               fill="#fca5a5" 
               name="Current Year"
-              radius={[4, 4, 0, 0]}
+              radius={[3, 3, 0, 0]}
+              barSize={50}
             >
               <LabelList 
                 dataKey="Current Year" 
@@ -116,14 +111,15 @@ export function DashboardBillableByPartnerChart({ data, loading }: DashboardBill
                   const formatted = absValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
                   return value < 0 ? `($${formatted})` : `$${formatted}`
                 }}
-                style={{ fontSize: '11px', fill: '#666' }}
+                style={{ fontSize: '9px', fill: '#475569', fontWeight: 600 }}
               />
             </Bar>
             <Bar 
               dataKey="Last Year" 
-              fill="#9ca3af" 
+              fill="#cbd5e1" 
               name="Last Year"
-              radius={[4, 4, 0, 0]}
+              radius={[3, 3, 0, 0]}
+              barSize={50}
             >
               <LabelList 
                 dataKey="Last Year" 
@@ -134,7 +130,7 @@ export function DashboardBillableByPartnerChart({ data, loading }: DashboardBill
                   const formatted = absValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
                   return value < 0 ? `($${formatted})` : `$${formatted}`
                 }}
-                style={{ fontSize: '11px', fill: '#666' }}
+                style={{ fontSize: '9px', fill: '#64748b', fontWeight: 600 }}
               />
             </Bar>
           </RechartsBarChart>

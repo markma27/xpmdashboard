@@ -9,12 +9,12 @@ export function DashboardHeader() {
   const { displayDate, setDisplayDate, handleUpdate } = useDashboard()
 
   return (
-    <div className="flex items-start justify-between">
+    <div className="flex items-center justify-between">
       <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
       </div>
       <div className="flex items-center gap-2">
-        <Label htmlFor="dashboard-date" className="text-sm font-medium whitespace-nowrap">
+        <Label htmlFor="dashboard-date" className="text-xs font-medium whitespace-nowrap text-slate-600 uppercase tracking-wider">
           Date:
         </Label>
         <Input
@@ -22,11 +22,12 @@ export function DashboardHeader() {
           type="date"
           value={displayDate}
           onChange={(e) => setDisplayDate(e.target.value)}
-          className="w-40 h-10"
+          className="w-36 h-9 text-xs"
         />
         <Button
           onClick={handleUpdate}
-          className="bg-black text-white hover:bg-black/90 h-10"
+          size="sm"
+          className="bg-black text-white hover:bg-black/80 active:bg-black/70 active:scale-[0.98] transition-all duration-150 h-9 px-4 font-semibold"
         >
           Update
         </Button>

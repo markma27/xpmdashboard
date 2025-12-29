@@ -248,170 +248,168 @@ export function DashboardStaffPerformanceTable({ organizationId, asOfDate }: Das
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Staff Performance</CardTitle>
-        <CardDescription>Staff performance metrics: Billable $, Billable %, Target %, Variance %, Recoverability $, Recoverability %, Target %, Variance %, Billable Hours, Average Hourly Rate</CardDescription>
+    <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
+      <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+        <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Staff Performance</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-0 pb-0">
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-sm">
+          <table className="w-full border-collapse text-[12px]">
             <thead>
-              <tr className="border-b bg-muted/50">
+              <tr className="border-b bg-slate-50/50">
+                {/* Current Year Columns - spans all columns including Staff */}
+                <th colSpan={11} className="text-center py-2 px-2 font-bold text-slate-700 bg-slate-100/50 uppercase tracking-wider text-[10px]">
+                  Current Year Performance Metrics
+                </th>
+              </tr>
+              <tr className="border-b bg-slate-50/30">
                 <th 
-                  className="text-left p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none sticky left-0 bg-muted/50 z-10"
+                  className="text-left py-2 px-4 font-bold text-slate-600 cursor-pointer hover:bg-slate-100 select-none sticky left-0 bg-slate-50/30 z-20 border-r"
                   onClick={() => handleSort('staff')}
                 >
                   Staff<SortIcon column="staff" />
                 </th>
-                {/* Current Year Columns */}
-                <th colSpan={10} className="text-center p-3 font-semibold border-l">
-                  Current Year
-                </th>
-              </tr>
-              <tr className="border-b bg-muted/30">
-                <th className="p-3"></th>
                 {/* Current Year sub-headers */}
                 <th 
-                  className="text-right p-2 font-medium cursor-pointer hover:bg-muted/50 select-none border-l"
+                  className="text-right py-2 px-2 font-bold text-slate-600 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
                   onClick={() => handleSort('currentYearBillableAmount')}
                 >
                   Billable $<SortIcon column="currentYearBillableAmount" />
                 </th>
                 <th 
-                  className="text-right p-2 font-medium cursor-pointer hover:bg-muted/50 select-none"
+                  className="text-right py-2 px-2 font-bold text-slate-600 cursor-pointer hover:bg-slate-100 select-none bg-slate-50/30"
                   onClick={() => handleSort('currentYearBillablePercentage')}
                 >
                   Billable %<SortIcon column="currentYearBillablePercentage" />
                 </th>
                 <th 
-                  className="text-right p-2 font-medium cursor-pointer hover:bg-muted/50 select-none"
+                  className="text-right py-2 px-2 font-bold text-slate-600 cursor-pointer hover:bg-slate-100 select-none bg-slate-50/30"
                   onClick={() => handleSort('currentYearTargetBillablePercentage')}
                 >
                   Target %<SortIcon column="currentYearTargetBillablePercentage" />
                 </th>
                 <th 
-                  className="text-right p-2 font-medium cursor-pointer hover:bg-muted/50 select-none border-r"
+                  className="text-right py-2 px-2 font-bold text-slate-600 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
                   onClick={() => handleSort('currentYearBillableVariance')}
                 >
-                  Variance %<SortIcon column="currentYearBillableVariance" />
+                  Var %<SortIcon column="currentYearBillableVariance" />
                 </th>
                 <th 
-                  className="text-right p-2 font-medium cursor-pointer hover:bg-muted/50 select-none border-l"
+                  className="text-right py-2 px-2 font-bold text-slate-600 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
                   onClick={() => handleSort('currentYearRecoverabilityAmount')}
                 >
-                  Write On / (Off) $<SortIcon column="currentYearRecoverabilityAmount" />
+                  Write On/Off $<SortIcon column="currentYearRecoverabilityAmount" />
                 </th>
                 <th 
-                  className="text-right p-2 font-medium cursor-pointer hover:bg-muted/50 select-none"
+                  className="text-right py-2 px-2 font-bold text-slate-600 cursor-pointer hover:bg-slate-100 select-none bg-slate-50/30"
                   onClick={() => handleSort('currentYearRecoverabilityPercentage')}
                 >
-                  Recoverability %<SortIcon column="currentYearRecoverabilityPercentage" />
+                  Recov %<SortIcon column="currentYearRecoverabilityPercentage" />
                 </th>
                 <th 
-                  className="text-right p-2 font-medium cursor-pointer hover:bg-muted/50 select-none"
+                  className="text-right py-2 px-2 font-bold text-slate-600 cursor-pointer hover:bg-slate-100 select-none bg-slate-50/30"
                   onClick={() => handleSort('currentYearTargetRecoverabilityPercentage')}
                 >
                   Target %<SortIcon column="currentYearTargetRecoverabilityPercentage" />
                 </th>
                 <th 
-                  className="text-right p-2 font-medium cursor-pointer hover:bg-muted/50 select-none border-r"
+                  className="text-right py-2 px-2 font-bold text-slate-600 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
                   onClick={() => handleSort('currentYearRecoverabilityVariance')}
                 >
-                  Variance %<SortIcon column="currentYearRecoverabilityVariance" />
+                  Var %<SortIcon column="currentYearRecoverabilityVariance" />
                 </th>
                 <th 
-                  className="text-right p-2 font-medium cursor-pointer hover:bg-muted/50 select-none border-l"
+                  className="text-right py-2 px-2 font-bold text-slate-600 cursor-pointer hover:bg-slate-100 select-none bg-slate-50/30"
                   onClick={() => handleSort('currentYearBillableHours')}
                 >
-                  Billable Hours<SortIcon column="currentYearBillableHours" />
+                  Hours<SortIcon column="currentYearBillableHours" />
                 </th>
                 <th 
-                  className="text-right p-2 font-medium cursor-pointer hover:bg-muted/50 select-none border-r"
+                  className="text-right py-2 px-2 font-bold text-slate-600 cursor-pointer hover:bg-slate-100 select-none bg-slate-50/30"
                   onClick={() => handleSort('currentYearAverageRate')}
                 >
-                  Avg Hourly Rate<SortIcon column="currentYearAverageRate" />
+                  Avg Rate<SortIcon column="currentYearAverageRate" />
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100">
               {sortedData.map((item, index) => (
-                <tr key={index} className="border-b hover:bg-muted/50 group">
-                  <td className="p-3 font-medium sticky left-0 bg-white group-hover:bg-muted/50 z-10">{item.staff}</td>
+                <tr key={index} className="hover:bg-slate-50 transition-colors group">
+                  <td className="py-2 px-4 font-semibold text-slate-700 sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">{item.staff}</td>
                   {/* Current Year data */}
-                  <td className={`p-3 text-right border-l ${item.currentYear.billableAmount < 0 ? 'text-red-600' : ''}`}>
+                  <td className={`py-2 px-2 text-right font-medium border-r ${item.currentYear.billableAmount < 0 ? 'text-red-600' : 'text-slate-900'}`}>
                     {formatCurrency(item.currentYear.billableAmount)}
                   </td>
-                  <td className="p-3 text-right">
+                  <td className="py-2 px-2 text-right font-medium text-slate-900">
                     {formatPercentage(item.currentYear.billablePercentage)}
                   </td>
-                  <td className="p-3 text-right">
+                  <td className="py-2 px-2 text-right text-slate-500">
                     {item.currentYear.targetBillablePercentage !== null 
                       ? formatPercentage(item.currentYear.targetBillablePercentage)
                       : '-'}
                   </td>
-                  <td className={`p-3 text-right border-r ${item.currentYear.billableVariance !== null && item.currentYear.billableVariance < 0 ? 'text-red-600' : ''}`}>
+                  <td className={`py-2 px-2 text-right font-bold border-r ${item.currentYear.billableVariance !== null && item.currentYear.billableVariance < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
                     {item.currentYear.billableVariance !== null 
-                      ? formatPercentage(item.currentYear.billableVariance)
+                      ? (item.currentYear.billableVariance > 0 ? '+' : '') + formatPercentage(item.currentYear.billableVariance)
                       : '-'}
                   </td>
-                  <td className={`p-3 text-right border-l ${item.currentYear.recoverabilityAmount < 0 ? 'text-red-600' : ''}`}>
+                  <td className={`py-2 px-2 text-right font-medium border-r ${item.currentYear.recoverabilityAmount < 0 ? 'text-red-600' : 'text-slate-900'}`}>
                     {formatCurrency(item.currentYear.recoverabilityAmount)}
                   </td>
-                  <td className="p-3 text-right">
+                  <td className="py-2 px-2 text-right font-medium text-slate-900">
                     {formatPercentage(item.currentYear.recoverabilityPercentage)}
                   </td>
-                  <td className="p-3 text-right">
+                  <td className="py-2 px-2 text-right text-slate-500">
                     {formatPercentage(item.currentYear.targetRecoverabilityPercentage)}
                   </td>
-                  <td className={`p-3 text-right border-r ${item.currentYear.recoverabilityVariance < 0 ? 'text-red-600' : ''}`}>
-                    {formatPercentage(item.currentYear.recoverabilityVariance)}
+                  <td className={`py-2 px-2 text-right font-bold border-r ${item.currentYear.recoverabilityVariance < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                    {(item.currentYear.recoverabilityVariance > 0 ? '+' : '') + formatPercentage(item.currentYear.recoverabilityVariance)}
                   </td>
-                  <td className="p-3 text-right border-l">
+                  <td className="py-2 px-2 text-right text-slate-700">
                     {formatHours(item.currentYear.billableHours)}
                   </td>
-                  <td className="p-3 text-right border-r">
+                  <td className="py-2 px-2 text-right font-medium text-slate-900">
                     {formatCurrency(item.currentYear.averageHourlyRate)}
                   </td>
                 </tr>
               ))}
               {/* Total row */}
               {totals && (
-                <tr className="border-t-2 font-semibold bg-muted/30">
-                  <td className="p-3 sticky left-0 bg-muted/30 z-10">Total</td>
+                <tr className="border-t-2 border-slate-200 font-bold bg-slate-50/80 rounded-b-lg">
+                  <td className="py-2 px-4 sticky left-0 bg-slate-50/80 z-10 border-r rounded-bl-lg">TOTAL</td>
                   {/* Current Year totals */}
-                  <td className="p-3 text-right border-l">
+                  <td className={`py-2 px-2 text-right border-r ${totals.currentYear.billableAmount < 0 ? 'text-red-600' : 'text-slate-900'}`}>
                     {formatCurrency(totals.currentYear.billableAmount)}
                   </td>
-                  <td className="p-3 text-right">
+                  <td className="py-2 px-2 text-right text-slate-900">
                     {formatPercentage(totals.currentYear.billablePercentage)}
                   </td>
-                  <td className="p-3 text-right">
+                  <td className="py-2 px-2 text-right text-slate-500">
                     {totals.currentYear.targetBillablePercentage !== null 
                       ? formatPercentage(totals.currentYear.targetBillablePercentage)
                       : '-'}
                   </td>
-                  <td className="p-3 text-right border-r">
+                  <td className={`py-2 px-2 text-right border-r ${totals.currentYear.billableVariance !== null && totals.currentYear.billableVariance < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
                     {totals.currentYear.billableVariance !== null 
-                      ? formatPercentage(totals.currentYear.billableVariance)
+                      ? (totals.currentYear.billableVariance > 0 ? '+' : '') + formatPercentage(totals.currentYear.billableVariance)
                       : '-'}
                   </td>
-                  <td className="p-3 text-right border-l">
+                  <td className={`py-2 px-2 text-right border-r ${totals.currentYear.recoverabilityAmount < 0 ? 'text-red-600' : 'text-slate-900'}`}>
                     {formatCurrency(totals.currentYear.recoverabilityAmount)}
                   </td>
-                  <td className="p-3 text-right">
+                  <td className="py-2 px-2 text-right text-slate-900">
                     {formatPercentage(totals.currentYear.recoverabilityPercentage)}
                   </td>
-                  <td className="p-3 text-right">
+                  <td className="py-2 px-2 text-right text-slate-500">
                     {formatPercentage(totals.currentYear.targetRecoverabilityPercentage)}
                   </td>
-                  <td className={`p-3 text-right border-r ${totals.currentYear.recoverabilityVariance < 0 ? 'text-red-600' : ''}`}>
-                    {formatPercentage(totals.currentYear.recoverabilityVariance)}
+                  <td className={`py-2 px-2 text-right border-r ${totals.currentYear.recoverabilityVariance < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                    {(totals.currentYear.recoverabilityVariance > 0 ? '+' : '') + formatPercentage(totals.currentYear.recoverabilityVariance)}
                   </td>
-                  <td className="p-3 text-right border-l">
+                  <td className="py-2 px-2 text-right text-slate-700">
                     {formatHours(totals.currentYear.billableHours)}
                   </td>
-                  <td className="p-3 text-right border-r">
+                  <td className="py-2 px-2 text-right text-slate-900 rounded-br-lg">
                     {formatCurrency(totals.currentYear.averageHourlyRate)}
                   </td>
                 </tr>

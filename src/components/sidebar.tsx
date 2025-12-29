@@ -127,27 +127,27 @@ export function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <div className="flex h-full w-64 flex-col bg-[#f8f9fa] border-r border-gray-200">
-      <div className="flex h-20 items-center justify-center px-6">
+    <div className="flex h-full w-52 flex-col bg-gray-50 border-r border-gray-200 shrink-0">
+      <div className="flex h-14 items-center justify-center px-4 shrink-0">
         <Image
           src="/Logo.svg"
           alt="XPM Dashboard"
-          width={150}
-          height={50}
+          width={120}
+          height={36}
           className="h-auto w-auto object-contain"
           priority
         />
       </div>
       
-      <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
+      <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-2.5 scrollbar-none">
         {navigation.map((section, sectionIdx) => (
-          <div key={section.title || sectionIdx} className="space-y-2">
+          <div key={section.title || sectionIdx} className="space-y-1">
             {section.title && (
-              <div className="px-3 text-[11px] font-bold tracking-wider text-slate-500 uppercase">
+              <div className="px-3 text-[9px] font-bold tracking-wider text-slate-500 uppercase">
                 {section.title}
               </div>
             )}
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               {section.items.map((item) => {
                 const isActive = pathname === item.href
                 return (
@@ -155,14 +155,14 @@ export function Sidebar() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      'flex items-center gap-3 rounded-md px-3 py-2.5 text-[14px] font-medium transition-all duration-200',
+                      'flex items-center gap-2 rounded-md px-3 py-1.5 text-[12px] font-medium transition-all duration-200 whitespace-nowrap',
                       isActive
                         ? 'bg-[#1a1f2e] text-white shadow-sm'
                         : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-900'
                     )}
                   >
                     <item.icon className={cn(
-                      "h-4.5 w-4.5 shrink-0",
+                      "h-3.5 w-3.5 shrink-0",
                       isActive ? "text-white" : "text-slate-500"
                     )} />
                     {item.name}
@@ -171,7 +171,7 @@ export function Sidebar() {
               })}
             </div>
             {sectionIdx < navigation.length - 1 && (
-              <div className="pt-2">
+              <div className="pt-1">
                 <div className="h-px bg-slate-200 mx-2" />
               </div>
             )}
@@ -179,8 +179,8 @@ export function Sidebar() {
         ))}
       </nav>
       
-      <div className="border-t border-gray-200 p-4">
-        <div className="flex items-center justify-center">
+      <div className="border-t border-gray-200 p-2 shrink-0">
+        <div className="flex items-center justify-center scale-90 origin-center">
           <UserMenu />
         </div>
       </div>

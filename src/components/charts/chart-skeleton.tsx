@@ -1,18 +1,19 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
-export function ChartSkeleton() {
+interface ChartSkeletonProps {
+  title?: string
+}
+
+export function ChartSkeleton({ title }: ChartSkeletonProps = {}) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          <span className="inline-block h-6 w-48 bg-muted animate-pulse rounded" />
+    <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
+      <CardHeader className="py-3 px-6">
+        <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">
+          <span className="inline-block h-5 w-48 bg-muted animate-pulse rounded" />
         </CardTitle>
-        <CardDescription>
-          <span className="inline-block h-4 w-64 bg-muted animate-pulse rounded mt-2" />
-        </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="h-[400px] bg-muted/30 animate-pulse rounded" />
+      <CardContent className="px-2 pb-2">
+        <div className="h-[320px] bg-muted/30 animate-pulse rounded" />
       </CardContent>
     </Card>
   )

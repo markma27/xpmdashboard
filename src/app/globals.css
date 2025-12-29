@@ -100,3 +100,19 @@ input[type="date"][value=""]:focus::-webkit-datetime-edit-year-field {
   opacity: 1;
 }
 
+/* Apply Inter font to date picker calendar */
+input[type="date"] {
+  font-family: 'Inter', sans-serif;
+}
+
+/* Style date picker calendar dropdown */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
