@@ -18,6 +18,7 @@ interface BillableReportContextValue {
   setSavingFilters: (saving: boolean) => void
   isInitializing: boolean
   handleSaveFilters: () => Promise<void>
+  organizationId: string
 }
 
 const BillableReportContext = createContext<BillableReportContextValue | undefined>(undefined)
@@ -178,6 +179,7 @@ export function BillableReportProvider({
       setSavingFilters,
       isInitializing,
       handleSaveFilters,
+      organizationId,
     }}>
       {children}
     </BillableReportContext.Provider>

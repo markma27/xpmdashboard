@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     const lastYearEnd = `${lastFYEndYear}-06-30`
 
     // Helper function to fetch all data for a date range
-    async function fetchAllData(startDate: string, endDate: string): Promise<any[]> {
+    const fetchAllData = async (startDate: string, endDate: string): Promise<any[]> => {
       let allData: any[] = []
       let page = 0
       const pageSize = 1000

@@ -18,6 +18,7 @@ interface RecoverabilityReportContextValue {
   setSavingFilters: (saving: boolean) => void
   isInitializing: boolean
   handleSaveFilters: () => Promise<void>
+  organizationId: string
 }
 
 const RecoverabilityReportContext = createContext<RecoverabilityReportContextValue | undefined>(undefined)
@@ -174,6 +175,7 @@ export function RecoverabilityReportProvider({
       setSavingFilters,
       isInitializing,
       handleSaveFilters,
+      organizationId,
     }}>
       {children}
     </RecoverabilityReportContext.Provider>

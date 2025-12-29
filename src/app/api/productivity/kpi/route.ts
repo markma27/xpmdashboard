@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
     const lastYearStart = `${lastFYStartYear}-07-01`
 
     // Helper function to fetch all billable data for a date range
-    async function fetchBillableData(startDate: string, endDate: string): Promise<{ hours: number, amount: number }> {
+    const fetchBillableData = async (startDate: string, endDate: string): Promise<{ hours: number, amount: number }> => {
       let allData: any[] = []
       let page = 0
       const pageSize = 1000
@@ -187,7 +187,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Helper function to calculate standard hours for a date range
-    async function calculateStandardHours(startDate: string, endDate: string): Promise<number> {
+    const calculateStandardHours = async (startDate: string, endDate: string): Promise<number> => {
       // Get staff settings
       let allSettings: any[] = []
       let page = 0
@@ -410,7 +410,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Helper function to calculate capacity reducing hours for a date range
-    async function calculateCapacityReducingHours(startDate: string, endDate: string): Promise<number> {
+    const calculateCapacityReducingHours = async (startDate: string, endDate: string): Promise<number> => {
       let allData: any[] = []
       let page = 0
       const pageSize = 1000

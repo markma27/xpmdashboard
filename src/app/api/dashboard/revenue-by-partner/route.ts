@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     const lastYearStart = `${lastFYStartYear}-07-01`
 
     // Helper function to fetch all invoice data for a date range
-    async function fetchRevenueData(startDate: string, endDate: string): Promise<any[]> {
+    const fetchRevenueData = async (startDate: string, endDate: string): Promise<any[]> => {
       let allData: any[] = []
       let page = 0
       const pageSize = 1000

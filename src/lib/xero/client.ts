@@ -48,10 +48,11 @@ export async function getAuthorizationUrl(state?: string): Promise<string> {
     // This ensures the state matches when apiCallback is called later
     if (state) {
       try {
-        xeroClient.config = {
+        // Use type assertion to bypass readonly property
+        (xeroClient as any).config = {
           ...xeroClient.config,
           state: state,
-        } as any
+        }
       } catch (e) {
         // If config assignment fails, try alternative method
         console.warn('Could not set state via config assignment, trying alternative method')
@@ -114,10 +115,11 @@ export async function exchangeCodeForTokens(callbackUrl: string, state?: string)
     // The config object might be read-only, so we need to check the xero-node API
     // For now, try to set it directly
     try {
-      xeroClient.config = {
+      // Use type assertion to bypass readonly property
+      (xeroClient as any).config = {
         ...xeroClient.config,
         state: stateToUse,
-      } as any
+      }
     } catch (e) {
       // If config is read-only, we might need to pass state differently
       console.warn('Could not set state in config, attempting apiCallback anyway')

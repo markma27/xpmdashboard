@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient()
 
     // Helper function to fetch all data with pagination
-    async function fetchAllData(selectFields: string[]): Promise<any[]> {
+    const fetchAllData = async (selectFields: string[]): Promise<any[]> => {
       let allData: any[] = []
       let page = 0
       const pageSize = 1000

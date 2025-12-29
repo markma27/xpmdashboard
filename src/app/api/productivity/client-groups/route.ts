@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Helper function to fetch all data for a date range
-    async function fetchAllData(startDate: string, endDate: string): Promise<any[]> {
+    const fetchAllData = async (startDate: string, endDate: string): Promise<any[]> => {
       let allData: any[] = []
       let page = 0
       const pageSize = 1000
@@ -182,6 +182,8 @@ export async function GET(request: NextRequest) {
     const clientGroupMap = new Map<string, { 
       currentYear: number
       lastYear: number
+      currentYearAmount: number
+      lastYearAmount: number
       accountManager: string | null
       jobManager: string | null
     }>()
