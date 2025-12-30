@@ -55,9 +55,8 @@ export async function GET(request: NextRequest) {
 
     // Get staff settings from staff_settings table (with pagination)
     let allSettings: any[] = []
-    let page = 0
-    const pageSize = 1000
-    let hasMore = true
+    page = 0
+    hasMore = true
     
     while (hasMore) {
       const { data: pageData, error: pageError } = await supabase
