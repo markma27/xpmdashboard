@@ -14,7 +14,7 @@ export default async function RecoverabilityReportPage() {
       <AppLayout 
         organizations={organizations} 
         activeOrgId={activeOrgId}
-        header={<RecoverabilityReportHeader />}
+        header={<RecoverabilityReportHeader organizationName={org.name} />}
       >
         <div className="space-y-6">
           <RecoverabilityReportContainer organizationId={org.id} />

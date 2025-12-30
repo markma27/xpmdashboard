@@ -33,6 +33,7 @@ export default async function MembersSettingsPage() {
         <PageHeader 
           title="Member Management"
           description="Manage organization members and permissions"
+          organizationName={org.name}
         />
       }
     >

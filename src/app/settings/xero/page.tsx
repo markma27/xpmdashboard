@@ -35,6 +35,7 @@ export default async function XeroSettingsPage() {
         <PageHeader 
           title="Xero Connection"
           description="Connect your Xero Practice Manager account"
+          organizationName={org.name}
         />
       }
     >

@@ -14,7 +14,7 @@ export default async function DashboardPage() {
       <AppLayout 
         organizations={organizations} 
         activeOrgId={activeOrgId}
-        header={<DashboardHeader />}
+        header={<DashboardHeader organizationName={org.name} />}
       >
         <DashboardContainer organizationId={org.id} />
       </AppLayout>

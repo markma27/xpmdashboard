@@ -4,7 +4,11 @@ import { BillableFilters } from './billable-filters'
 import { useBillableReport } from './billable-report-context'
 import { Button } from '@/components/ui/button'
 
-export function BillableReportHeader() {
+interface BillableReportHeaderProps {
+  organizationName?: string
+}
+
+export function BillableReportHeader({ organizationName }: BillableReportHeaderProps) {
   const {
     lastUpdated,
     pendingFilters,
@@ -38,7 +42,15 @@ export function BillableReportHeader() {
   return (
     <div className="flex items-center justify-between">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Billable</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold tracking-tight">Billable</h1>
+          {organizationName && (
+            <>
+              <div className="h-5 w-px bg-gray-300" />
+              <span className="text-base font-normal text-slate-400 tracking-normal">{organizationName}</span>
+            </>
+          )}
+        </div>
         {formattedDate && (
           <p className="text-xs text-red-800 mt-1">
             Last updated: {formattedDate}

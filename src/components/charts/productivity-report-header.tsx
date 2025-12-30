@@ -12,7 +12,11 @@ import {
 } from '@/components/ui/select'
 import { useProductivityReport } from './productivity-report-context'
 
-export function ProductivityReportHeader() {
+interface ProductivityReportHeaderProps {
+  organizationName?: string
+}
+
+export function ProductivityReportHeader({ organizationName }: ProductivityReportHeaderProps) {
   const {
     displayDate,
     setDisplayDate,
@@ -38,7 +42,15 @@ export function ProductivityReportHeader() {
   return (
     <div className="flex items-center justify-between">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Productivity</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold tracking-tight">Productivity</h1>
+          {organizationName && (
+            <>
+              <div className="h-5 w-px bg-gray-300" />
+              <span className="text-base font-normal text-slate-400 tracking-normal">{organizationName}</span>
+            </>
+          )}
+        </div>
         {formattedDate && (
           <p className="text-xs text-red-800 mt-1">
             Last updated: {formattedDate}

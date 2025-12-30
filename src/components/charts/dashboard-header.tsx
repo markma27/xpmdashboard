@@ -5,13 +5,23 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { useDashboard } from './dashboard-context'
 
-export function DashboardHeader() {
+interface DashboardHeaderProps {
+  organizationName?: string
+}
+
+export function DashboardHeader({ organizationName }: DashboardHeaderProps) {
   const { displayDate, setDisplayDate, handleUpdate } = useDashboard()
 
   return (
     <div className="flex items-center justify-between">
-      <div>
+      <div className="flex items-center gap-3">
         <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+        {organizationName && (
+          <>
+            <div className="h-5 w-px bg-gray-300" />
+            <span className="text-base font-normal text-slate-400 tracking-normal">{organizationName}</span>
+          </>
+        )}
       </div>
       <div className="flex items-center gap-2">
         <Label htmlFor="dashboard-date" className="text-xs font-medium whitespace-nowrap text-slate-600 uppercase tracking-wider">

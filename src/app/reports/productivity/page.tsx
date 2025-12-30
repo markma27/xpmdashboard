@@ -14,7 +14,7 @@ export default async function ProductivityReportPage() {
       <AppLayout 
         organizations={organizations} 
         activeOrgId={activeOrgId}
-        header={<ProductivityReportHeader />}
+        header={<ProductivityReportHeader organizationName={org.name} />}
       >
         <div className="space-y-6">
           <ProductivityReportContainer organizationId={org.id} />

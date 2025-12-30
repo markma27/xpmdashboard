@@ -4,7 +4,11 @@ import { Button } from '@/components/ui/button'
 import { useRevenueReport } from './revenue-report-context'
 import { cn } from '@/lib/utils'
 
-export function RevenueReportHeader() {
+interface RevenueReportHeaderProps {
+  organizationName?: string
+}
+
+export function RevenueReportHeader({ organizationName }: RevenueReportHeaderProps) {
   const {
     selectedPartner,
     setSelectedPartner,
@@ -30,7 +34,15 @@ export function RevenueReportHeader() {
   return (
     <div className="flex items-center justify-between">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Invoice</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold tracking-tight">Invoice</h1>
+          {organizationName && (
+            <>
+              <div className="h-5 w-px bg-gray-300" />
+              <span className="text-base font-normal text-slate-400 tracking-normal">{organizationName}</span>
+            </>
+          )}
+        </div>
         {formattedDate && (
           <p className="text-xs text-red-800 mt-1">
             Last updated: {formattedDate}

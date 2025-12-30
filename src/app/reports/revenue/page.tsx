@@ -14,7 +14,7 @@ export default async function RevenueReportPage() {
       <AppLayout 
         organizations={organizations} 
         activeOrgId={activeOrgId}
-        header={<RevenueReportHeader />}
+        header={<RevenueReportHeader organizationName={org.name} />}
       >
         <div className="space-y-6">
           <RevenueReportContainer organizationId={org.id} />

@@ -32,6 +32,7 @@ export default async function WIPTimesheetUploadPage() {
         <PageHeader 
           title="WIP Timesheet Upload"
           description="Upload CSV files exported from XPM for Work In Progress reporting"
+          organizationName={org.name}
         />
       }
     >

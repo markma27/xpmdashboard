@@ -32,6 +32,7 @@ export default async function OrganisationSettingsPage() {
         <PageHeader 
           title="Organisation Settings"
           description="Manage your organisation information"
+          organizationName={org.name}
         />
       }
     >

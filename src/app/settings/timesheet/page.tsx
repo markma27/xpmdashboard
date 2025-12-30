@@ -32,6 +32,7 @@ export default async function TimesheetUploadPage() {
         <PageHeader 
           title="Timesheet Upload"
           description="Upload CSV files exported from XPM to supplement billable rate information"
+          organizationName={org.name}
         />
       }
     >

@@ -14,7 +14,7 @@ export default async function WorkInProgressReportPage() {
       <AppLayout 
         organizations={organizations} 
         activeOrgId={activeOrgId}
-        header={<WIPReportHeader />}
+        header={<WIPReportHeader organizationName={org.name} />}
       >
         <div className="space-y-6">
           <WIPReportContainer organizationId={org.id} />

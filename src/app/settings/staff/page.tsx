@@ -33,6 +33,7 @@ export default async function StaffSettingsPage() {
         <PageHeader 
           title="Staff Settings"
           description="Set target billable percentage, FTE, and default daily hours for each staff member"
+          organizationName={org.name}
         />
       }
     >

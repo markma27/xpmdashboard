@@ -33,6 +33,7 @@ export default async function SyncSettingsPage() {
         <PageHeader 
           title="Sync Settings"
           description="Configure data sync frequency and settings"
+          organizationName={org.name}
         />
       }
     >

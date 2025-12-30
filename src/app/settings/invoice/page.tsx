@@ -32,6 +32,7 @@ export default async function InvoiceUploadPage() {
         <PageHeader 
           title="Invoice Upload"
           description="Upload CSV files exported from XPM for invoice reporting"
+          organizationName={org.name}
         />
       }
     >

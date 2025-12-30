@@ -32,6 +32,7 @@ export default async function RecoverabilityTimesheetUploadPage() {
         <PageHeader 
           title="Recoverability Timesheet Upload"
           description="Upload CSV files exported from XPM for recoverability reporting"
+          organizationName={org.name}
         />
       }
     >
