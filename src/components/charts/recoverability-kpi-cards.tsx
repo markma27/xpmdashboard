@@ -197,6 +197,11 @@ export function RecoverabilityKPICards({ organizationId, filters = [] }: Recover
         setLoading(true)
         setError(null)
         
+        // Don't fetch KPI data until lastUpdated is available
+        if (!lastUpdated) {
+          return
+        }
+        
         const baseParams = `organizationId=${organizationId}&t=${Date.now()}`
         const filtersParam = filters.length > 0 
           ? `&filters=${encodeURIComponent(filtersString)}`
@@ -223,7 +228,7 @@ export function RecoverabilityKPICards({ organizationId, filters = [] }: Recover
     }
 
     fetchData()
-  }, [organizationId, filtersString])
+  }, [organizationId, filtersString, lastUpdated])
 
   // Calculate percentage change for Recoverability % (absolute difference in percentage points)
   const recoverabilityPercentageChange = data !== null
@@ -240,7 +245,8 @@ export function RecoverabilityKPICards({ organizationId, filters = [] }: Recover
     return `$${formatted}`
   }
 
-  if (loading) {
+  // Show skeleton if loading, or if lastUpdated/formattedLastYearDate is not ready yet
+  if (loading || !lastUpdated || !formattedLastYearDate) {
     return <KPICardSkeleton />
   }
 
@@ -259,6 +265,7 @@ export function RecoverabilityKPICards({ organizationId, filters = [] }: Recover
     )
   }
 
+  // Only render cards when all data including formattedLastYearDate is ready
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {/* Recoverability $ Card */}
