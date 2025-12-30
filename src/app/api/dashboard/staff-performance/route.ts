@@ -491,19 +491,116 @@ export async function GET(request: NextRequest) {
     const currentYearBillableData = await fetchBillableDataByStaff(currentYearStart, currentYearEnd)
     const currentYearBillableHoursData = await fetchBillableHoursByStaff(currentYearStart, currentYearEnd)
     
-    // Create set of staff that appear in filtered billable data
-    // This ensures standard hours are only calculated for staff in filtered data (same as Productivity API)
+    // Create set of staff that should be included in standard hours calculation
+    // This must match the KPI API logic: include staff with billable hours in current OR last FULL financial year
     const filteredStaffSet = new Set<string>()
-    currentYearBillableData.forEach((_, staff) => {
-      if (staff && staff.trim().toLowerCase() !== 'disbursement') {
-        filteredStaffSet.add(staff.trim())
+    
+    if (!staffFilter) {
+      // Fetch billable hours for FULL current and last financial year (same as KPI API)
+      // to determine which staff should be included in standard hours calculation
+      const fullCurrentYearStart = `${currentFYStartYear}-07-01`
+      const fullCurrentYearEnd = `${currentFYEndYear}-06-30`
+      const fullLastYearStart = `${lastFYStartYear}-07-01`
+      const fullLastYearEnd = `${lastFYEndYear}-06-30`
+      
+      // Helper function to fetch billable hours data (billable=true only) for staff eligibility
+      const fetchBillableHoursForEligibility = async (startDate: string, endDate: string): Promise<Map<string, number>> => {
+        let allData: any[] = []
+        let page = 0
+        const pageSize = 1000
+        let hasMore = true
+        
+        while (hasMore) {
+          const { data: pageData, error: pageError } = await supabase
+            .from('timesheet_uploads')
+            .select('staff, time')
+            .eq('organization_id', organizationId)
+            .eq('billable', true) // Only billable=true records (same as KPI)
+            .gte('date', startDate)
+            .lte('date', endDate)
+            .range(page * pageSize, (page + 1) * pageSize - 1)
+          
+          if (pageError) {
+            throw new Error(`Failed to fetch billable data for eligibility: ${pageError.message}`)
+          }
+          
+          if (pageData && pageData.length > 0) {
+            allData = allData.concat(pageData)
+            page++
+            hasMore = pageData.length === pageSize
+          } else {
+            hasMore = false
+          }
+        }
+        
+        // Group by staff
+        const staffMap = new Map<string, number>()
+        allData.forEach((record) => {
+          if (record.staff && record.staff.trim().toLowerCase() !== 'disbursement') {
+            const staffName = record.staff.trim()
+            const hours = convertTimeToHours(record.time)
+            staffMap.set(staffName, (staffMap.get(staffName) || 0) + hours)
+          }
+        })
+        
+        return staffMap
       }
-    })
-    currentYearBillableHoursData.forEach((_, staff) => {
-      if (staff && staff.trim().toLowerCase() !== 'disbursement') {
-        filteredStaffSet.add(staff.trim())
+      
+      // Fetch billable hours for full current and last FY in parallel
+      const [currentFYBillableHours, lastFYBillableHours] = await Promise.all([
+        fetchBillableHoursForEligibility(fullCurrentYearStart, fullCurrentYearEnd),
+        fetchBillableHoursForEligibility(fullLastYearStart, fullLastYearEnd),
+      ])
+      
+      // Get all staff settings to check for hidden/report status
+      let allStaffSettings: any[] = []
+      let settingsPage = 0
+      let settingsHasMore = true
+      
+      while (settingsHasMore) {
+        const { data: pageData, error: pageError } = await supabase
+          .from('staff_settings')
+          .select('staff_name, is_hidden, report')
+          .eq('organization_id', organizationId)
+          .range(settingsPage * 1000, (settingsPage + 1) * 1000 - 1)
+        
+        if (pageError) {
+          throw new Error(`Failed to fetch staff settings for eligibility: ${pageError.message}`)
+        }
+        
+        if (pageData && pageData.length > 0) {
+          allStaffSettings = allStaffSettings.concat(pageData)
+          settingsPage++
+          settingsHasMore = pageData.length === 1000
+        } else {
+          settingsHasMore = false
+        }
       }
-    })
+      
+      // Create excluded staff set (hidden or report = false)
+      const excludedStaffSet = new Set<string>()
+      allStaffSettings.forEach((setting) => {
+        if (setting.staff_name && (setting.is_hidden || setting.report === false)) {
+          excludedStaffSet.add(setting.staff_name)
+        }
+      })
+      
+      // Include staff with billable hours in current OR last full FY (same as KPI)
+      // Exclude hidden staff and staff with report = false
+      const allStaffWithBillableHours = new Set<string>()
+      currentFYBillableHours.forEach((hours, staffName) => {
+        if (hours > 0) allStaffWithBillableHours.add(staffName)
+      })
+      lastFYBillableHours.forEach((hours, staffName) => {
+        if (hours > 0) allStaffWithBillableHours.add(staffName)
+      })
+      
+      allStaffWithBillableHours.forEach((staffName) => {
+        if (!excludedStaffSet.has(staffName)) {
+          filteredStaffSet.add(staffName)
+        }
+      })
+    }
     
     // If staffFilter is applied, only include that staff
     if (staffFilter) {
@@ -634,7 +731,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Calculate totals for percentages and rates
-    // Sum up all the individual staff data
+    // Sum up ALL staff data from the filtered set (not just staffPerformanceData)
+    // This ensures the totals match the KPI card calculation
     let currentYearTotalBillableHours = 0
     let currentYearTotalStandardHours = 0
     let currentYearTotalCapacityReducing = 0
@@ -642,15 +740,16 @@ export async function GET(request: NextRequest) {
     let currentYearTotalInvoicedAmount = 0
     let currentYearTotalWriteOnAmount = 0
 
-    staffPerformanceData.forEach((item) => {
-      const currentYearBillable = currentYearBillableData.get(item.staff) || { amount: 0, hours: 0 }
-      const currentYearBillableHours = currentYearBillableHoursData.get(item.staff) || 0
-      const currentYearStandard = currentYearStandardHoursData.get(item.staff) || { standardHours: 0, capacityReducing: 0 }
-      const currentYearRecoverability = currentYearRecoverabilityData.get(item.staff) || { writeOnAmount: 0, invoicedAmount: 0 }
+    // Iterate over all staff in standard hours data (which includes all eligible staff)
+    // This matches the KPI calculation logic
+    currentYearStandardHoursData.forEach((standardData, staffName) => {
+      const currentYearBillable = currentYearBillableData.get(staffName) || { amount: 0, hours: 0 }
+      const currentYearBillableHours = currentYearBillableHoursData.get(staffName) || 0
+      const currentYearRecoverability = currentYearRecoverabilityData.get(staffName) || { writeOnAmount: 0, invoicedAmount: 0 }
 
       currentYearTotalBillableHours += currentYearBillableHours // Use billable hours from billable = true records only
-      currentYearTotalStandardHours += currentYearStandard.standardHours
-      currentYearTotalCapacityReducing += currentYearStandard.capacityReducing
+      currentYearTotalStandardHours += standardData.standardHours
+      currentYearTotalCapacityReducing += standardData.capacityReducing
       currentYearTotalBillableAmount += currentYearBillable.amount
       currentYearTotalInvoicedAmount += currentYearRecoverability.invoicedAmount
       currentYearTotalWriteOnAmount += currentYearRecoverability.writeOnAmount

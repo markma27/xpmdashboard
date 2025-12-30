@@ -104,20 +104,51 @@ export function DashboardStaffPerformanceTable({ organizationId, asOfDate }: Das
           ? `&filters=${encodeURIComponent(JSON.stringify(billableFilters))}`
           : ''
         
-        const response = await fetch(`/api/dashboard/staff-performance?${baseParams}${filtersParam}`, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache',
-          },
-        })
+        // Fetch both staff performance data and KPI data in parallel
+        const [staffResponse, kpiResponse] = await Promise.all([
+          fetch(`/api/dashboard/staff-performance?${baseParams}${filtersParam}`, {
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache',
+            },
+          }),
+          fetch(`/api/productivity/kpi?${baseParams}${filtersParam}`, {
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache',
+            },
+          }),
+        ])
         
-        if (!response.ok) {
+        if (!staffResponse.ok) {
           throw new Error('Failed to fetch staff performance data')
         }
         
-        const result: StaffPerformanceResponse = await response.json()
+        const result: StaffPerformanceResponse = await staffResponse.json()
         setData(result.data || result) // Support both old format (array) and new format (object with data and totals)
-        setTotals(result.totals || null)
+        
+        // Use KPI API's billable percentage for totals to ensure consistency with KPI card
+        let finalTotals = result.totals || null
+        if (kpiResponse.ok && finalTotals) {
+          try {
+            const kpiData = await kpiResponse.json()
+            if (kpiData.ytdBillablePercentage !== undefined) {
+              // Override the billable percentage with the exact value from KPI API
+              finalTotals = {
+                ...finalTotals,
+                currentYear: {
+                  ...finalTotals.currentYear,
+                  billablePercentage: kpiData.ytdBillablePercentage,
+                },
+              }
+            }
+          } catch (err) {
+            // Silently fail - use the original totals
+            console.error('Failed to parse KPI data:', err)
+          }
+        }
+        
+        setTotals(finalTotals)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
       } finally {
@@ -272,7 +303,7 @@ export function DashboardStaffPerformanceTable({ organizationId, asOfDate }: Das
               <tr className="border-b bg-slate-50/50">
                 {/* Current Year Columns - spans all columns including Staff */}
                 <th colSpan={11} className="text-center py-2 px-2 font-bold text-slate-700 bg-slate-100/50 uppercase tracking-wider text-[10px]">
-                  Current Year Performance Metrics{formattedAsOfDate && <span className="font-normal text-slate-500 text-[9px] normal-case ml-1">(YTD up to {formattedAsOfDate})</span>}
+                  Current Year Performance Metrics{formattedAsOfDate && <span className="font-normal text-slate-500 text-[9px] normal-case ml-1">(YTD to {formattedAsOfDate})</span>}
                 </th>
               </tr>
               <tr className="border-b bg-slate-50/30">
