@@ -88,22 +88,29 @@ export function ProductivityCapacityReducingChart({ data }: ProductivityCapacity
   }
 
   return (
-    <ResponsiveContainer width="100%" height={400}>
+    <ResponsiveContainer width="100%" height={320}>
       <RechartsBarChart
         data={data}
-        margin={{ top: 40, right: 30, left: 5, bottom: 5 }}
+        margin={{ top: 30, right: 30, left: 5, bottom: 10 }}
       >
         <XAxis 
           dataKey="month" 
-          tick={{ fontSize: 12 }}
+          tick={{ fontSize: 10, fill: '#64748b', fontWeight: 500 }}
+          tickLine={false}
+          axisLine={{ stroke: '#e2e8f0' }}
         />
         <Tooltip content={customTooltip} />
-        <Legend />
+        <Legend 
+          wrapperStyle={{ fontSize: '11px', fontWeight: 600, paddingTop: '10px' }} 
+          iconType="circle"
+          iconSize={8}
+        />
         <Bar 
           dataKey="Current Year" 
           fill="#ef4444" 
           name="Current Year"
-          radius={[4, 4, 0, 0]}
+          radius={[3, 3, 0, 0]}
+          barSize={40}
         >
           <LabelList 
             dataKey="Current Year" 
@@ -113,14 +120,15 @@ export function ProductivityCapacityReducingChart({ data }: ProductivityCapacity
               // Show full hours without decimal places, with comma separator
               return Math.round(value).toLocaleString('en-US')
             }}
-            style={{ fontSize: '11px', fill: '#666' }}
+            style={{ fontSize: '9px', fill: '#475569', fontWeight: 600 }}
           />
         </Bar>
         <Bar 
           dataKey="Last Year" 
-          fill="#9ca3af" 
+          fill="#cbd5e1" 
           name="Last Year"
-          radius={[4, 4, 0, 0]}
+          radius={[3, 3, 0, 0]}
+          barSize={40}
         >
           <LabelList 
             dataKey="Last Year" 
@@ -130,7 +138,7 @@ export function ProductivityCapacityReducingChart({ data }: ProductivityCapacity
               // Show full hours without decimal places, with comma separator
               return Math.round(value).toLocaleString('en-US')
             }}
-            style={{ fontSize: '11px', fill: '#666' }}
+            style={{ fontSize: '9px', fill: '#64748b', fontWeight: 600 }}
           />
         </Bar>
       </RechartsBarChart>

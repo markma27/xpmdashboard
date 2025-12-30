@@ -77,19 +77,19 @@ export function WIPClientManagerChart({ data }: WIPClientManagerChartProps) {
     
     return (
       <g transform={`translate(${x},${y + 15})`}>
-        <text x={0} y={0} dy={0} textAnchor="middle" fill="#666" fontSize={12}>
+        <text x={0} y={0} dy={0} textAnchor="middle" fill="#64748b" fontSize={10} fontWeight={500}>
           <tspan x="0" dy="0">{firstName || name}</tspan>
-          {lastName && <tspan x="0" dy="14">{lastName}</tspan>}
+          {lastName && <tspan x="0" dy="12">{lastName}</tspan>}
         </text>
       </g>
     )
   }
 
   return (
-    <ResponsiveContainer width="100%" height={400}>
+    <ResponsiveContainer width="100%" height={320}>
       <RechartsBarChart
         data={data}
-        margin={{ top: 40, right: 30, left: 5, bottom: 30 }}
+        margin={{ top: 30, right: 30, left: 5, bottom: 10 }}
       >
         <XAxis 
           dataKey="clientManager" 
@@ -98,12 +98,14 @@ export function WIPClientManagerChart({ data }: WIPClientManagerChartProps) {
           interval={0}
           allowDuplicatedCategory={false}
           tickLine={false}
+          axisLine={{ stroke: '#e2e8f0' }}
         />
         <Tooltip content={customTooltip} />
         <Bar 
           dataKey="amount" 
           fill="#93c5fd" 
-          radius={[4, 4, 0, 0]}
+          radius={[3, 3, 0, 0]}
+          barSize={50}
         >
           <LabelList 
             dataKey="amount" 
@@ -112,7 +114,7 @@ export function WIPClientManagerChart({ data }: WIPClientManagerChartProps) {
               if (value === 0) return ''
               return `$${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
             }}
-            style={{ fontSize: '12px', fill: '#666' }}
+            style={{ fontSize: '9px', fill: '#475569', fontWeight: 600 }}
           />
         </Bar>
       </RechartsBarChart>

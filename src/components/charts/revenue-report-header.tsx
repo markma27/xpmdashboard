@@ -27,24 +27,22 @@ export function RevenueReportHeader() {
   const formattedDate = formatDate(lastUpdated || null)
 
   return (
-    <div className="flex items-start justify-between gap-4">
-      <div className="flex-1">
-        <h1 className="text-3xl font-bold">Invoice Report</h1>
-        <p className="text-muted-foreground">
-          View invoice data by month and client groups
-        </p>
+    <div className="flex items-center justify-between">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Invoice Report</h1>
         {formattedDate && (
-          <p className="text-sm text-red-800 mt-1">
+          <p className="text-xs text-red-800 mt-1">
             Last updated: {formattedDate}
           </p>
         )}
       </div>
-      <div className="flex flex-col items-end gap-2 pt-2">
+      <div className="flex flex-col items-end gap-2">
         {/* Partner Filter Slicers */}
-        <div className="flex flex-wrap gap-2 justify-end">
+        <div className="flex flex-wrap gap-1.5 justify-end">
           <Button
             variant={selectedPartner === null ? 'default' : 'outline'}
             size="sm"
+            className="h-7 px-2.5 text-[11px] font-semibold"
             onClick={() => setSelectedPartner(null)}
           >
             All Partners
@@ -54,6 +52,7 @@ export function RevenueReportHeader() {
               key={partner}
               variant={selectedPartner === partner ? 'default' : 'outline'}
               size="sm"
+              className="h-7 px-2.5 text-[11px] font-semibold"
               onClick={() => setSelectedPartner(partner)}
             >
               {partner}
@@ -62,10 +61,11 @@ export function RevenueReportHeader() {
         </div>
         
         {/* Client Manager Filter Slicers */}
-        <div className="flex flex-wrap gap-2 justify-end">
+        <div className="flex flex-wrap gap-1.5 justify-end">
           <Button
             variant={selectedClientManager === null ? 'default' : 'outline'}
             size="sm"
+            className="h-7 px-2.5 text-[11px] font-semibold"
             onClick={() => setSelectedClientManager(null)}
           >
             All Managers
@@ -75,6 +75,7 @@ export function RevenueReportHeader() {
               key={manager}
               variant={selectedClientManager === manager ? 'default' : 'outline'}
               size="sm"
+              className="h-7 px-2.5 text-[11px] font-semibold"
               onClick={() => setSelectedClientManager(manager)}
             >
               {manager}

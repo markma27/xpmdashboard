@@ -62,7 +62,7 @@ export function WIPAgingPieChart({ data }: WIPAgingPieChartProps) {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={400}>
+    <ResponsiveContainer width="100%" height={320}>
       <RechartsPieChart>
         <Pie
           data={chartData}
@@ -70,9 +70,10 @@ export function WIPAgingPieChart({ data }: WIPAgingPieChartProps) {
           cy="50%"
           labelLine={false}
           label={({ name, value }) => `${name}: ${value.toFixed(1)}%`}
-          outerRadius={120}
+          outerRadius={100}
           fill="#8884d8"
           dataKey="value"
+          style={{ fontSize: '10px', fontWeight: 500 }}
         >
           {chartData.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

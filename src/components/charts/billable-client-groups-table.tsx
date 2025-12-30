@@ -105,10 +105,9 @@ export function BillableClientGroupsTable({
 
   if (error) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Billable by Client Group</CardTitle>
-          <CardDescription>Detailed billable amount breakdown by client group</CardDescription>
+      <Card className="shadow-sm border-slate-200">
+        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Billable by Client Group</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[200px]">
@@ -121,10 +120,9 @@ export function BillableClientGroupsTable({
 
   if (data.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Billable by Client Group</CardTitle>
-          <CardDescription>Detailed billable amount breakdown by client group</CardDescription>
+      <Card className="shadow-sm border-slate-200">
+        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Billable by Client Group</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[200px]">
@@ -203,87 +201,86 @@ export function BillableClientGroupsTable({
   const totalLastYear = sortedData.reduce((sum, item) => sum + item.lastYear, 0)
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Billable by Client Group</CardTitle>
-        <CardDescription>Detailed billable amount breakdown by client group</CardDescription>
+    <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
+      <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+        <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Billable by Client Group</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-0 pb-0">
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-sm">
+          <table className="w-full border-collapse text-[12px]">
             <thead>
-              <tr className="border-b">
+              <tr className="border-b bg-slate-50/50">
                 <th 
-                  className="text-left p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
+                  className="text-left p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
                   onClick={() => handleSort('clientGroup')}
                 >
                   Client Group<SortIcon column="clientGroup" />
                 </th>
                 <th 
-                  className="text-left p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
+                  className="text-left p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
                   onClick={() => handleSort('partner')}
                 >
                   Partner<SortIcon column="partner" />
                 </th>
                 <th 
-                  className="text-left p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
+                  className="text-left p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
                   onClick={() => handleSort('clientManager')}
                 >
                   Client Manager<SortIcon column="clientManager" />
                 </th>
                 <th 
-                  className="text-right p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
+                  className="text-right p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
                   onClick={() => handleSort('currentYear')}
                 >
                   Current Year<SortIcon column="currentYear" />
                 </th>
                 <th 
-                  className="text-right p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
+                  className="text-right p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
                   onClick={() => handleSort('lastYear')}
                 >
                   Last Year<SortIcon column="lastYear" />
                 </th>
                 <th 
-                  className="text-right p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
+                  className="text-right p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
                   onClick={() => handleSort('change')}
                 >
                   Change<SortIcon column="change" />
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100">
               {sortedData.map((item, index) => {
                 const change = calculateChange(item.currentYear, item.lastYear)
-                const changeColor = change >= 0 ? 'text-green-600' : 'text-red-600'
+                const changeColor = change >= 0 ? 'text-emerald-600' : 'text-red-600'
                 
                 return (
-                  <tr key={index} className="border-b hover:bg-muted/50">
-                    <td className="p-3">{item.clientGroup}</td>
-                    <td className="p-3">{item.partner || '-'}</td>
-                    <td className="p-3">{item.clientManager || '-'}</td>
-                    <td className="p-3 text-right font-medium">
+                  <tr key={index} className="hover:bg-slate-50 transition-colors group">
+                    <td className="p-3 border-r">{item.clientGroup}</td>
+                    <td className="p-3 border-r">{item.partner || '-'}</td>
+                    <td className="p-3 border-r">{item.clientManager || '-'}</td>
+                    <td className="p-3 text-right font-medium border-r">
                       {formatCurrency(item.currentYear)}
                     </td>
-                    <td className="p-3 text-right text-muted-foreground">
+                    <td className="p-3 text-right text-slate-500 border-r">
                       {formatCurrency(item.lastYear)}
                     </td>
-                    <td className={`p-3 text-right ${changeColor}`}>
+                    <td className={`p-3 text-right font-bold ${changeColor}`}>
                       {change >= 0 ? '+' : ''}{change.toFixed(1)}%
                     </td>
                   </tr>
                 )
               })}
-              <tr className="border-t-2 font-semibold bg-muted/30">
-                <td className="p-3">Total</td>
-                <td className="p-3"></td>
-                <td className="p-3"></td>
-                <td className="p-3 text-right">
+              <tr className="border-t-2 border-slate-200 font-bold bg-slate-50/80 rounded-b-lg">
+                <td className="p-3 border-r rounded-bl-lg">Total</td>
+                <td className="p-3 border-r"></td>
+                <td className="p-3 border-r"></td>
+                <td className="p-3 text-right border-r">
                   {formatCurrency(totalCurrentYear)}
                 </td>
-                <td className="p-3 text-right">
+                <td className="p-3 text-right border-r">
                   {formatCurrency(totalLastYear)}
                 </td>
-                <td className={`p-3 text-right ${calculateChange(totalCurrentYear, totalLastYear) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <td className={`p-3 text-right rounded-br-lg ${calculateChange(totalCurrentYear, totalLastYear) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                   {calculateChange(totalCurrentYear, totalLastYear) >= 0 ? '+' : ''}
                   {calculateChange(totalCurrentYear, totalLastYear).toFixed(1)}%
                 </td>

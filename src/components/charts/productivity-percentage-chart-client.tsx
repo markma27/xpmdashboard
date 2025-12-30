@@ -155,10 +155,9 @@ export function ProductivityPercentageChartClient({
 
   if (error) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Billable %</CardTitle>
-          <CardDescription>Billable % = Billable Hours / Total Hours (Total Hours = Standard Hours - Capacity Reducing Hours)</CardDescription>
+      <Card className="shadow-sm border-slate-200">
+        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Billable %</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[400px]">
@@ -171,10 +170,9 @@ export function ProductivityPercentageChartClient({
 
   if (data.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Billable %</CardTitle>
-          <CardDescription>Billable % = Billable Hours / Total Hours (Total Hours = Standard Hours - Capacity Reducing Hours)</CardDescription>
+      <Card className="shadow-sm border-slate-200">
+        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Billable %</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[400px]">
@@ -188,12 +186,11 @@ export function ProductivityPercentageChartClient({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Billable %</CardTitle>
-        <CardDescription>Billable % = Billable Hours / Total Hours (Total Hours = Standard Hours - Capacity Reducing Hours)</CardDescription>
+    <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
+      <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+        <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Billable %</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-4">
         <ProductivityPercentageChart data={data} />
       </CardContent>
     </Card>

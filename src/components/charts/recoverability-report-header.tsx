@@ -2,6 +2,7 @@
 
 import { BillableFilters } from './billable-filters'
 import { useRecoverabilityReport } from './recoverability-report-context'
+import { Button } from '@/components/ui/button'
 
 export function RecoverabilityReportHeader() {
   const {
@@ -35,19 +36,16 @@ export function RecoverabilityReportHeader() {
   const formattedDate = formatDate(lastUpdated || null)
 
   return (
-    <div className="flex items-start justify-between gap-4">
-      <div className="flex-1">
-        <h1 className="text-3xl font-bold">Recoverability Report</h1>
-        <p className="text-muted-foreground">
-          View recoverability data by month and client groups
-        </p>
+    <div className="flex items-center justify-between">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Recoverability Report</h1>
         {formattedDate && (
-          <p className="text-sm text-red-800 mt-1">
+          <p className="text-xs text-red-800 mt-1">
             Last updated: {formattedDate}
           </p>
         )}
       </div>
-      <div className="flex items-start gap-4">
+      <div className="flex items-center gap-3">
         <BillableFilters
           organizationId={organizationId}
           filters={pendingFilters}

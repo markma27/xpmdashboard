@@ -86,10 +86,9 @@ export function WIPClientGroupsTable({
 
   if (loading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>WIP by Client Group</CardTitle>
-          <CardDescription>Detailed WIP breakdown by client group</CardDescription>
+      <Card className="shadow-sm border-slate-200">
+        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">WIP by Client Group</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[200px]">
@@ -102,10 +101,9 @@ export function WIPClientGroupsTable({
 
   if (error) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>WIP by Client Group</CardTitle>
-          <CardDescription>Detailed WIP breakdown by client group</CardDescription>
+      <Card className="shadow-sm border-slate-200">
+        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">WIP by Client Group</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[200px]">
@@ -118,10 +116,9 @@ export function WIPClientGroupsTable({
 
   if (data.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>WIP by Client Group</CardTitle>
-          <CardDescription>Detailed WIP breakdown by client group</CardDescription>
+      <Card className="shadow-sm border-slate-200">
+        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">WIP by Client Group</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[200px]">
@@ -225,118 +222,117 @@ export function WIPClientGroupsTable({
   )
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>WIP by Client Group</CardTitle>
-        <CardDescription>Detailed WIP breakdown by client group</CardDescription>
+    <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
+      <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+        <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">WIP by Client Group</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-0 pb-0">
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-sm">
+          <table className="w-full border-collapse text-[12px]">
             <thead>
-              <tr className="border-b">
+              <tr className="border-b bg-slate-50/50">
                 <th 
-                  className="text-left p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
+                  className="text-left p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
                   onClick={() => handleSort('clientGroup')}
                 >
                   Client Group<SortIcon column="clientGroup" />
                 </th>
                 <th 
-                  className="text-left p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
+                  className="text-left p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
                   onClick={() => handleSort('partner')}
                 >
                   Partner<SortIcon column="partner" />
                 </th>
                 <th 
-                  className="text-left p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
+                  className="text-left p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
                   onClick={() => handleSort('clientManager')}
                 >
                   Client Manager<SortIcon column="clientManager" />
                 </th>
                 <th 
-                  className="text-right p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
+                  className="text-right p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
                   onClick={() => handleSort('amount')}
                 >
                   WIP Amount<SortIcon column="amount" />
                 </th>
                 <th 
-                  className="text-right p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
+                  className="text-right p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
                   onClick={() => handleSort('lessThan30')}
                 >
                   &lt; 30 days<SortIcon column="lessThan30" />
                 </th>
                 <th 
-                  className="text-right p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
+                  className="text-right p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
                   onClick={() => handleSort('days30to60')}
                 >
                   30 - 60 days<SortIcon column="days30to60" />
                 </th>
                 <th 
-                  className="text-right p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
+                  className="text-right p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
                   onClick={() => handleSort('days60to90')}
                 >
                   60 - 90 days<SortIcon column="days60to90" />
                 </th>
                 <th 
-                  className="text-right p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
+                  className="text-right p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
                   onClick={() => handleSort('days90to120')}
                 >
                   90 - 120 days<SortIcon column="days90to120" />
                 </th>
                 <th 
-                  className="text-right p-3 font-semibold cursor-pointer hover:bg-muted/50 select-none"
+                  className="text-right p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
                   onClick={() => handleSort('days120Plus')}
                 >
                   120 days +<SortIcon column="days120Plus" />
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100">
               {sortedData.map((item, index) => (
-                <tr key={index} className="border-b hover:bg-muted/50">
-                  <td className="p-3">{item.clientGroup}</td>
-                  <td className="p-3">{item.partner || '-'}</td>
-                  <td className="p-3">{item.clientManager || '-'}</td>
-                  <td className="p-3 text-right font-medium">
+                <tr key={index} className="hover:bg-slate-50 transition-colors group">
+                  <td className="p-3 border-r">{item.clientGroup}</td>
+                  <td className="p-3 border-r">{item.partner || '-'}</td>
+                  <td className="p-3 border-r">{item.clientManager || '-'}</td>
+                  <td className="p-3 text-right font-medium border-r">
                     {formatCurrency(item.amount)}
                   </td>
-                  <td className="p-3 text-right">
+                  <td className="p-3 text-right text-slate-500 border-r">
                     {formatCurrency(item.aging?.lessThan30 || 0)}
                   </td>
-                  <td className="p-3 text-right">
+                  <td className="p-3 text-right text-slate-500 border-r">
                     {formatCurrency(item.aging?.days30to60 || 0)}
                   </td>
-                  <td className="p-3 text-right">
+                  <td className="p-3 text-right text-slate-500 border-r">
                     {formatCurrency(item.aging?.days60to90 || 0)}
                   </td>
-                  <td className="p-3 text-right">
+                  <td className="p-3 text-right text-slate-500 border-r">
                     {formatCurrency(item.aging?.days90to120 || 0)}
                   </td>
-                  <td className="p-3 text-right">
+                  <td className="p-3 text-right text-slate-500 font-bold">
                     {formatCurrency(item.aging?.days120Plus || 0)}
                   </td>
                 </tr>
               ))}
-              <tr className="border-t-2 font-semibold bg-muted/30">
-                <td className="p-3">Total</td>
-                <td className="p-3"></td>
-                <td className="p-3"></td>
-                <td className="p-3 text-right">
+              <tr className="border-t-2 border-slate-200 font-bold bg-slate-50/80 rounded-b-lg">
+                <td className="p-3 border-r rounded-bl-lg">Total</td>
+                <td className="p-3 border-r"></td>
+                <td className="p-3 border-r"></td>
+                <td className="p-3 text-right border-r">
                   {formatCurrency(totalAmount)}
                 </td>
-                <td className="p-3 text-right">
+                <td className="p-3 text-right border-r">
                   {formatCurrency(totalAging.lessThan30)}
                 </td>
-                <td className="p-3 text-right">
+                <td className="p-3 text-right border-r">
                   {formatCurrency(totalAging.days30to60)}
                 </td>
-                <td className="p-3 text-right">
+                <td className="p-3 text-right border-r">
                   {formatCurrency(totalAging.days60to90)}
                 </td>
-                <td className="p-3 text-right">
+                <td className="p-3 text-right border-r">
                   {formatCurrency(totalAging.days90to120)}
                 </td>
-                <td className="p-3 text-right">
+                <td className="p-3 text-right rounded-br-lg">
                   {formatCurrency(totalAging.days120Plus)}
                 </td>
               </tr>

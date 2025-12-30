@@ -55,19 +55,22 @@ export function WIPAgingBarChart({ data }: WIPAgingBarChartProps) {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={400}>
+    <ResponsiveContainer width="100%" height={320}>
       <RechartsBarChart
         data={chartData}
-        margin={{ top: 40, right: 30, left: 5, bottom: 5 }}
+        margin={{ top: 30, right: 30, left: 5, bottom: 10 }}
       >
         <XAxis 
           dataKey="name" 
-          tick={{ fontSize: 13 }}
+          tick={{ fontSize: 10, fill: '#64748b', fontWeight: 500 }}
+          tickLine={false}
+          axisLine={{ stroke: '#e2e8f0' }}
         />
         <Tooltip content={customTooltip} />
         <Bar 
           dataKey="amount" 
-          radius={[4, 4, 0, 0]}
+          radius={[3, 3, 0, 0]}
+          barSize={50}
         >
           {chartData.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -79,7 +82,7 @@ export function WIPAgingBarChart({ data }: WIPAgingBarChartProps) {
               if (value === 0) return ''
               return `$${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
             }}
-            style={{ fontSize: '12px', fill: '#666' }}
+            style={{ fontSize: '9px', fill: '#475569', fontWeight: 600 }}
           />
         </Bar>
       </RechartsBarChart>

@@ -7,7 +7,7 @@ interface ChartSkeletonProps {
 export function ChartSkeleton({ title }: ChartSkeletonProps = {}) {
   return (
     <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
-      <CardHeader className="py-3 px-6">
+      <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
         <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">
           <span className="inline-block h-5 w-48 bg-muted animate-pulse rounded" />
         </CardTitle>
@@ -21,22 +21,19 @@ export function ChartSkeleton({ title }: ChartSkeletonProps = {}) {
 
 export function TableSkeleton() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          <span className="inline-block h-6 w-48 bg-muted animate-pulse rounded" />
+    <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
+      <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+        <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">
+          <span className="inline-block h-5 w-48 bg-muted animate-pulse rounded" />
         </CardTitle>
-        <CardDescription>
-          <span className="inline-block h-4 w-64 bg-muted animate-pulse rounded mt-2" />
-        </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
+      <CardContent className="px-0 pb-0 pt-4">
+        <div className="space-y-3 px-4 pb-4">
           {/* Table header skeleton */}
-          <div className="h-12 bg-muted/30 animate-pulse rounded" />
+          <div className="h-10 bg-muted/30 animate-pulse rounded" />
           {/* Table rows skeleton */}
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-10 bg-muted/20 animate-pulse rounded" />
+          {[...Array(10)].map((_, i) => (
+            <div key={i} className="h-8 bg-muted/20 animate-pulse rounded" />
           ))}
         </div>
       </CardContent>

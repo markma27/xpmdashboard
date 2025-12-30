@@ -36,14 +36,11 @@ export function ProductivityReportHeader() {
   const formattedDate = formatDate(lastUpdated || null)
 
   return (
-    <div className="flex items-start justify-between">
-      <div className="flex-1">
-        <h1 className="text-3xl font-bold">Productivity Analytics</h1>
-        <p className="text-muted-foreground">
-          Analyse team and individual productivity metrics
-        </p>
+    <div className="flex items-center justify-between">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Productivity Analytics</h1>
         {formattedDate && (
-          <p className="text-sm text-red-800 mt-1">
+          <p className="text-xs text-red-800 mt-1">
             Last updated: {formattedDate}
           </p>
         )}
@@ -58,7 +55,7 @@ export function ProductivityReportHeader() {
             type="date"
             value={displayDate}
             onChange={(e) => setDisplayDate(e.target.value)}
-            className="w-40 h-10"
+            className="w-36 h-9 text-xs"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -69,7 +66,7 @@ export function ProductivityReportHeader() {
             value={displayStaff || 'all'}
             onValueChange={(value) => setDisplayStaff(value === 'all' ? null : value)}
           >
-            <SelectTrigger id="productivity-staff" className="w-[200px] h-10">
+            <SelectTrigger id="productivity-staff" className="w-[200px] h-9 text-xs">
               <SelectValue placeholder="All Staff">
                 {displayStaff || 'All Staff'}
               </SelectValue>
@@ -86,7 +83,8 @@ export function ProductivityReportHeader() {
         </div>
         <Button
           onClick={handleUpdate}
-          className="bg-black text-white hover:bg-black/90 h-10"
+          size="sm"
+          className="bg-black text-white hover:bg-black/80 active:bg-black/70 active:scale-[0.98] transition-all duration-150 h-9 px-4 font-semibold"
         >
           Update
         </Button>

@@ -117,10 +117,9 @@ export function ProductivityClientGroupsTable({
 
   if (error) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Billable & Average Rate by Client Group</CardTitle>
-          <CardDescription>Detailed billable hours breakdown by client group</CardDescription>
+      <Card className="shadow-sm border-slate-200">
+        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Billable & Average Rate by Client Group</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[200px]">
@@ -133,10 +132,9 @@ export function ProductivityClientGroupsTable({
 
   if (data.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Billable & Average Rate by Client Group</CardTitle>
-          <CardDescription>Detailed billable hours breakdown by client group</CardDescription>
+      <Card className="shadow-sm border-slate-200">
+        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Billable & Average Rate by Client Group</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[200px]">
@@ -231,162 +229,161 @@ export function ProductivityClientGroupsTable({
   const totalLastYear = sortedData.reduce((sum, item) => sum + item.lastYear, 0)
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Billable & Average Rate by Client Group</CardTitle>
-        <CardDescription>Detailed billable hours breakdown by client group</CardDescription>
+    <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
+      <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+        <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Billable & Average Rate by Client Group</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-0 pb-0">
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-sm">
+          <table className="w-full border-collapse text-[12px]">
             <thead>
-              <tr className="border-b">
+              <tr className="border-b bg-slate-50/50">
                 <th 
                   rowSpan={2}
-                  className="text-left p-2 font-semibold cursor-pointer hover:bg-muted/50 select-none align-bottom"
+                  className="text-left p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none align-bottom border-r"
                   onClick={() => handleSort('clientGroup')}
                 >
                   Client Group<SortIcon column="clientGroup" />
                 </th>
                 <th 
                   rowSpan={2}
-                  className="text-left p-2 font-semibold cursor-pointer hover:bg-muted/50 select-none align-bottom"
+                  className="text-left p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none align-bottom border-r"
                   onClick={() => handleSort('partner')}
                 >
                   Partner<SortIcon column="partner" />
                 </th>
                 <th 
                   rowSpan={2}
-                  className="text-left p-2 font-semibold cursor-pointer hover:bg-muted/50 select-none align-bottom"
+                  className="text-left p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none align-bottom border-r"
                   onClick={() => handleSort('clientManager')}
                 >
                   Client Manager<SortIcon column="clientManager" />
                 </th>
                 <th 
                   colSpan={3}
-                  className="text-center p-2 font-semibold border-l border-r bg-muted/30"
+                  className="text-center p-2 font-bold text-slate-700 bg-slate-100/50 uppercase tracking-wider text-[10px] border-r"
                 >
                   Current Year
                 </th>
                 <th 
                   colSpan={3}
-                  className="text-center p-2 font-semibold border-r bg-muted/20"
+                  className="text-center p-2 font-bold text-slate-700 bg-slate-100/50 uppercase tracking-wider text-[10px] border-r"
                 >
                   Last Year
                 </th>
                 <th 
                   rowSpan={2}
-                  className="text-right p-2 font-semibold cursor-pointer hover:bg-muted/50 select-none whitespace-nowrap align-bottom"
+                  className="text-right p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none whitespace-nowrap align-bottom"
                   onClick={() => handleSort('change')}
                 >
                   Change<SortIcon column="change" />
-                  <div className="text-xs font-normal text-muted-foreground mt-1">(Hours)</div>
+                  <div className="text-[9px] font-normal text-slate-500 mt-1">(Hours)</div>
                 </th>
               </tr>
-              <tr className="border-b">
+              <tr className="border-b bg-slate-50/30">
                 <th 
-                  className="text-right p-2 font-semibold cursor-pointer hover:bg-muted/50 select-none whitespace-nowrap border-l"
+                  className="text-right p-2 font-bold text-slate-600 cursor-pointer hover:bg-slate-100 select-none whitespace-nowrap border-r bg-slate-50/30"
                   onClick={() => handleSort('currentYear')}
                 >
                   Billable Hours<SortIcon column="currentYear" />
                 </th>
                 <th 
-                  className="text-right p-2 font-semibold cursor-pointer hover:bg-muted/50 select-none whitespace-nowrap"
+                  className="text-right p-2 font-bold text-slate-600 cursor-pointer hover:bg-slate-100 select-none whitespace-nowrap border-r bg-slate-50/30"
                   onClick={() => handleSort('currentYearAmount')}
                 >
                   Billable $<SortIcon column="currentYearAmount" />
                 </th>
                 <th 
-                  className="text-right p-2 font-semibold cursor-pointer hover:bg-muted/50 select-none whitespace-nowrap border-r"
+                  className="text-right p-2 font-bold text-slate-600 cursor-pointer hover:bg-slate-100 select-none whitespace-nowrap border-r bg-slate-50/30"
                   onClick={() => handleSort('currentYearRate')}
                 >
                   Ave. Rate<SortIcon column="currentYearRate" />
                 </th>
                 <th 
-                  className="text-right p-2 font-semibold cursor-pointer hover:bg-muted/50 select-none whitespace-nowrap"
+                  className="text-right p-2 font-bold text-slate-600 cursor-pointer hover:bg-slate-100 select-none whitespace-nowrap border-r bg-slate-50/30"
                   onClick={() => handleSort('lastYear')}
                 >
                   Billable Hours<SortIcon column="lastYear" />
                 </th>
                 <th 
-                  className="text-right p-2 font-semibold cursor-pointer hover:bg-muted/50 select-none whitespace-nowrap"
+                  className="text-right p-2 font-bold text-slate-600 cursor-pointer hover:bg-slate-100 select-none whitespace-nowrap border-r bg-slate-50/30"
                   onClick={() => handleSort('lastYearAmount')}
                 >
                   Billable $<SortIcon column="lastYearAmount" />
                 </th>
                 <th 
-                  className="text-right p-2 font-semibold cursor-pointer hover:bg-muted/50 select-none whitespace-nowrap border-r"
+                  className="text-right p-2 font-bold text-slate-600 cursor-pointer hover:bg-slate-100 select-none whitespace-nowrap border-r bg-slate-50/30"
                   onClick={() => handleSort('lastYearRate')}
                 >
                   Ave. Rate<SortIcon column="lastYearRate" />
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100">
               {sortedData.map((item, index) => {
                 const change = calculateChange(item.currentYear, item.lastYear)
-                const changeColor = change >= 0 ? 'text-green-600' : 'text-red-600'
+                const changeColor = change >= 0 ? 'text-emerald-600' : 'text-red-600'
                 const currentYearAmount = item.currentYearAmount || 0
                 const lastYearAmount = item.lastYearAmount || 0
                 
                 return (
-                  <tr key={index} className="border-b hover:bg-muted/50">
-                    <td className="p-2">{item.clientGroup}</td>
-                    <td className="p-2">{item.partner || '-'}</td>
-                    <td className="p-2">{item.clientManager || '-'}</td>
-                    <td className="p-2 text-right font-medium whitespace-nowrap">
+                  <tr key={index} className="hover:bg-slate-50 transition-colors group">
+                    <td className="p-2 border-r">{item.clientGroup}</td>
+                    <td className="p-2 border-r">{item.partner || '-'}</td>
+                    <td className="p-2 border-r">{item.clientManager || '-'}</td>
+                    <td className="p-2 text-right font-medium whitespace-nowrap border-r">
                       {formatHours(item.currentYear)}
                     </td>
-                    <td className="p-2 text-right font-medium whitespace-nowrap">
+                    <td className="p-2 text-right font-medium whitespace-nowrap border-r">
                       {formatCurrency(currentYearAmount)}
                     </td>
-                    <td className="p-2 text-right whitespace-nowrap">
+                    <td className="p-2 text-right whitespace-nowrap border-r">
                       {formatRate(currentYearAmount, item.currentYear)}
                     </td>
-                    <td className="p-2 text-right text-muted-foreground whitespace-nowrap">
+                    <td className="p-2 text-right text-slate-500 whitespace-nowrap border-r">
                       {formatHours(item.lastYear)}
                     </td>
-                    <td className="p-2 text-right text-muted-foreground whitespace-nowrap">
+                    <td className="p-2 text-right text-slate-500 whitespace-nowrap border-r">
                       {formatCurrency(lastYearAmount)}
                     </td>
-                    <td className="p-2 text-right text-muted-foreground whitespace-nowrap">
+                    <td className="p-2 text-right text-slate-500 whitespace-nowrap border-r">
                       {formatRate(lastYearAmount, item.lastYear)}
                     </td>
-                    <td className={`p-2 text-right whitespace-nowrap ${changeColor}`}>
+                    <td className={`p-2 text-right whitespace-nowrap font-bold ${changeColor}`}>
                       {change >= 0 ? '+' : ''}{change.toFixed(1)}%
                     </td>
                   </tr>
                 )
               })}
-              <tr className="border-t-2 font-semibold bg-muted/30">
-                <td className="p-2">Total</td>
-                <td className="p-2"></td>
-                <td className="p-2"></td>
-                <td className="p-2 text-right whitespace-nowrap">
+              <tr className="border-t-2 border-slate-200 font-bold bg-slate-50/80 rounded-b-lg">
+                <td className="p-2 border-r rounded-bl-lg">Total</td>
+                <td className="p-2 border-r"></td>
+                <td className="p-2 border-r"></td>
+                <td className="p-2 text-right whitespace-nowrap border-r">
                   {formatHours(totalCurrentYear)}
                 </td>
-                <td className="p-2 text-right whitespace-nowrap">
+                <td className="p-2 text-right whitespace-nowrap border-r">
                   {formatCurrency(sortedData.reduce((sum, item) => sum + (item.currentYearAmount || 0), 0))}
                 </td>
-                <td className="p-2 text-right whitespace-nowrap">
+                <td className="p-2 text-right whitespace-nowrap border-r">
                   {formatRate(
                     sortedData.reduce((sum, item) => sum + (item.currentYearAmount || 0), 0),
                     totalCurrentYear
                   )}
                 </td>
-                <td className="p-2 text-right whitespace-nowrap">
+                <td className="p-2 text-right whitespace-nowrap border-r">
                   {formatHours(totalLastYear)}
                 </td>
-                <td className="p-2 text-right whitespace-nowrap">
+                <td className="p-2 text-right whitespace-nowrap border-r">
                   {formatCurrency(sortedData.reduce((sum, item) => sum + (item.lastYearAmount || 0), 0))}
                 </td>
-                <td className="p-2 text-right whitespace-nowrap">
+                <td className="p-2 text-right whitespace-nowrap border-r">
                   {formatRate(
                     sortedData.reduce((sum, item) => sum + (item.lastYearAmount || 0), 0),
                     totalLastYear
                   )}
                 </td>
-                <td className={`p-2 text-right whitespace-nowrap ${calculateChange(totalCurrentYear, totalLastYear) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <td className={`p-2 text-right whitespace-nowrap rounded-br-lg ${calculateChange(totalCurrentYear, totalLastYear) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                   {calculateChange(totalCurrentYear, totalLastYear) >= 0 ? '+' : ''}
                   {calculateChange(totalCurrentYear, totalLastYear).toFixed(1)}%
                 </td>

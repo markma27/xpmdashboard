@@ -69,10 +69,9 @@ export function RecoverabilityMonthlyChartClient({
 
   if (error) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Recoverability - monthly</CardTitle>
-          <CardDescription>Monthly recoverability comparison</CardDescription>
+      <Card className="shadow-sm border-slate-200">
+        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Recoverability - monthly</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[400px]">
@@ -85,10 +84,9 @@ export function RecoverabilityMonthlyChartClient({
 
   if (data.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Recoverability - monthly</CardTitle>
-          <CardDescription>Monthly recoverability comparison</CardDescription>
+      <Card className="shadow-sm border-slate-200">
+        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Recoverability - monthly</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[400px]">
@@ -102,12 +100,11 @@ export function RecoverabilityMonthlyChartClient({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Recoverability - monthly</CardTitle>
-        <CardDescription>Monthly recoverability comparison</CardDescription>
+    <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
+      <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+        <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Recoverability - monthly</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-4">
         <RecoverabilityMonthlyChart 
           data={data} 
           selectedMonth={selectedMonth}

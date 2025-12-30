@@ -2,96 +2,96 @@
 
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ArrowUp, ArrowDown } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+interface KPICardProps {
+  title: string
+  currentValue: string
+  lastYearValue: string
+  percentageChange: number | null
+  isPercentageMetric?: boolean
+}
+
+function KPICard({ 
+  title, 
+  currentValue, 
+  lastYearValue, 
+  percentageChange, 
+  isPercentageMetric = false 
+}: KPICardProps) {
+  const isPositiveChange = percentageChange !== null && percentageChange >= 0
+  
+  return (
+    <Card className="overflow-hidden shadow-sm border-slate-200 bg-white transition-all duration-200 hover:shadow-md hover:border-slate-300">
+      <CardContent className="p-0">
+        {/* Title */}
+        <div className="py-2 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <span className="text-lg font-bold text-slate-900">
+            {title}
+          </span>
+        </div>
+
+        {/* Current Year Value */}
+        <div className="py-5 text-center">
+          <span className="text-3xl font-bold tracking-tight text-slate-900">
+            {currentValue}
+          </span>
+        </div>
+
+        <div className="px-4 pb-4">
+          <div className="border-t border-slate-100 pt-3 flex items-center justify-between">
+            {/* Last Year */}
+            <div className="text-sm font-medium text-slate-500">
+              Last Year: {lastYearValue}
+            </div>
+
+            {/* Percentage Change */}
+            {percentageChange !== null && (
+              <div className="flex items-center gap-1.5 border-l border-slate-100 pl-4">
+                {isPositiveChange ? (
+                  <ArrowUp className="h-4 w-4 text-emerald-500 fill-emerald-500" />
+                ) : (
+                  <ArrowDown className="h-4 w-4 text-red-500 fill-red-500" />
+                )}
+                <span className={cn(
+                  "text-base font-bold",
+                  isPositiveChange ? "text-emerald-500" : "text-red-500"
+                )}>
+                  {isPositiveChange ? '+' : ''}{percentageChange.toFixed(1)}%
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
 
 function KPICardSkeleton() {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {/* Billable % Card Skeleton */}
-      <Card className="overflow-hidden">
-        <CardHeader className="pt-3 pb-3 bg-green-100/50 border-b">
-          <CardTitle className="text-sm font-semibold">
-            <span className="inline-block h-4 w-24 bg-muted animate-pulse rounded" />
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4 pb-3 bg-white">
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            <div className="text-center">
-              <div className="h-3 w-16 bg-muted animate-pulse rounded mx-auto mb-2" />
-              <div className="h-8 w-20 bg-muted animate-pulse rounded mx-auto" />
+      {[...Array(3)].map((_, i) => (
+        <Card key={i} className="overflow-hidden shadow-sm border-slate-200">
+          <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+            <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">
+              <span className="inline-block h-5 w-24 bg-muted animate-pulse rounded" />
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="py-5 text-center">
+              <div className="h-8 w-32 bg-muted animate-pulse rounded mx-auto" />
             </div>
-            <div className="text-center border-x border-gray-200">
-              <div className="h-3 w-16 bg-muted animate-pulse rounded mx-auto mb-2" />
-              <div className="h-8 w-20 bg-muted animate-pulse rounded mx-auto" />
+            <div className="px-4 pb-4">
+              <div className="border-t border-slate-100 pt-3 flex items-center justify-between">
+                <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                <div className="h-4 w-16 bg-muted animate-pulse rounded" />
+              </div>
             </div>
-            <div className="text-center">
-              <div className="h-3 w-12 bg-muted animate-pulse rounded mx-auto mb-2" />
-              <div className="h-8 w-20 bg-muted animate-pulse rounded mx-auto" />
-            </div>
-          </div>
-          <div className="pt-3 border-t border-gray-200 text-center">
-            <div className="h-3 w-16 bg-muted animate-pulse rounded mx-auto mb-1" />
-            <div className="h-5 w-16 bg-muted animate-pulse rounded mx-auto" />
-          </div>
-        </CardContent>
-      </Card>
-      
-      {/* Recoverability % Card Skeleton */}
-      <Card className="overflow-hidden">
-        <CardHeader className="pt-3 pb-3 bg-blue-100/50 border-b">
-          <CardTitle className="text-sm font-semibold">
-            <span className="inline-block h-4 w-32 bg-muted animate-pulse rounded" />
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4 pb-3 bg-white">
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            <div className="text-center">
-              <div className="h-3 w-16 bg-muted animate-pulse rounded mx-auto mb-2" />
-              <div className="h-8 w-20 bg-muted animate-pulse rounded mx-auto" />
-            </div>
-            <div className="text-center border-x border-gray-200">
-              <div className="h-3 w-16 bg-muted animate-pulse rounded mx-auto mb-2" />
-              <div className="h-8 w-20 bg-muted animate-pulse rounded mx-auto" />
-            </div>
-            <div className="text-center">
-              <div className="h-3 w-12 bg-muted animate-pulse rounded mx-auto mb-2" />
-              <div className="h-8 w-20 bg-muted animate-pulse rounded mx-auto" />
-            </div>
-          </div>
-          <div className="pt-3 border-t border-gray-200 text-center">
-            <div className="h-3 w-16 bg-muted animate-pulse rounded mx-auto mb-1" />
-            <div className="h-5 w-16 bg-muted animate-pulse rounded mx-auto" />
-          </div>
-        </CardContent>
-      </Card>
-      
-      {/* Hourly Rate Card Skeleton */}
-      <Card className="overflow-hidden">
-        <CardHeader className="pt-3 pb-3 bg-orange-100/50 border-b">
-          <CardTitle className="text-sm font-semibold">
-            <span className="inline-block h-4 w-32 bg-muted animate-pulse rounded" />
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4 pb-3 bg-white">
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            <div className="text-center">
-              <div className="h-3 w-16 bg-muted animate-pulse rounded mx-auto mb-2" />
-              <div className="h-8 w-20 bg-muted animate-pulse rounded mx-auto" />
-            </div>
-            <div className="text-center border-x border-gray-200">
-              <div className="h-3 w-16 bg-muted animate-pulse rounded mx-auto mb-2" />
-              <div className="h-8 w-20 bg-muted animate-pulse rounded mx-auto" />
-            </div>
-            <div className="text-center">
-              <div className="h-3 w-12 bg-muted animate-pulse rounded mx-auto mb-2" />
-              <div className="h-8 w-20 bg-muted animate-pulse rounded mx-auto" />
-            </div>
-          </div>
-          <div className="pt-3 border-t border-gray-200 text-center">
-            <div className="h-3 w-16 bg-muted animate-pulse rounded mx-auto mb-1" />
-            <div className="h-5 w-16 bg-muted animate-pulse rounded mx-auto" />
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   )
 }
@@ -260,103 +260,30 @@ export function ProductivityKPICards({ organizationId, selectedStaff, asOfDate }
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {/* Combined Billable % Card */}
-      <Card className="overflow-hidden">
-        <CardHeader className="pt-3 pb-3 bg-green-100/50 border-b">
-          <CardTitle className="text-sm font-semibold text-black">Billable %</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4 pb-3 bg-white">
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            <div className="text-center">
-              <div className="text-xs text-muted-foreground mb-2 font-medium">Current Year</div>
-              <div className="text-2xl font-bold text-black">{data.ytdBillablePercentage.toFixed(1)}%</div>
-            </div>
-            <div className="text-center border-x border-gray-200">
-              <div className="text-xs text-muted-foreground mb-2 font-medium">Last Year</div>
-              <div className="text-2xl font-bold text-black">{data.lastYearBillablePercentage.toFixed(1)}%</div>
-            </div>
-            <div className="text-center">
-              <div className="text-xs text-muted-foreground mb-2 font-medium">Target</div>
-              <div className="text-2xl font-bold text-black">{data.targetBillablePercentage.toFixed(1)}%</div>
-            </div>
-          </div>
-          {billablePercentageChange !== null && (
-            <div className="pt-3 border-t border-gray-200 text-center">
-              <div className="text-xs text-muted-foreground font-medium mb-1">% Change</div>
-              <div className={`text-base font-semibold ${
-                billablePercentageChange >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {billablePercentageChange >= 0 ? '+' : ''}{billablePercentageChange.toFixed(1)}%
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <KPICard 
+        title="Billable %"
+        currentValue={`${data.ytdBillablePercentage.toFixed(1)}%`}
+        lastYearValue={`${data.lastYearBillablePercentage.toFixed(1)}%`}
+        percentageChange={billablePercentageChange}
+        isPercentageMetric={true}
+      />
 
       {/* Recoverability % Card */}
-      <Card className="overflow-hidden">
-        <CardHeader className="pt-3 pb-3 bg-blue-100/50 border-b">
-          <CardTitle className="text-sm font-semibold text-black">Recoverability %</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4 pb-3 bg-white">
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            <div className="text-center">
-              <div className="text-xs text-muted-foreground mb-2 font-medium">Current Year</div>
-              <div className="text-2xl font-bold text-black">
-                {recoverabilityData.currentYearPercentage.toFixed(1)}%
-              </div>
-            </div>
-            <div className="text-center border-x border-gray-200">
-              <div className="text-xs text-muted-foreground mb-2 font-medium">Last Year</div>
-              <div className="text-2xl font-bold text-black">
-                {recoverabilityData.lastYearPercentage.toFixed(1)}%
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-xs text-muted-foreground mb-2 font-medium">Target</div>
-              <div className="text-2xl font-bold text-black">{recoverabilityData.targetPercentage.toFixed(1)}%</div>
-            </div>
-          </div>
-          {recoverabilityPercentageChange !== null && (
-            <div className="pt-3 border-t border-gray-200 text-center">
-              <div className="text-xs text-muted-foreground font-medium mb-1">% Change</div>
-              <div className={`text-base font-semibold ${
-                recoverabilityPercentageChange >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {recoverabilityPercentageChange >= 0 ? '+' : ''}{recoverabilityPercentageChange.toFixed(1)}%
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <KPICard 
+        title="Recoverability %"
+        currentValue={`${recoverabilityData.currentYearPercentage.toFixed(1)}%`}
+        lastYearValue={`${recoverabilityData.lastYearPercentage.toFixed(1)}%`}
+        percentageChange={recoverabilityPercentageChange}
+        isPercentageMetric={true}
+      />
       
       {/* Combined Average Rate Card */}
-      <Card className="overflow-hidden">
-        <CardHeader className="pt-3 pb-3 bg-orange-100/50 border-b">
-          <CardTitle className="text-sm font-semibold text-black">Average Hourly Rate $</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4 pb-3 bg-white">
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="text-center">
-              <div className="text-xs text-muted-foreground mb-2 font-medium">Current Year</div>
-              <div className="text-2xl font-bold text-black">${Math.round(data.ytdAverageRate).toLocaleString('en-US')}</div>
-            </div>
-            <div className="text-center border-l border-gray-200">
-              <div className="text-xs text-muted-foreground mb-2 font-medium">Last Year</div>
-              <div className="text-2xl font-bold text-black">${Math.round(data.lastYearAverageRate).toLocaleString('en-US')}</div>
-            </div>
-          </div>
-          {ratePercentageChange !== null && (
-            <div className="pt-3 border-t border-gray-200 text-center">
-              <div className="text-xs text-muted-foreground font-medium mb-1">% Change</div>
-              <div className={`text-base font-semibold ${
-                ratePercentageChange >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {ratePercentageChange >= 0 ? '+' : ''}{ratePercentageChange.toFixed(1)}%
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <KPICard 
+        title="Average Hourly Rate $"
+        currentValue={`$${Math.round(data.ytdAverageRate).toLocaleString('en-US')}`}
+        lastYearValue={`$${Math.round(data.lastYearAverageRate).toLocaleString('en-US')}`}
+        percentageChange={ratePercentageChange}
+      />
     </div>
   )
 }

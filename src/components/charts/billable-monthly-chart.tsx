@@ -107,24 +107,31 @@ export function BillableMonthlyChart({ data, selectedMonth, onMonthClick }: Bill
   }
 
   return (
-    <ResponsiveContainer width="100%" height={400}>
+    <ResponsiveContainer width="100%" height={320}>
       <RechartsBarChart
         data={data}
-        margin={{ top: 40, right: 30, left: 5, bottom: 5 }}
+        margin={{ top: 30, right: 30, left: 5, bottom: 10 }}
         onClick={handleBarClick}
       >
         <XAxis 
           dataKey="month" 
-          tick={{ fontSize: 12 }}
+          tick={{ fontSize: 10, fill: '#64748b', fontWeight: 500 }}
+          tickLine={false}
+          axisLine={{ stroke: '#e2e8f0' }}
         />
         <Tooltip content={customTooltip} />
-        <Legend />
+        <Legend 
+          wrapperStyle={{ fontSize: '11px', fontWeight: 600, paddingTop: '10px' }} 
+          iconType="circle"
+          iconSize={8}
+        />
         <Bar 
           dataKey="Current Year" 
           fill="#75CBA8" 
           name="Current Year"
-          radius={[4, 4, 0, 0]}
+          radius={[3, 3, 0, 0]}
           cursor="pointer"
+          barSize={40}
         >
           {data.map((entry, index) => {
             const isSelected = selectedMonth === entry.month
@@ -146,22 +153,23 @@ export function BillableMonthlyChart({ data, selectedMonth, onMonthClick }: Bill
               }
               return `$${(value / 1000).toFixed(0)}k`
             }}
-            style={{ fontSize: '11px', fill: '#666' }}
+            style={{ fontSize: '9px', fill: '#475569', fontWeight: 600 }}
           />
         </Bar>
         <Bar 
           dataKey="Last Year" 
-          fill="#9ca3af" 
+          fill="#cbd5e1" 
           name="Last Year"
-          radius={[4, 4, 0, 0]}
+          radius={[3, 3, 0, 0]}
           cursor="pointer"
+          barSize={40}
         >
           {data.map((entry, index) => {
             const isSelected = selectedMonth === entry.month
             return (
               <Cell 
                 key={`cell-last-${index}`} 
-                fill={isSelected ? '#6b7280' : '#9ca3af'}
+                fill={isSelected ? '#64748b' : '#cbd5e1'}
               />
             )
           })}
@@ -176,7 +184,7 @@ export function BillableMonthlyChart({ data, selectedMonth, onMonthClick }: Bill
               }
               return `$${(value / 1000).toFixed(0)}k`
             }}
-            style={{ fontSize: '11px', fill: '#666' }}
+            style={{ fontSize: '9px', fill: '#64748b', fontWeight: 600 }}
           />
         </Bar>
       </RechartsBarChart>

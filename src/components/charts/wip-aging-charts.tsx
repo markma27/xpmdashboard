@@ -75,10 +75,9 @@ export function WIPAgingCharts({
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>WIP Aging by Percentage</CardTitle>
-            <CardDescription>Percentage distribution of WIP by aging</CardDescription>
+        <Card className="shadow-sm border-slate-200">
+          <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+            <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">WIP Aging by Percentage</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center h-[400px]">
@@ -86,10 +85,9 @@ export function WIPAgingCharts({
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>WIP Aging by Amount</CardTitle>
-            <CardDescription>WIP amount by aging group</CardDescription>
+        <Card className="shadow-sm border-slate-200">
+          <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+            <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">WIP Aging by Amount</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center h-[400px]">
@@ -103,9 +101,9 @@ export function WIPAgingCharts({
 
   if (error) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>WIP Aging Charts</CardTitle>
+      <Card className="shadow-sm border-slate-200">
+        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">WIP Aging Charts</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[400px]">
@@ -119,10 +117,9 @@ export function WIPAgingCharts({
   if (!data || data.total === 0) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>WIP Aging by Percentage</CardTitle>
-            <CardDescription>Percentage distribution of WIP by aging</CardDescription>
+        <Card className="shadow-sm border-slate-200">
+          <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+            <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">WIP Aging by Percentage</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center h-[400px]">
@@ -130,10 +127,9 @@ export function WIPAgingCharts({
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>WIP Aging by Amount</CardTitle>
-            <CardDescription>WIP amount by aging group</CardDescription>
+        <Card className="shadow-sm border-slate-200">
+          <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+            <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">WIP Aging by Amount</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center h-[400px]">
@@ -147,21 +143,19 @@ export function WIPAgingCharts({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>WIP Aging by Percentage</CardTitle>
-          <CardDescription>Percentage distribution of WIP by aging</CardDescription>
+      <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
+        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">WIP Aging by Percentage</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
           <WIPAgingPieChart data={data} />
         </CardContent>
       </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>WIP Aging by Amount</CardTitle>
-          <CardDescription>WIP amount by aging group</CardDescription>
+      <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
+        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">WIP Aging by Amount</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
           <WIPAgingBarChart data={data} />
         </CardContent>
       </Card>
