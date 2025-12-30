@@ -1,3 +1,4 @@
+// @ts-expect-error - xero-node types are not fully compatible
 import { XeroClient } from 'xero-node'
 import { decryptTokenSet, encryptTokenSet } from './crypto'
 

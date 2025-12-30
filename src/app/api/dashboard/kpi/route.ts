@@ -50,76 +50,118 @@ export async function GET(request: NextRequest) {
     const lastFYEndYear = currentFYStartYear
     
     // Format dates as YYYY-MM-DD
-    // For "same time" comparison, use selected date for current year
     const currentYearStart = `${currentFYStartYear}-07-01`
-    const currentYearEnd = asOfDate.toISOString().split('T')[0] // Selected date
+    const currentYearEnd = asOfDate.toISOString().split('T')[0]
     
     // For last year "same time", calculate the same day last year
-    // But ensure it doesn't exceed last year's financial year end (June 30)
     const lastYearSameDate = new Date(asOfDate)
     lastYearSameDate.setFullYear(lastYearSameDate.getFullYear() - 1)
     const lastYearEndDate = lastYearSameDate.toISOString().split('T')[0]
     const lastYearFYEnd = `${lastFYEndYear}-06-30`
-    // Use the earlier of last year same date or last year FY end
     const lastYearEnd = lastYearEndDate <= lastYearFYEnd ? lastYearEndDate : lastYearFYEnd
     const lastYearStart = `${lastFYStartYear}-07-01`
 
-    // Helper function to fetch all invoice data for a date range
-    const fetchRevenueData = async (startDate: string, endDate: string): Promise<number> => {
-      let allData: any[] = []
-      let page = 0
-      const pageSize = 1000
-      let hasMore = true
-      
-      while (hasMore) {
-        const { data: pageData, error: pageError } = await supabase
-          .from('invoice_uploads')
-          .select('amount')
-          .eq('organization_id', organizationId)
-          .gte('date', startDate)
-          .lte('date', endDate)
-          .range(page * pageSize, (page + 1) * pageSize - 1)
-        
-        if (pageError) {
-          throw new Error(`Failed to fetch invoice data: ${pageError.message}`)
-        }
-        
-        if (pageData && pageData.length > 0) {
-          allData = allData.concat(pageData)
-          page++
-          hasMore = pageData.length === pageSize
-        } else {
-          hasMore = false
-        }
-      }
-      
-      let totalAmount = 0
-      allData.forEach((record) => {
-        const amount = typeof record.amount === 'number' 
-          ? record.amount 
-          : parseFloat(record.amount || '0') || 0
-        totalAmount += amount
-      })
-      
-      return totalAmount
-    }
+    // Check if we have filters that need special handling
+    const hasFilters = filters.length > 0
 
-    // Helper function to fetch all billable amount data for a date range
-    const fetchBillableAmountData = async (startDate: string, endDate: string): Promise<number> => {
-      let allData: any[] = []
-      let page = 0
-      const pageSize = 1000
-      let hasMore = true
-      
-      while (hasMore) {
+    let currentYearRevenue: number = 0
+    let lastYearRevenue: number = 0
+    let currentYearBillableAmount: number = 0
+    let lastYearBillableAmount: number = 0
+    let totalWIPAmount: number = 0
+
+    // Try to use RPC function first (if database migration has been applied)
+    if (!hasFilters) {
+      const { data: kpiData, error: kpiError } = await supabase.rpc('get_dashboard_kpis', {
+        p_organization_id: organizationId,
+        p_current_year_start: currentYearStart,
+        p_current_year_end: currentYearEnd,
+        p_last_year_start: lastYearStart,
+        p_last_year_end: lastYearEnd,
+      })
+
+      if (!kpiError && kpiData && kpiData.length > 0) {
+        // Use the aggregated results from RPC
+        currentYearRevenue = Number(kpiData[0].current_year_revenue) || 0
+        lastYearRevenue = Number(kpiData[0].last_year_revenue) || 0
+        currentYearBillableAmount = Number(kpiData[0].current_year_billable) || 0
+        lastYearBillableAmount = Number(kpiData[0].last_year_billable) || 0
+        totalWIPAmount = Number(kpiData[0].total_wip) || 0
+      } else {
+        // Fallback: Fetch data and aggregate in JS (works without migration)
+        const [
+          currentRevenueData,
+          lastRevenueData,
+          currentBillableData,
+          lastBillableData,
+          wipData,
+        ] = await Promise.all([
+          supabase
+            .from('invoice_uploads')
+            .select('amount')
+            .eq('organization_id', organizationId)
+            .gte('date', currentYearStart)
+            .lte('date', currentYearEnd),
+          supabase
+            .from('invoice_uploads')
+            .select('amount')
+            .eq('organization_id', organizationId)
+            .gte('date', lastYearStart)
+            .lte('date', lastYearEnd),
+          supabase
+            .from('timesheet_uploads')
+            .select('billable_amount')
+            .eq('organization_id', organizationId)
+            .gte('date', currentYearStart)
+            .lte('date', currentYearEnd),
+          supabase
+            .from('timesheet_uploads')
+            .select('billable_amount')
+            .eq('organization_id', organizationId)
+            .gte('date', lastYearStart)
+            .lte('date', lastYearEnd),
+          supabase
+            .from('wip_timesheet_uploads')
+            .select('billable_amount')
+            .eq('organization_id', organizationId),
+        ])
+
+        // Aggregate results in JS
+        currentYearRevenue = (currentRevenueData.data || []).reduce((sum, row) => {
+          const amount = typeof row.amount === 'number' ? row.amount : parseFloat(row.amount || '0') || 0
+          return sum + amount
+        }, 0)
+
+        lastYearRevenue = (lastRevenueData.data || []).reduce((sum, row) => {
+          const amount = typeof row.amount === 'number' ? row.amount : parseFloat(row.amount || '0') || 0
+          return sum + amount
+        }, 0)
+
+        currentYearBillableAmount = (currentBillableData.data || []).reduce((sum, row) => {
+          const amount = typeof row.billable_amount === 'number' ? row.billable_amount : parseFloat(row.billable_amount || '0') || 0
+          return sum + amount
+        }, 0)
+
+        lastYearBillableAmount = (lastBillableData.data || []).reduce((sum, row) => {
+          const amount = typeof row.billable_amount === 'number' ? row.billable_amount : parseFloat(row.billable_amount || '0') || 0
+          return sum + amount
+        }, 0)
+
+        totalWIPAmount = (wipData.data || []).reduce((sum, row) => {
+          const amount = typeof row.billable_amount === 'number' ? row.billable_amount : parseFloat(row.billable_amount || '0') || 0
+          return sum + amount
+        }, 0)
+      }
+    } else {
+      // With filters, fetch filtered data and aggregate in JS
+      const buildBillableQuery = (startDate: string, endDate: string) => {
         let query = supabase
           .from('timesheet_uploads')
-          .select('billable_amount, client_group, account_manager, job_manager, job_name, staff')
+          .select('billable_amount')
           .eq('organization_id', organizationId)
           .gte('date', startDate)
           .lte('date', endDate)
         
-        // Apply filters (same logic as Billable page)
         filters.forEach((filter) => {
           if (filter.value && filter.value !== 'all') {
             switch (filter.type) {
@@ -146,85 +188,62 @@ export async function GET(request: NextRequest) {
           }
         })
         
-        const { data: pageData, error: pageError } = await query
-          .range(page * pageSize, (page + 1) * pageSize - 1)
-        
-        if (pageError) {
-          throw new Error(`Failed to fetch billable data: ${pageError.message}`)
-        }
-        
-        if (pageData && pageData.length > 0) {
-          allData = allData.concat(pageData)
-          page++
-          hasMore = pageData.length === pageSize
-        } else {
-          hasMore = false
-        }
+        return query
       }
-      
-      let totalAmount = 0
-      allData.forEach((record) => {
-        const amount = typeof record.billable_amount === 'number' 
-          ? record.billable_amount 
-          : parseFloat(record.billable_amount || '0') || 0
-        totalAmount += amount
-      })
-      
-      return totalAmount
-    }
 
-    // Helper function to fetch total WIP amount
-    const fetchTotalWIPAmount = async (): Promise<number> => {
-      let allData: any[] = []
-      let page = 0
-      const pageSize = 1000
-      let hasMore = true
-      
-      while (hasMore) {
-        const { data: pageData, error: pageError } = await supabase
+      const [
+        currentRevenueData,
+        lastRevenueData,
+        currentBillableData,
+        lastBillableData,
+        wipData,
+      ] = await Promise.all([
+        supabase
+          .from('invoice_uploads')
+          .select('amount')
+          .eq('organization_id', organizationId)
+          .gte('date', currentYearStart)
+          .lte('date', currentYearEnd),
+        supabase
+          .from('invoice_uploads')
+          .select('amount')
+          .eq('organization_id', organizationId)
+          .gte('date', lastYearStart)
+          .lte('date', lastYearEnd),
+        buildBillableQuery(currentYearStart, currentYearEnd),
+        buildBillableQuery(lastYearStart, lastYearEnd),
+        supabase
           .from('wip_timesheet_uploads')
           .select('billable_amount')
-          .eq('organization_id', organizationId)
-          .range(page * pageSize, (page + 1) * pageSize - 1)
-        
-        if (pageError) {
-          throw new Error(`Failed to fetch WIP data: ${pageError.message}`)
-        }
-        
-        if (pageData && pageData.length > 0) {
-          allData = allData.concat(pageData)
-          page++
-          hasMore = pageData.length === pageSize
-        } else {
-          hasMore = false
-        }
-      }
-      
-      let totalAmount = 0
-      allData.forEach((record) => {
-        const amount = typeof record.billable_amount === 'number' 
-          ? record.billable_amount 
-          : parseFloat(record.billable_amount || '0') || 0
-        totalAmount += amount
-      })
-      
-      return totalAmount
-    }
+          .eq('organization_id', organizationId),
+      ])
 
-    // Fetch all data in parallel
-    const [
-      currentYearRevenue,
-      lastYearRevenue,
-      currentYearBillableAmount,
-      lastYearBillableAmount,
-      totalWIPAmount,
-    ] = await Promise.all([
-      fetchRevenueData(currentYearStart, currentYearEnd),
-      fetchRevenueData(lastYearStart, lastYearEnd),
-      fetchBillableAmountData(currentYearStart, currentYearEnd),
-      fetchBillableAmountData(lastYearStart, lastYearEnd),
-      fetchTotalWIPAmount(),
-    ])
+      // Aggregate results in JS
+      currentYearRevenue = (currentRevenueData.data || []).reduce((sum, row) => {
+        const amount = typeof row.amount === 'number' ? row.amount : parseFloat(row.amount || '0') || 0
+        return sum + amount
+      }, 0)
+
+      lastYearRevenue = (lastRevenueData.data || []).reduce((sum, row) => {
+        const amount = typeof row.amount === 'number' ? row.amount : parseFloat(row.amount || '0') || 0
+        return sum + amount
+      }, 0)
+
+      currentYearBillableAmount = (currentBillableData.data || []).reduce((sum, row) => {
+        const amount = typeof row.billable_amount === 'number' ? row.billable_amount : parseFloat(row.billable_amount || '0') || 0
+        return sum + amount
+      }, 0)
+
+      lastYearBillableAmount = (lastBillableData.data || []).reduce((sum, row) => {
+        const amount = typeof row.billable_amount === 'number' ? row.billable_amount : parseFloat(row.billable_amount || '0') || 0
+        return sum + amount
+      }, 0)
+
+      totalWIPAmount = (wipData.data || []).reduce((sum, row) => {
+        const amount = typeof row.billable_amount === 'number' ? row.billable_amount : parseFloat(row.billable_amount || '0') || 0
+        return sum + amount
+      }, 0)
+    }
 
     // Calculate percentage changes
     const revenuePercentageChange = Math.abs(lastYearRevenue) > 0.01
@@ -249,9 +268,8 @@ export async function GET(request: NextRequest) {
       wipAmount: Math.round(totalWIPAmount * 100) / 100,
     }, {
       headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+        // Allow caching for 60 seconds, revalidate in background for up to 5 minutes
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
       },
     })
   } catch (error: any) {

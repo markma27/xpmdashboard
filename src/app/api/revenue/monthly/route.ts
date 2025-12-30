@@ -7,26 +7,20 @@ export async function GET(request: NextRequest) {
     const org = await requireOrg()
     const searchParams = request.nextUrl.searchParams
     const organizationId = searchParams.get('organizationId') || org.id
-    const partnerFilter = searchParams.get('partner') // Optional partner filter (account_manager)
-    const clientManagerFilter = searchParams.get('clientManager') // Optional client manager filter (job_manager)
+    const partnerFilter = searchParams.get('partner')
+    const clientManagerFilter = searchParams.get('clientManager')
 
     const supabase = await createClient()
 
-    // Calculate financial year based on current date
-    // Financial year runs from July 1 to June 30
+    // Calculate financial year dates
     const now = new Date()
-    const currentMonth = now.getMonth() // 0-11 (0=January, 11=December)
+    const currentMonth = now.getMonth()
     const currentYear = now.getFullYear()
     
-    // Determine current financial year
-    // If current month >= 6 (July-December), FY starts in current year
-    // If current month < 6 (January-June), FY starts in previous year
     let currentFYStartYear: number
     if (currentMonth >= 6) {
-      // July-December: FY starts this year
       currentFYStartYear = currentYear
     } else {
-      // January-June: FY started last year
       currentFYStartYear = currentYear - 1
     }
     
@@ -34,61 +28,33 @@ export async function GET(request: NextRequest) {
     const lastFYStartYear = currentFYStartYear - 1
     const lastFYEndYear = currentFYStartYear
     
-    // Format dates as YYYY-MM-DD
     const currentYearStart = `${currentFYStartYear}-07-01`
     const currentYearEnd = `${currentFYEndYear}-06-30`
     const lastYearStart = `${lastFYStartYear}-07-01`
     const lastYearEnd = `${lastFYEndYear}-06-30`
 
-    // Helper function to fetch all data for a date range
-    const fetchAllData = async (startDate: string, endDate: string): Promise<any[]> => {
-      let allData: any[] = []
-      let page = 0
-      const pageSize = 1000
-      let hasMore = true
-      
-      while (hasMore) {
-        let query = supabase
-          .from('invoice_uploads')
-          .select('date, amount, account_manager, job_manager')
-          .eq('organization_id', organizationId)
-          .gte('date', startDate)
-          .lte('date', endDate)
-        
-        // Apply partner filter if provided
-        if (partnerFilter) {
-          query = query.eq('account_manager', partnerFilter)
-        }
-        
-        // Apply client manager filter if provided
-        if (clientManagerFilter) {
-          query = query.eq('job_manager', clientManagerFilter)
-        }
-        
-        const { data: pageData, error: pageError } = await query
-          .range(page * pageSize, (page + 1) * pageSize - 1)
-        
-        if (pageError) {
-          throw new Error(`Failed to fetch data: ${pageError.message}`)
-        }
-        
-        if (pageData && pageData.length > 0) {
-          allData = allData.concat(pageData)
-          page++
-          hasMore = pageData.length === pageSize
-        } else {
-          hasMore = false
-        }
+    // Try to use RPC function first for better performance
+    const { data: currentYearRpcData, error: currentRpcError } = await supabase.rpc(
+      'get_monthly_revenue',
+      {
+        p_organization_id: organizationId,
+        p_start_date: currentYearStart,
+        p_end_date: currentYearEnd,
+        p_partner: partnerFilter || null,
+        p_client_manager: clientManagerFilter || null,
       }
-      
-      return allData
-    }
+    )
 
-    // Fetch current year and last year data in parallel
-    const [currentYearData, lastYearData] = await Promise.all([
-      fetchAllData(currentYearStart, currentYearEnd),
-      fetchAllData(lastYearStart, lastYearEnd),
-    ])
+    const { data: lastYearRpcData, error: lastRpcError } = await supabase.rpc(
+      'get_monthly_revenue',
+      {
+        p_organization_id: organizationId,
+        p_start_date: lastYearStart,
+        p_end_date: lastYearEnd,
+        p_partner: partnerFilter || null,
+        p_client_manager: clientManagerFilter || null,
+      }
+    )
 
     // Initialize months array (July to June)
     const months = [
@@ -97,73 +63,99 @@ export async function GET(request: NextRequest) {
     ]
 
     // Initialize data structure
-    const monthlyData = months.map((month, index) => {
-      return {
-        month,
-        currentYear: 0,
-        lastYear: 0,
+    const monthlyData = months.map((month) => ({
+      month,
+      currentYear: 0,
+      lastYear: 0,
+    }))
+
+    // Helper to get month index from YYYY-MM
+    const getMonthIndex = (monthYear: string, fyStartYear: number) => {
+      const [year, monthStr] = monthYear.split('-')
+      const month = parseInt(monthStr) - 1 // 0-11
+      return month >= 6 ? month - 6 : month + 6
+    }
+
+    // Check if RPC succeeded, otherwise fall back to regular queries
+    if (!currentRpcError && currentYearRpcData && !lastRpcError && lastYearRpcData) {
+      // Use RPC data
+      currentYearRpcData.forEach((row: { month_year: string; total_amount: number }) => {
+        const monthIndex = getMonthIndex(row.month_year, currentFYStartYear)
+        if (monthIndex >= 0 && monthIndex < 12) {
+          monthlyData[monthIndex].currentYear = Number(row.total_amount) || 0
+        }
+      })
+
+      lastYearRpcData.forEach((row: { month_year: string; total_amount: number }) => {
+        const monthIndex = getMonthIndex(row.month_year, lastFYStartYear)
+        if (monthIndex >= 0 && monthIndex < 12) {
+          monthlyData[monthIndex].lastYear = Number(row.total_amount) || 0
+        }
+      })
+    } else {
+      // Fallback: Use optimized query with grouping
+      const buildQuery = (startDate: string, endDate: string) => {
+        let query = supabase
+          .from('invoice_uploads')
+          .select('date, amount')
+          .eq('organization_id', organizationId)
+          .gte('date', startDate)
+          .lte('date', endDate)
+
+        if (partnerFilter) {
+          query = query.eq('account_manager', partnerFilter)
+        }
+        if (clientManagerFilter) {
+          query = query.eq('job_manager', clientManagerFilter)
+        }
+
+        return query
       }
-    })
 
-    // Aggregate current year data
-    // Current year: July 2025 to June 2026
-    if (currentYearData) {
-      currentYearData.forEach((invoice) => {
-        const date = new Date(invoice.date + 'T00:00:00') // Ensure consistent date parsing
-        const month = date.getMonth()
-        const year = date.getFullYear()
+      const [currentYearResult, lastYearResult] = await Promise.all([
+        buildQuery(currentYearStart, currentYearEnd),
+        buildQuery(lastYearStart, lastYearEnd),
+      ])
 
-        // Verify this belongs to current financial year period
-        // July currentFYStartYear to June currentFYEndYear
-        if (!((year === currentFYStartYear && month >= 6) || (year === currentFYEndYear && month < 6))) {
-          return // Skip if not in current financial year range
-        }
+      // Aggregate current year data
+      if (currentYearResult.data) {
+        currentYearResult.data.forEach((invoice) => {
+          const date = new Date(invoice.date + 'T00:00:00')
+          const month = date.getMonth()
+          const year = date.getFullYear()
 
-        // Map month to our array index
-        // July (6) = 0, August (7) = 1, ..., December (11) = 5
-        // January (0) = 6, February (1) = 7, ..., June (5) = 11
-        const monthIndex = month >= 6 ? month - 6 : month + 6
+          if (!((year === currentFYStartYear && month >= 6) || (year === currentFYEndYear && month < 6))) {
+            return
+          }
 
-        // Handle both string and number types for amount
-        let amount = 0
-        if (typeof invoice.amount === 'number') {
-          amount = invoice.amount
-        } else if (typeof invoice.amount === 'string') {
-          amount = parseFloat(invoice.amount) || 0
-        }
-        monthlyData[monthIndex].currentYear += amount
-      })
+          const monthIndex = month >= 6 ? month - 6 : month + 6
+          const amount = typeof invoice.amount === 'number' 
+            ? invoice.amount 
+            : parseFloat(invoice.amount || '0') || 0
+          monthlyData[monthIndex].currentYear += amount
+        })
+      }
+
+      // Aggregate last year data
+      if (lastYearResult.data) {
+        lastYearResult.data.forEach((invoice) => {
+          const date = new Date(invoice.date + 'T00:00:00')
+          const month = date.getMonth()
+          const year = date.getFullYear()
+
+          if (!((year === lastFYStartYear && month >= 6) || (year === lastFYEndYear && month < 6))) {
+            return
+          }
+
+          const monthIndex = month >= 6 ? month - 6 : month + 6
+          const amount = typeof invoice.amount === 'number' 
+            ? invoice.amount 
+            : parseFloat(invoice.amount || '0') || 0
+          monthlyData[monthIndex].lastYear += amount
+        })
+      }
     }
 
-    // Aggregate last year data
-    // Last financial year: July lastFYStartYear to June lastFYEndYear
-    if (lastYearData) {
-      lastYearData.forEach((invoice) => {
-        const date = new Date(invoice.date + 'T00:00:00') // Ensure consistent date parsing
-        const month = date.getMonth()
-        const year = date.getFullYear()
-
-        // Verify this belongs to last financial year period
-        // July lastFYStartYear to June lastFYEndYear
-        if (!((year === lastFYStartYear && month >= 6) || (year === lastFYEndYear && month < 6))) {
-          return // Skip if not in last financial year range
-        }
-
-        // Map month to our array index
-        const monthIndex = month >= 6 ? month - 6 : month + 6
-
-        // Handle both string and number types for amount
-        let amount = 0
-        if (typeof invoice.amount === 'number') {
-          amount = invoice.amount
-        } else if (typeof invoice.amount === 'string') {
-          amount = parseFloat(invoice.amount) || 0
-        }
-        monthlyData[monthIndex].lastYear += amount
-      })
-    }
-
-    // Return full amounts (not divided by 1000, no rounding)
     const formattedData = monthlyData.map((item) => ({
       month: item.month,
       'Current Year': item.currentYear,
@@ -172,9 +164,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(formattedData, {
       headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+        // Cache for 60 seconds, allow stale data for up to 5 minutes while revalidating
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
       },
     })
   } catch (error: any) {
@@ -184,4 +175,3 @@ export async function GET(request: NextRequest) {
     )
   }
 }
-

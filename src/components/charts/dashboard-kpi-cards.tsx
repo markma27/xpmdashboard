@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import useSWR from 'swr'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowUp, ArrowDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -45,6 +45,22 @@ interface KPICardProps {
   percentageChange: number | null
   isNegative?: boolean
   isPercentageMetric?: boolean
+}
+
+// SWR fetcher
+const fetcher = async (url: string) => {
+  const res = await fetch(url)
+  if (!res.ok) throw new Error('Failed to fetch')
+  return res.json()
+}
+
+// SWR config for KPI data
+const swrConfig = {
+  revalidateOnFocus: false,
+  revalidateOnReconnect: true,
+  dedupingInterval: 60000,        // 60 seconds deduping
+  refreshInterval: 5 * 60 * 1000, // Refresh every 5 minutes
+  errorRetryCount: 3,
 }
 
 function KPICard({ 
@@ -134,100 +150,39 @@ function KPICardSkeleton() {
 }
 
 export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICardsProps) {
-  const [dashboardData, setDashboardData] = useState<DashboardKPIData | null>(null)
-  const [productivityData, setProductivityData] = useState<ProductivityKPIData | null>(null)
-  const [recoverabilityData, setRecoverabilityData] = useState<RecoverabilityKPIData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  // Fetch saved filters first, then fetch data with filters applied
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true)
-        setError(null)
-        
-        // First, fetch saved filters from Billable page
-        let billableFilters: any[] = []
-        try {
-          const filtersResponse = await fetch(
-            `/api/billable/saved-filters?organizationId=${organizationId}&t=${Date.now()}`,
-            {
-              cache: 'no-store',
-              headers: {
-                'Cache-Control': 'no-cache',
-              },
-            }
-          )
-          
-          if (filtersResponse.ok) {
-            const result = await filtersResponse.json()
-            if (result.filters && Array.isArray(result.filters)) {
-              billableFilters = result.filters
-            }
-          }
-        } catch (err) {
-          // Silently fail - filters are optional
-          console.error('Failed to fetch saved filters:', err)
-        }
-        
-        const baseParams = `organizationId=${organizationId}&t=${Date.now()}${asOfDate ? `&asOfDate=${asOfDate}` : ''}`
-        
-        // Add filters parameter if filters exist
-        const filtersParam = billableFilters.length > 0 
-          ? `&filters=${encodeURIComponent(JSON.stringify(billableFilters))}`
-          : ''
-        
-        // Fetch dashboard KPI data, productivity KPI data, and recoverability KPI data in parallel
-        const [dashboardResponse, productivityResponse, recoverabilityResponse] = await Promise.all([
-          fetch(`/api/dashboard/kpi?${baseParams}${filtersParam}`, {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache',
-            },
-          }),
-          fetch(`/api/productivity/kpi?${baseParams}${filtersParam}`, {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache',
-            },
-          }),
-          fetch(`/api/recoverability/kpi?${baseParams}${filtersParam}`, {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache',
-            },
-          }),
-        ])
-        
-        if (!dashboardResponse.ok) {
-          throw new Error('Failed to fetch dashboard KPI data')
-        }
-        
-        if (!productivityResponse.ok) {
-          throw new Error('Failed to fetch productivity KPI data')
-        }
-        
-        if (!recoverabilityResponse.ok) {
-          throw new Error('Failed to fetch recoverability KPI data')
-        }
-        
-        const dashboardKpiData = await dashboardResponse.json()
-        const productivityKpiData = await productivityResponse.json()
-        const recoverabilityKpiData = await recoverabilityResponse.json()
-        
-        setDashboardData(dashboardKpiData)
-        setProductivityData(productivityKpiData)
-        setRecoverabilityData(recoverabilityKpiData)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [organizationId, asOfDate])
+  // First, fetch saved filters
+  const { data: filtersData } = useSWR<{ filters: any[] }>(
+    `/api/billable/saved-filters?organizationId=${organizationId}`,
+    fetcher,
+    { ...swrConfig, refreshInterval: 0 }
+  )
+  
+  const billableFilters = filtersData?.filters || []
+  const filtersParam = billableFilters.length > 0 
+    ? `&filters=${encodeURIComponent(JSON.stringify(billableFilters))}`
+    : ''
+  
+  // Build base params
+  const baseParams = `organizationId=${organizationId}${asOfDate ? `&asOfDate=${asOfDate}` : ''}`
+  
+  // Fetch all KPI data using SWR (these run in parallel automatically)
+  const { data: dashboardData, error: dashboardError, isLoading: dashboardLoading } = useSWR<DashboardKPIData>(
+    `/api/dashboard/kpi?${baseParams}${filtersParam}`,
+    fetcher,
+    swrConfig
+  )
+  
+  const { data: productivityData, error: productivityError, isLoading: productivityLoading } = useSWR<ProductivityKPIData>(
+    `/api/productivity/kpi?${baseParams}${filtersParam}`,
+    fetcher,
+    swrConfig
+  )
+  
+  const { data: recoverabilityData, error: recoverabilityError, isLoading: recoverabilityLoading } = useSWR<RecoverabilityKPIData>(
+    `/api/recoverability/kpi?${baseParams}${filtersParam}`,
+    fetcher,
+    swrConfig
+  )
 
   // Format currency with parentheses for negative values and red color
   const formatCurrency = (amount: number) => {
@@ -239,9 +194,32 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
     return `$${formatted}`
   }
 
+  // Check loading state
+  const isLoading = dashboardLoading || productivityLoading || recoverabilityLoading
+  const hasError = dashboardError || productivityError || recoverabilityError
+
+  if (isLoading) {
+    return <KPICardSkeleton />
+  }
+
+  if (hasError || !dashboardData || !productivityData || !recoverabilityData) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Error</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-sm text-destructive">
+              {dashboardError?.message || productivityError?.message || recoverabilityError?.message || 'No data available'}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   // Calculate percentage changes
-  // For percentage metrics (Billable %, Recoverability %), use absolute difference (percentage points)
-  // For dollar/rate metrics (Hourly Rate), use percentage change rate
   const billablePercentageChange = productivityData !== null
     ? productivityData.ytdBillablePercentage - productivityData.lastYearBillablePercentage
     : null
@@ -250,29 +228,9 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
     ? ((productivityData.ytdAverageRate - productivityData.lastYearAverageRate) / productivityData.lastYearAverageRate) * 100
     : null
 
-  // Calculate percentage change for Recoverability % (absolute difference in percentage points)
   const recoverabilityPercentageChange = recoverabilityData !== null
     ? recoverabilityData.currentYearPercentage - recoverabilityData.lastYearPercentage
     : null
-
-  if (loading) {
-    return <KPICardSkeleton />
-  }
-
-  if (error || !dashboardData || !productivityData || !recoverabilityData) {
-    return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Error</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm text-destructive">{error || 'No data available'}</div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">

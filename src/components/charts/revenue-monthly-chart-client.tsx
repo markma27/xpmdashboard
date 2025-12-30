@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import useSWR from 'swr'
 import { RevenueMonthlyChart } from './revenue-monthly-chart'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartSkeleton } from './chart-skeleton'
@@ -19,6 +19,22 @@ interface RevenueMonthlyChartClientProps {
   onMonthClick?: (month: string | null) => void
 }
 
+// SWR fetcher
+const fetcher = async (url: string) => {
+  const res = await fetch(url)
+  if (!res.ok) throw new Error('Failed to fetch invoice data')
+  return res.json()
+}
+
+// SWR config
+const swrConfig = {
+  revalidateOnFocus: false,
+  revalidateOnReconnect: true,
+  dedupingInterval: 60000,
+  refreshInterval: 5 * 60 * 1000,
+  errorRetryCount: 3,
+}
+
 export function RevenueMonthlyChartClient({ 
   organizationId,
   selectedPartner,
@@ -26,48 +42,22 @@ export function RevenueMonthlyChartClient({
   selectedMonth,
   onMonthClick
 }: RevenueMonthlyChartClientProps) {
-  const [data, setData] = useState<MonthlyRevenueData[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  // Build URL with optional filters
+  const params = new URLSearchParams({ organizationId })
+  if (selectedPartner) {
+    params.append('partner', selectedPartner)
+  }
+  if (selectedClientManager) {
+    params.append('clientManager', selectedClientManager)
+  }
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true)
-        setError(null)
-        // Build query with optional filters
-        let url = `/api/revenue/monthly?organizationId=${organizationId}&t=${Date.now()}`
-        if (selectedPartner) {
-          url += `&partner=${encodeURIComponent(selectedPartner)}`
-        }
-        if (selectedClientManager) {
-          url += `&clientManager=${encodeURIComponent(selectedClientManager)}`
-        }
-        
-        const response = await fetch(url, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache',
-          },
-        })
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch invoice data')
-        }
-        
-        const result = await response.json()
-        setData(result)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred')
-      } finally {
-        setLoading(false)
-      }
-    }
+  const { data, error, isLoading } = useSWR<MonthlyRevenueData[]>(
+    `/api/revenue/monthly?${params}`,
+    fetcher,
+    swrConfig
+  )
 
-    fetchData()
-  }, [organizationId, selectedPartner, selectedClientManager])
-
-  if (loading) {
+  if (isLoading) {
     return <ChartSkeleton />
   }
 
@@ -79,14 +69,14 @@ export function RevenueMonthlyChartClient({
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[400px]">
-            <p className="text-destructive">Error: {error}</p>
+            <p className="text-destructive">Error: {error.message}</p>
           </div>
         </CardContent>
       </Card>
     )
   }
 
-  if (data.length === 0) {
+  if (!data || data.length === 0) {
     return (
       <Card className="shadow-sm border-slate-200">
         <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
@@ -118,4 +108,3 @@ export function RevenueMonthlyChartClient({
     </Card>
   )
 }
-
