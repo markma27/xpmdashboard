@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { RecoverabilityMonthlyChart } from './recoverability-monthly-chart'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartSkeleton } from './chart-skeleton'
@@ -29,6 +29,9 @@ export function RecoverabilityMonthlyChartClient({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Memoize filters string to avoid unnecessary re-renders
+  const filtersString = useMemo(() => JSON.stringify(filters), [filters])
+
   useEffect(() => {
     async function fetchData() {
       try {
@@ -37,7 +40,7 @@ export function RecoverabilityMonthlyChartClient({
         // Build query with filters
         let url = `/api/recoverability/monthly?organizationId=${organizationId}&t=${Date.now()}`
         if (filters.length > 0) {
-          url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`
+          url += `&filters=${encodeURIComponent(filtersString)}`
         }
         
         const response = await fetch(url, {
@@ -61,7 +64,7 @@ export function RecoverabilityMonthlyChartClient({
     }
 
     fetchData()
-  }, [organizationId, JSON.stringify(filters)])
+  }, [organizationId, filtersString])
 
   if (loading) {
     return <ChartSkeleton />

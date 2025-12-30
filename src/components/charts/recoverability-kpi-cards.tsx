@@ -1,10 +1,24 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowUp, ArrowDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BillableFilter } from './billable-filters'
+
+interface RecoverabilityKPICardsProps {
+  organizationId: string
+  filters?: BillableFilter[]
+}
+
+interface KPIData {
+  currentYearAmount: number
+  lastYearAmount: number
+  percentageChange: number | null
+  currentYearPercentage: number
+  lastYearPercentage: number
+  targetPercentage: number
+}
 
 interface KPICardProps {
   title: string
@@ -107,6 +121,9 @@ export function RecoverabilityKPICards({ organizationId, filters = [] }: Recover
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Memoize filters string to avoid unnecessary re-renders
+  const filtersString = useMemo(() => JSON.stringify(filters), [filters])
+
   useEffect(() => {
     async function fetchData() {
       try {
@@ -115,7 +132,7 @@ export function RecoverabilityKPICards({ organizationId, filters = [] }: Recover
         
         const baseParams = `organizationId=${organizationId}&t=${Date.now()}`
         const filtersParam = filters.length > 0 
-          ? `&filters=${encodeURIComponent(JSON.stringify(filters))}`
+          ? `&filters=${encodeURIComponent(filtersString)}`
           : ''
         
         const response = await fetch(`/api/recoverability/kpi?${baseParams}${filtersParam}`, {
@@ -139,7 +156,7 @@ export function RecoverabilityKPICards({ organizationId, filters = [] }: Recover
     }
 
     fetchData()
-  }, [organizationId, JSON.stringify(filters)])
+  }, [organizationId, filtersString])
 
   // Calculate percentage change for Recoverability % (absolute difference in percentage points)
   const recoverabilityPercentageChange = data !== null

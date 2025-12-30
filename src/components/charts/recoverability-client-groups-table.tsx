@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useEffect, useState, useMemo } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { TableSkeleton } from './chart-skeleton'
 import { BillableFilter } from './billable-filters'
 
@@ -33,6 +33,9 @@ export function RecoverabilityClientGroupsTable({
   const [sortColumn, setSortColumn] = useState<SortColumn>('currentYear')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
 
+  // Memoize filters string to avoid unnecessary re-renders
+  const filtersString = useMemo(() => JSON.stringify(filters), [filters])
+
   useEffect(() => {
     async function fetchData() {
       try {
@@ -44,7 +47,7 @@ export function RecoverabilityClientGroupsTable({
           url += `&month=${encodeURIComponent(selectedMonth)}`
         }
         if (filters.length > 0) {
-          url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`
+          url += `&filters=${encodeURIComponent(filtersString)}`
         }
         const response = await fetch(url, {
           cache: 'no-store',
@@ -67,7 +70,7 @@ export function RecoverabilityClientGroupsTable({
     }
 
     fetchData()
-  }, [organizationId, selectedMonth, JSON.stringify(filters)])
+  }, [organizationId, selectedMonth, filtersString])
 
   const formatCurrency = (amount: number) => {
     if (amount === 0) return '-'
