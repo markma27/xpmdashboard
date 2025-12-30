@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Users, Save } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import {
   Dialog,
   DialogContent,
@@ -606,7 +607,7 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
               onClick={handleSaveAll} 
               disabled={saving} 
               size="sm"
-              className="bg-black text-white hover:bg-black/80 active:bg-black/70 active:scale-[0.98] transition-all duration-150 h-9 px-4 font-semibold text-xs"
+              className="bg-brand text-white hover:bg-brand-hover active:bg-brand-active active:scale-[0.98] transition-all duration-150 h-9 px-4 font-semibold text-xs"
             >
               <Save className="mr-2 h-4 w-4" />
               {saving 
@@ -831,7 +832,10 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
                               updateEditingValue(staff.staff_name, 'report', !currentReport)
                             }}
                             disabled={saving}
-                            className="text-[10px] h-8 px-2 font-semibold"
+                            className={cn(
+                              "text-[10px] h-8 px-2 font-semibold transition-all duration-200",
+                              (getEditingValue(staff.staff_name, 'report') as boolean) && "bg-brand text-white hover:bg-brand-hover active:bg-brand-active active:scale-[0.98]"
+                            )}
                           >
                             {(getEditingValue(staff.staff_name, 'report') as boolean) ? 'Yes' : 'No'}
                           </Button>

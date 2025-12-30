@@ -306,7 +306,7 @@ export function BillableFilters({
               variant="default"
               size="sm"
               onClick={onApplyFilters}
-              className="bg-black text-white hover:bg-black/80 active:bg-black/70 active:scale-[0.98] transition-all duration-150 h-9 px-4 font-semibold text-xs"
+              className="bg-brand text-white hover:bg-brand-hover active:bg-brand-active active:scale-[0.98] transition-all duration-150 h-9 px-4 font-semibold text-xs"
             >
               <Check className="h-4 w-4 mr-2" />
               Apply Filter

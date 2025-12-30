@@ -19,6 +19,11 @@ const config = {
   	},
   	extend: {
   		colors: {
+  			brand: {
+  				DEFAULT: '#145713',
+  				hover: '#1a6b19',
+  				active: '#104a0f',
+  			},
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',

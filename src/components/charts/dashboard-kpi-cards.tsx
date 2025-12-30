@@ -111,10 +111,11 @@ function KPICardSkeleton() {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
       {[1, 2, 3, 4, 5, 6].map((i) => (
-        <Card key={i} className="overflow-hidden border-slate-200">
+        <Card key={i} className="overflow-hidden border-slate-200 shadow-sm">
           <CardContent className="p-0">
-            <div className="pt-4 text-center">
-              <div className="h-5 w-24 bg-muted animate-pulse rounded mx-auto" />
+            {/* Title Skeleton */}
+            <div className="py-2 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+              <div className="h-5 w-24 bg-muted animate-pulse rounded" />
             </div>
             <div className="py-5 text-center">
               <div className="h-9 w-40 bg-muted animate-pulse rounded mx-auto" />

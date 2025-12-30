@@ -39,7 +39,7 @@ export default async function HomePage() {
 
         {/* CTA Buttons */}
         <div className="flex flex-col gap-3 justify-center pt-4 max-w-[240px] mx-auto">
-          <Button asChild size="lg" className="w-full bg-black text-white hover:bg-black/80 active:bg-black/70 active:scale-[0.98] transition-all duration-150 h-11 font-bold">
+          <Button asChild size="lg" className="w-full bg-brand text-white hover:bg-brand-hover active:bg-brand-active active:scale-[0.98] transition-all duration-150 h-11 font-bold">
             <Link href="/auth/login">Sign In</Link>
           </Button>
           <Button asChild variant="outline" size="lg" className="w-full border-slate-200 hover:bg-slate-50 active:scale-[0.98] transition-all duration-150 h-11 font-semibold text-slate-600">

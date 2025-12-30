@@ -123,7 +123,7 @@ export function MemberList({ organizationId }: MemberListProps) {
         <Button 
           onClick={() => setShowInviteForm(!showInviteForm)}
           size="sm"
-          className="bg-black text-white hover:bg-black/80 active:bg-black/70 active:scale-[0.98] transition-all duration-150 h-9 px-4 font-semibold text-xs"
+          className="bg-brand text-white hover:bg-brand-hover active:bg-brand-active active:scale-[0.98] transition-all duration-150 h-9 px-4 font-semibold text-xs"
         >
           <UserPlus className="mr-2 h-4 w-4" />
           Invite Member
@@ -167,7 +167,7 @@ export function MemberList({ organizationId }: MemberListProps) {
                   type="submit" 
                   disabled={inviting}
                   size="sm"
-                  className="bg-black text-white hover:bg-black/80 active:bg-black/70 active:scale-[0.98] transition-all duration-150 h-9 px-4 font-semibold text-xs"
+                  className="bg-brand text-white hover:bg-brand-hover active:bg-brand-active active:scale-[0.98] transition-all duration-150 h-9 px-4 font-semibold text-xs"
                 >
                   {inviting ? 'Inviting...' : 'Invite'}
                 </Button>

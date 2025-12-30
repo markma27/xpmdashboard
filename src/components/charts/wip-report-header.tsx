@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button'
 import { useWIPReport } from './wip-report-context'
+import { cn } from '@/lib/utils'
 
 export function WIPReportHeader() {
   const {
@@ -42,7 +43,10 @@ export function WIPReportHeader() {
           <Button
             variant={selectedPartner === null ? 'default' : 'outline'}
             size="sm"
-            className="h-7 px-2.5 text-[11px] font-semibold"
+            className={cn(
+              "h-7 px-2.5 text-[11px] font-semibold transition-all duration-200",
+              selectedPartner === null && "bg-brand text-white hover:bg-brand-hover active:bg-brand-active active:scale-[0.98]"
+            )}
             onClick={() => setSelectedPartner(null)}
           >
             All Partners
@@ -52,7 +56,10 @@ export function WIPReportHeader() {
               key={partner}
               variant={selectedPartner === partner ? 'default' : 'outline'}
               size="sm"
-              className="h-7 px-2.5 text-[11px] font-semibold"
+              className={cn(
+                "h-7 px-2.5 text-[11px] font-semibold transition-all duration-200",
+                selectedPartner === partner && "bg-brand text-white hover:bg-brand-hover active:bg-brand-active active:scale-[0.98]"
+              )}
               onClick={() => setSelectedPartner(partner)}
             >
               {partner}
@@ -65,7 +72,10 @@ export function WIPReportHeader() {
           <Button
             variant={selectedClientManager === null ? 'default' : 'outline'}
             size="sm"
-            className="h-7 px-2.5 text-[11px] font-semibold"
+            className={cn(
+              "h-7 px-2.5 text-[11px] font-semibold transition-all duration-200",
+              selectedClientManager === null && "bg-brand text-white hover:bg-brand-hover active:bg-brand-active active:scale-[0.98]"
+            )}
             onClick={() => setSelectedClientManager(null)}
           >
             All Managers
@@ -75,7 +85,10 @@ export function WIPReportHeader() {
               key={manager}
               variant={selectedClientManager === manager ? 'default' : 'outline'}
               size="sm"
-              className="h-7 px-2.5 text-[11px] font-semibold"
+              className={cn(
+                "h-7 px-2.5 text-[11px] font-semibold transition-all duration-200",
+                selectedClientManager === manager && "bg-brand text-white hover:bg-brand-hover active:bg-brand-active active:scale-[0.98]"
+              )}
               onClick={() => setSelectedClientManager(manager)}
             >
               {manager}

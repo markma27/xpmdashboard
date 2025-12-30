@@ -92,7 +92,7 @@ export default function CreateOrgPage() {
                   onChange={(e) => setName(e.target.value)}
                   required
                   disabled={loading}
-                  className="h-11 text-sm bg-slate-50/50 border-slate-200 focus:bg-white focus:ring-black/5 transition-all"
+                  className="h-11 text-sm bg-slate-50/50 border-slate-200 focus:bg-white focus:ring-brand/5 transition-all"
                 />
                 <p className="text-[10px] text-slate-400 mt-1 ml-1">
                   Organisation slug will be: <span className="font-mono text-slate-600">{name ? generateSlug(name) : 'example-org'}</span>
@@ -105,7 +105,7 @@ export default function CreateOrgPage() {
               )}
               <Button 
                 type="submit" 
-                className="w-full h-11 bg-black text-white hover:bg-black/80 active:bg-black/70 active:scale-[0.98] transition-all duration-150 font-bold text-sm shadow-lg shadow-black/5 mt-2" 
+                className="w-full h-11 bg-brand text-white hover:bg-brand-hover active:bg-brand-active active:scale-[0.98] transition-all duration-150 font-bold text-sm shadow-lg shadow-brand/10 mt-2" 
                 disabled={loading}
               >
                 {loading ? (

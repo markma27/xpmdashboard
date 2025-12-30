@@ -193,7 +193,7 @@ export function InvoiceUploadForm() {
                 onDrop={handleDrop}
                 className={cn(
                   "border-2 border-dashed rounded-xl p-10 transition-all cursor-pointer flex flex-col items-center justify-center gap-3",
-                  isDragging ? "border-black bg-slate-100 scale-[1.01]" : 
+                  isDragging ? "border-brand bg-slate-100 scale-[1.01]" : 
                   file ? "border-emerald-200 bg-emerald-50/30" : "border-slate-200 bg-slate-50/50 hover:bg-slate-50 hover:border-slate-300",
                   uploading && "opacity-50 cursor-not-allowed"
                 )}
@@ -291,7 +291,7 @@ export function InvoiceUploadForm() {
               type="submit" 
               disabled={uploading || !file || !startDate || !endDate}
               size="sm"
-              className="bg-black text-white hover:bg-black/80 active:bg-black/70 active:scale-[0.98] transition-all duration-150 h-10 px-8 font-bold text-xs"
+              className="bg-brand text-white hover:bg-brand-hover active:bg-brand-active active:scale-[0.98] transition-all duration-150 h-10 px-8 font-bold text-xs"
             >
               {uploading ? (
                 <>
