@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
         .ilike('client_group', `%${clientGroup}%`)
         .order('date', { ascending: true })
     )
-    const allError = null
+    const allError: Error | null = null
 
     // Query 2: Get records in last year date range
     const dateRangeRecords = await fetchAllData(
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
         .lte('date', lastYearEnd)
         .order('date', { ascending: true })
     )
-    const dateError = null
+    const dateError: Error | null = null
 
     // Query 3: Get records matching both client group AND date range
     const combinedRecords = await fetchAllData(
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
         .lte('date', lastYearEnd)
         .order('date', { ascending: true })
     )
-    const combinedError = null
+    const combinedError: Error | null = null
 
     // Query 4: Get exact client group match
     const exactMatch = await fetchAllData(
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
         .lte('date', lastYearEnd)
         .order('date', { ascending: true })
     )
-    const exactError = null
+    const exactError: Error | null = null
 
     // Calculate totals
     const calculateTotal = (records: any[]) => {
