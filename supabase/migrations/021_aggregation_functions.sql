@@ -289,9 +289,11 @@ BEGIN
      AND date BETWEEN p_last_year_start AND p_last_year_end) as last_year_revenue,
     (SELECT COALESCE(SUM(billable_amount), 0) FROM timesheet_uploads 
      WHERE organization_id = p_organization_id 
+     AND billable = true
      AND date BETWEEN p_current_year_start AND p_current_year_end) as current_year_billable,
     (SELECT COALESCE(SUM(billable_amount), 0) FROM timesheet_uploads 
      WHERE organization_id = p_organization_id 
+     AND billable = true
      AND date BETWEEN p_last_year_start AND p_last_year_end) as last_year_billable,
     (SELECT COALESCE(SUM(billable_amount), 0) FROM wip_timesheet_uploads 
      WHERE organization_id = p_organization_id) as total_wip;

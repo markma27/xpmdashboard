@@ -48,13 +48,51 @@ export function ProductivityClientGroupsTable({
       try {
         setLoading(true)
         setError(null)
-        // Build query with optional staff, month, and date filters
+        
+        // First, fetch saved filters from Billable page
+        let billableFilters: any[] = []
+        try {
+          const filtersResponse = await fetch(
+            `/api/billable/saved-filters?organizationId=${organizationId}&t=${Date.now()}`,
+            {
+              cache: 'no-store',
+              headers: {
+                'Cache-Control': 'no-cache',
+              },
+            }
+          )
+          
+          if (filtersResponse.ok) {
+            const result = await filtersResponse.json()
+            if (result.filters && Array.isArray(result.filters)) {
+              billableFilters = result.filters
+            }
+          }
+        } catch (err) {
+          // Silently fail - filters are optional
+          console.error('Failed to fetch saved filters:', err)
+        }
+        
+        // Build query with optional staff, month, date filters, and saved filters
         let url = `/api/productivity/client-groups?organizationId=${organizationId}&t=${Date.now()}${asOfDate ? `&asOfDate=${asOfDate}` : ''}`
         if (selectedStaff) {
           url += `&staff=${encodeURIComponent(selectedStaff)}`
         }
         if (selectedMonth) {
           url += `&month=${encodeURIComponent(selectedMonth)}`
+        }
+        
+        // Add staff filter to billableFilters if selectedStaff is provided
+        let filtersWithStaff = [...billableFilters]
+        if (selectedStaff) {
+          // Remove existing staff filter if any, then add the new one
+          filtersWithStaff = filtersWithStaff.filter(f => f.type !== 'staff')
+          filtersWithStaff.push({ type: 'staff', value: selectedStaff })
+        }
+        
+        // Add filters parameter if filters exist
+        if (filtersWithStaff.length > 0) {
+          url += `&filters=${encodeURIComponent(JSON.stringify(filtersWithStaff))}`
         }
         
         const response = await fetch(url, {

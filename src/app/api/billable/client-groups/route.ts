@@ -96,6 +96,7 @@ export async function GET(request: NextRequest) {
           .from('timesheet_uploads')
           .select('client_group, billable_amount, account_manager, job_manager, job_name, staff, date')
           .eq('organization_id', organizationId)
+          .eq('billable', true) // Only include billable = true records to match Dashboard KPI
           .gte('date', startDate)
           .lte('date', endDate)
         

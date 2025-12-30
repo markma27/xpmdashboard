@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
       } else {
         // Fallback: Fetch data and aggregate in JS (works without migration)
         // Use pagination to fetch all data (same as billable page)
-        const fetchAllData = async (table: string, selectFields: string, dateField: string, startDate: string, endDate: string | null = null) => {
+        const fetchAllData = async (table: string, selectFields: string, dateField: string, startDate: string, endDate: string | null = null, requireBillable: boolean = false) => {
           let allData: any[] = []
           let page = 0
           const pageSize = 1000
@@ -108,6 +108,11 @@ export async function GET(request: NextRequest) {
               .from(table)
               .select(selectFields)
               .eq('organization_id', organizationId)
+            
+            // For timesheet_uploads, only include billable = true records
+            if (requireBillable && table === 'timesheet_uploads') {
+              query = query.eq('billable', true)
+            }
             
             if (startDate && endDate) {
               query = query.gte(dateField, startDate).lte(dateField, endDate)
@@ -139,11 +144,11 @@ export async function GET(request: NextRequest) {
           lastBillableData,
           wipData,
         ] = await Promise.all([
-          fetchAllData('invoice_uploads', 'amount', 'date', currentYearStart, currentYearEnd),
-          fetchAllData('invoice_uploads', 'amount', 'date', lastYearStart, lastYearEnd),
-          fetchAllData('timesheet_uploads', 'billable_amount', 'date', currentYearStart, currentYearEnd),
-          fetchAllData('timesheet_uploads', 'billable_amount', 'date', lastYearStart, lastYearEnd),
-          fetchAllData('wip_timesheet_uploads', 'billable_amount', 'date', '', null),
+          fetchAllData('invoice_uploads', 'amount', 'date', currentYearStart, currentYearEnd, false),
+          fetchAllData('invoice_uploads', 'amount', 'date', lastYearStart, lastYearEnd, false),
+          fetchAllData('timesheet_uploads', 'billable_amount', 'date', currentYearStart, currentYearEnd, true),
+          fetchAllData('timesheet_uploads', 'billable_amount', 'date', lastYearStart, lastYearEnd, true),
+          fetchAllData('wip_timesheet_uploads', 'billable_amount', 'date', '', null, false),
         ])
 
         // Aggregate results in JS
@@ -186,6 +191,7 @@ export async function GET(request: NextRequest) {
             .from('timesheet_uploads')
             .select('billable_amount')
             .eq('organization_id', organizationId)
+            .eq('billable', true)
             .gte('date', startDate)
             .lte('date', endDate)
           

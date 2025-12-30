@@ -214,37 +214,37 @@ export function RevenueClientGroupsTable({
             <thead>
               <tr className="border-b bg-slate-50/50">
                 <th 
-                  className="text-left p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
+                  className="text-left p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
                   onClick={() => handleSort('clientGroup')}
                 >
                   Client Group<SortIcon column="clientGroup" />
                 </th>
                 <th 
-                  className="text-left p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
+                  className="text-left p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
                   onClick={() => handleSort('partner')}
                 >
                   Partner<SortIcon column="partner" />
                 </th>
                 <th 
-                  className="text-left p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
+                  className="text-left p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
                   onClick={() => handleSort('clientManager')}
                 >
                   Client Manager<SortIcon column="clientManager" />
                 </th>
                 <th 
-                  className="text-right p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
+                  className="text-right p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
                   onClick={() => handleSort('currentYear')}
                 >
                   Current Year<SortIcon column="currentYear" />
                 </th>
                 <th 
-                  className="text-right p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
+                  className="text-right p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
                   onClick={() => handleSort('lastYear')}
                 >
                   Last Year<SortIcon column="lastYear" />
                 </th>
                 <th 
-                  className="text-right p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
+                  className="text-right p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
                   onClick={() => handleSort('change')}
                 >
                   Change<SortIcon column="change" />
@@ -258,32 +258,32 @@ export function RevenueClientGroupsTable({
                 
                 return (
                   <tr key={index} className="hover:bg-slate-50 transition-colors group">
-                    <td className="p-3 border-r">{item.clientGroup}</td>
-                    <td className="p-3 border-r">{item.partner || '-'}</td>
-                    <td className="p-3 border-r">{item.clientManager || '-'}</td>
-                    <td className={`p-3 text-right font-medium border-r ${item.currentYear < 0 ? 'text-red-600' : ''}`}>
+                    <td className="p-2 border-r">{item.clientGroup}</td>
+                    <td className="p-2 border-r">{item.partner || '-'}</td>
+                    <td className="p-2 border-r">{item.clientManager || '-'}</td>
+                    <td className={`p-2 text-right font-medium border-r ${item.currentYear < 0 ? 'text-red-600' : ''}`}>
                       {formatCurrency(item.currentYear)}
                     </td>
-                    <td className="p-3 text-right text-slate-500 border-r">
+                    <td className="p-2 text-right text-slate-500 border-r">
                       {formatCurrency(item.lastYear)}
                     </td>
-                    <td className={`p-3 text-right font-bold ${changeColor}`}>
+                    <td className={`p-2 text-right font-bold ${changeColor}`}>
                       {change >= 0 ? '+' : ''}{change.toFixed(1)}%
                     </td>
                   </tr>
                 )
               })}
               <tr className="border-t-2 border-slate-200 font-bold bg-slate-50/80 rounded-b-lg">
-                <td className="p-3 border-r rounded-bl-lg">Total</td>
-                <td className="p-3 border-r"></td>
-                <td className="p-3 border-r"></td>
-                <td className="p-3 text-right border-r">
+                <td className="p-2 border-r rounded-bl-lg">Total</td>
+                <td className="p-2 border-r"></td>
+                <td className="p-2 border-r"></td>
+                <td className="p-2 text-right border-r">
                   {formatCurrency(totalCurrentYear)}
                 </td>
-                <td className="p-3 text-right border-r">
+                <td className="p-2 text-right border-r">
                   {formatCurrency(totalLastYear)}
                 </td>
-                <td className={`p-3 text-right rounded-br-lg ${calculateChange(totalCurrentYear, totalLastYear) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                <td className={`p-2 text-right rounded-br-lg ${calculateChange(totalCurrentYear, totalLastYear) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                   {calculateChange(totalCurrentYear, totalLastYear) >= 0 ? '+' : ''}
                   {calculateChange(totalCurrentYear, totalLastYear).toFixed(1)}%
                 </td>

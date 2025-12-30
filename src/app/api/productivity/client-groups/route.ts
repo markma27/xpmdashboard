@@ -39,6 +39,28 @@ export async function GET(request: NextRequest) {
     const staffFilter = searchParams.get('staff') // Optional staff filter
     const monthFilter = searchParams.get('month') // Optional month filter (e.g., "October")
     const asOfDateParam = searchParams.get('asOfDate')
+    
+    // Parse filters from query params (same format as Billable page)
+    const filtersParam = searchParams.get('filters')
+    const filters: Array<{ type: string; value: string; operator?: string }> = []
+    if (filtersParam) {
+      try {
+        const parsedFilters = JSON.parse(filtersParam)
+        if (Array.isArray(parsedFilters)) {
+          parsedFilters.forEach((filter: any) => {
+            if (filter.type && filter.value) {
+              filters.push({
+                type: filter.type,
+                value: typeof filter.value === 'string' ? decodeURIComponent(filter.value) : filter.value,
+                operator: filter.operator,
+              })
+            }
+          })
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+    }
 
     const supabase = await createClient()
 
@@ -101,16 +123,46 @@ export async function GET(request: NextRequest) {
       while (hasMore) {
         let query = supabase
           .from('timesheet_uploads')
-          .select('client_group, time, billable_amount, account_manager, job_manager, staff, date')
+          .select('client_group, time, billable_amount, account_manager, job_manager, job_name, staff, date')
           .eq('organization_id', organizationId)
-          .eq('billable', true)
+          .eq('billable', true) // Only include billable = true records for billable hours and billable $
           .gte('date', startDate)
           .lte('date', endDate)
         
-        // Apply staff filter if provided
-        if (staffFilter) {
-          query = query.eq('staff', staffFilter)
+        // Apply staff filter if provided (from URL param or filter)
+        let staffFilterValue = staffFilter
+        filters.forEach((filter) => {
+          if (filter.type === 'staff' && filter.value && filter.value !== 'all') {
+            staffFilterValue = filter.value
+          }
+        })
+        if (staffFilterValue) {
+          query = query.eq('staff', staffFilterValue)
         }
+        
+        // Apply additional filters (same logic as Billable page)
+        filters.forEach((filter) => {
+          if (filter.value && filter.value !== 'all' && filter.type !== 'staff') {
+            switch (filter.type) {
+              case 'client_group':
+                query = query.eq('client_group', filter.value)
+                break
+              case 'account_manager':
+                query = query.eq('account_manager', filter.value)
+                break
+              case 'job_manager':
+                query = query.eq('job_manager', filter.value)
+                break
+              case 'job_name':
+                if (filter.operator === 'not_contains') {
+                  query = query.or(`job_name.not.ilike.%${filter.value}%,job_name.is.null`)
+                } else {
+                  query = query.ilike('job_name', `%${filter.value}%`)
+                }
+                break
+            }
+          }
+        })
         
         const { data: pageData, error: pageError } = await query
           .range(page * pageSize, (page + 1) * pageSize - 1)
