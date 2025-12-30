@@ -15,6 +15,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { TableSkeleton } from '@/components/charts/chart-skeleton'
 
 interface StaffTarget {
   id: string
@@ -547,11 +548,7 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[200px]">
-        <p className="text-slate-500">Loading staff...</p>
-      </div>
-    )
+    return <TableSkeleton />
   }
 
   return (

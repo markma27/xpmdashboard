@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { WIPPartnerChart } from './wip-partner-chart'
 import { WIPClientManagerChart } from './wip-client-manager-chart'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ChartSkeleton } from './chart-skeleton'
 
 interface PartnerData {
   partner: string
@@ -80,26 +81,8 @@ export function WIPChartsClient({
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="shadow-sm border-slate-200">
-          <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
-            <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">WIP by Partner</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-center h-[400px]">
-              <p className="text-muted-foreground">Loading chart data...</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm border-slate-200">
-          <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
-            <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">WIP by Client Manager</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-center h-[400px]">
-              <p className="text-muted-foreground">Loading chart data...</p>
-            </div>
-          </CardContent>
-        </Card>
+        <ChartSkeleton title="WIP by Partner" />
+        <ChartSkeleton title="WIP by Client Manager" />
       </div>
     )
   }

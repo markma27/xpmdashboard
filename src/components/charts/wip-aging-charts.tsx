@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { WIPAgingPieChart } from './wip-aging-pie-chart'
 import { WIPAgingBarChart } from './wip-aging-bar-chart'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ChartSkeleton } from './chart-skeleton'
 
 interface AgingData {
   lessThan30: number
@@ -75,26 +76,8 @@ export function WIPAgingCharts({
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="shadow-sm border-slate-200">
-          <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
-            <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">WIP Aging by Percentage</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-center h-[400px]">
-              <p className="text-muted-foreground">Loading chart data...</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm border-slate-200">
-          <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
-            <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">WIP Aging by Amount</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-center h-[400px]">
-              <p className="text-muted-foreground">Loading chart data...</p>
-            </div>
-          </CardContent>
-        </Card>
+        <ChartSkeleton title="WIP Aging by Percentage" />
+        <ChartSkeleton title="WIP Aging by Amount" />
       </div>
     )
   }

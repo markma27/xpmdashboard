@@ -1,4 +1,4 @@
-// @ts-expect-error - xero-node types are not fully compatible
+// @ts-ignore - xero-node types are not fully compatible
 import { XeroClient } from 'xero-node'
 import axios from 'axios'
 import { parseString } from 'xml2js'

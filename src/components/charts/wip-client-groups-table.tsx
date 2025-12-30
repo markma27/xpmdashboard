@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { TableSkeleton } from './chart-skeleton'
 
 interface ClientGroupData {
   clientGroup: string
@@ -85,18 +86,7 @@ export function WIPClientGroupsTable({
   }
 
   if (loading) {
-    return (
-      <Card className="shadow-sm border-slate-200">
-        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
-          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">WIP by Client Group</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-[200px]">
-            <p className="text-muted-foreground">Loading data...</p>
-          </div>
-        </CardContent>
-      </Card>
-    )
+    return <TableSkeleton />
   }
 
   if (error) {
