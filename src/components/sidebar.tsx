@@ -89,11 +89,12 @@ const navigation: NavSection[] = [
         href: '/settings/members',
         icon: UserCog,
       },
-      {
-        name: 'Xero Connection',
-        href: '/settings/xero',
-        icon: Link2,
-      },
+      // Hidden for now - Xero Connection not needed
+      // {
+      //   name: 'Xero Connection',
+      //   href: '/settings/xero',
+      //   icon: Link2,
+      // },
     ],
   },
   {

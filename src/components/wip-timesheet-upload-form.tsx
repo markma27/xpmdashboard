@@ -104,17 +104,14 @@ export function WIPTimesheetUploadForm() {
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle>Upload WIP Timesheet CSV</CardTitle>
-          <CardDescription>
-            Upload a CSV file. The system will first delete all existing WIP timesheet data, then upload new data. Each upload replaces all previous data.
-          </CardDescription>
+      <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
+        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Upload WIP Timesheet CSV</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-6 py-4">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="wip-file-input">CSV File</Label>
+              <Label htmlFor="wip-file-input" className="text-xs font-medium text-slate-600 uppercase tracking-wider">CSV File</Label>
               <div className="flex items-center gap-4">
                 <Input
                   id="wip-file-input"
@@ -132,7 +129,7 @@ export function WIPTimesheetUploadForm() {
                   </div>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-slate-500">
                 The CSV file should contain the following columns: Job Manager, Client Group(s), Client, Account Manager, Staff, Date, Job No., Name, Time, Billable Rate, Billable Amount, Billed?, Note
               </p>
             </div>
@@ -151,7 +148,7 @@ export function WIPTimesheetUploadForm() {
                   ) : (
                     <AlertCircle className="h-5 w-5" />
                   )}
-                  <p className="text-sm flex-1">{message.text}</p>
+                  <p className="text-xs flex-1">{message.text}</p>
                   {(warnings.length > 0 || autoFilled.length > 0) && (
                     <div className="flex gap-2">
                       {warnings.length > 0 && (
@@ -235,7 +232,12 @@ export function WIPTimesheetUploadForm() {
               </div>
             )}
 
-            <Button type="submit" disabled={uploading || !file}>
+            <Button 
+              type="submit" 
+              disabled={uploading || !file}
+              size="sm"
+              className="bg-black text-white hover:bg-black/80 active:bg-black/70 active:scale-[0.98] transition-all duration-150 h-9 px-4 font-semibold text-xs"
+            >
               {uploading ? (
                 <>
                   <Upload className="mr-2 h-4 w-4 animate-spin" />
@@ -252,40 +254,40 @@ export function WIPTimesheetUploadForm() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Instructions</CardTitle>
+      <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
+        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Instructions</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="px-6 py-4 space-y-4">
           <div className="space-y-2">
-            <h3 className="font-semibold">What is WIP Timesheet?</h3>
-            <p className="text-sm text-muted-foreground">
+            <h3 className="text-sm font-semibold text-slate-700">What is WIP Timesheet?</h3>
+            <p className="text-xs text-slate-500">
               WIP (Work In Progress) timesheets track work that has been completed but not yet billed. 
               This data is used to generate WIP reports showing unbilled work by client groups, partners, and managers.
             </p>
           </div>
 
           <div className="space-y-2">
-            <h3 className="font-semibold">How does data replacement work?</h3>
-            <p className="text-sm text-muted-foreground">
+            <h3 className="text-sm font-semibold text-slate-700">How does data replacement work?</h3>
+            <p className="text-xs text-slate-500">
               Each time you upload, the system will first delete ALL existing WIP timesheet data for your organization, then insert the new data from the CSV file.
               This ensures a complete replacement of data with each upload - no duplicates, and the uploaded file becomes the single source of truth.
             </p>
           </div>
 
           <div className="space-y-2">
-            <h3 className="font-semibold">Recommended upload frequency</h3>
-            <p className="text-sm text-muted-foreground">
+            <h3 className="text-sm font-semibold text-slate-700">Recommended upload frequency</h3>
+            <p className="text-xs text-slate-500">
               We recommend uploading once per week to keep data up to date. You can also upload anytime as needed.
             </p>
           </div>
 
           <div className="space-y-2">
-            <h3 className="font-semibold">CSV file format requirements</h3>
-            <p className="text-sm text-muted-foreground">
+            <h3 className="text-sm font-semibold text-slate-700">CSV file format requirements</h3>
+            <p className="text-xs text-slate-500">
               The CSV file should contain the following columns (column names must match exactly):
             </p>
-            <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 ml-4">
+            <ul className="list-disc list-inside text-xs text-slate-500 space-y-1 ml-4">
               <li>Job Manager</li>
               <li>Client Group(s)</li>
               <li>Client</li>
@@ -300,7 +302,7 @@ export function WIPTimesheetUploadForm() {
               <li>Billed? (yes/no)</li>
               <li>Note</li>
             </ul>
-            <p className="text-sm text-muted-foreground mt-2">
+            <p className="text-xs text-slate-500 mt-2">
               Note: Column names may also include prefixes like [Client], [Ledger], or [Job] (e.g., [Client] Job Manager, [Ledger] Staff).
             </p>
           </div>

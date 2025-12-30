@@ -104,47 +104,55 @@ export function MemberList({ organizationId }: MemberListProps) {
   }
 
   if (loading) {
-    return <div className="text-center py-4 text-muted-foreground">Loading members...</div>
+    return (
+      <div className="flex items-center justify-center h-[200px]">
+        <p className="text-slate-500">Loading members...</p>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center pt-4 px-6">
         <div>
-          <h3 className="text-lg font-semibold">Organization Members</h3>
-          <p className="text-sm text-muted-foreground">
+          <h3 className="text-lg font-bold tracking-tight text-slate-800">Organization Members</h3>
+          <p className="text-xs text-slate-500 mt-1">
             {members.length} member{members.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <Button onClick={() => setShowInviteForm(!showInviteForm)}>
+        <Button 
+          onClick={() => setShowInviteForm(!showInviteForm)}
+          size="sm"
+          className="bg-black text-white hover:bg-black/80 active:bg-black/70 active:scale-[0.98] transition-all duration-150 h-9 px-4 font-semibold text-xs"
+        >
           <UserPlus className="mr-2 h-4 w-4" />
           Invite Member
         </Button>
       </div>
 
       {showInviteForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Invite Member</CardTitle>
-            <CardDescription>Add a new member to your organization</CardDescription>
+        <Card className="mx-6 mb-4 shadow-sm border-slate-200">
+          <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+            <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Invite Member</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-6 py-4">
             <form onSubmit={handleInvite} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="text-xs font-medium text-slate-600 uppercase tracking-wider">Email</Label>
                 <Input
                   id="email"
                   type="email"
                   placeholder="member@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  className="h-9 text-xs"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
+                <Label htmlFor="role" className="text-xs font-medium text-slate-600 uppercase tracking-wider">Role</Label>
                 <Select value={role} onValueChange={setRole}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -155,17 +163,24 @@ export function MemberList({ organizationId }: MemberListProps) {
                 </Select>
               </div>
               <div className="flex gap-2">
-                <Button type="submit" disabled={inviting}>
+                <Button 
+                  type="submit" 
+                  disabled={inviting}
+                  size="sm"
+                  className="bg-black text-white hover:bg-black/80 active:bg-black/70 active:scale-[0.98] transition-all duration-150 h-9 px-4 font-semibold text-xs"
+                >
                   {inviting ? 'Inviting...' : 'Invite'}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
+                  size="sm"
                   onClick={() => {
                     setShowInviteForm(false)
                     setEmail('')
                     setRole('viewer')
                   }}
+                  className="h-9 px-4 font-semibold text-xs"
                 >
                   Cancel
                 </Button>
@@ -176,30 +191,50 @@ export function MemberList({ organizationId }: MemberListProps) {
       )}
 
       {members.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-8 text-center">
-          <p className="text-sm text-muted-foreground">No members yet.</p>
+        <div className="flex items-center justify-center h-[200px] mx-6">
+          <p className="text-sm text-slate-500">No members yet.</p>
         </div>
       ) : (
-        <div className="space-y-2">
-          {members.map((member) => (
-            <Card key={member.id}>
-              <CardContent className="flex items-center justify-between p-4">
-                <div>
-                  <div className="font-medium">{member.users?.email || 'Unknown'}</div>
-                  <div className="text-sm text-muted-foreground capitalize">
-                    {member.role} • Joined {new Date(member.created_at).toLocaleDateString()}
-                  </div>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleRemove(member.users.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="px-6 pb-4">
+          <div className="rounded-md border border-slate-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-[12px]">
+                <thead>
+                  <tr className="border-b bg-slate-50/50">
+                    <th className="text-left p-3 font-bold text-slate-700 border-r">Email</th>
+                    <th className="text-left p-3 font-bold text-slate-700 border-r bg-slate-50/30">Role</th>
+                    <th className="text-left p-3 font-bold text-slate-700 border-r bg-slate-50/30">Joined</th>
+                    <th className="text-center p-3 font-bold text-slate-700">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {members.map((member) => (
+                    <tr key={member.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="p-3 border-r">
+                        <div className="font-semibold text-slate-700">{member.users?.email || 'Unknown'}</div>
+                      </td>
+                      <td className="p-3 border-r">
+                        <span className="capitalize text-slate-600">{member.role}</span>
+                      </td>
+                      <td className="p-3 border-r">
+                        <span className="text-slate-600">{new Date(member.created_at).toLocaleDateString()}</span>
+                      </td>
+                      <td className="p-3 text-center">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRemove(member.users.id)}
+                          className="h-8 px-3 text-[12px] font-semibold"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
     </div>

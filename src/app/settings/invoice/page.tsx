@@ -14,8 +14,8 @@ export default async function InvoiceUploadPage() {
       <AppLayout organizations={organizations} activeOrgId={activeOrgId}>
         <div className="space-y-6">
           <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-8 text-center">
-            <h2 className="text-xl font-semibold text-destructive">Unauthorized</h2>
-            <p className="mt-2 text-muted-foreground">
+            <h2 className="text-lg font-bold text-destructive">Unauthorized</h2>
+            <p className="mt-2 text-xs text-slate-500">
               You need admin permissions to access this page
             </p>
           </div>

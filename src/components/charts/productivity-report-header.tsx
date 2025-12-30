@@ -47,7 +47,7 @@ export function ProductivityReportHeader() {
       </div>
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <Label htmlFor="productivity-date" className="text-sm font-medium whitespace-nowrap">
+          <Label htmlFor="productivity-date" className="text-xs font-medium whitespace-nowrap text-slate-600 uppercase tracking-wider">
             Date:
           </Label>
           <Input
@@ -59,7 +59,7 @@ export function ProductivityReportHeader() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <Label htmlFor="productivity-staff" className="text-sm font-medium whitespace-nowrap">
+          <Label htmlFor="productivity-staff" className="text-xs font-medium whitespace-nowrap text-slate-600 uppercase tracking-wider">
             Staff:
           </Label>
           <Select

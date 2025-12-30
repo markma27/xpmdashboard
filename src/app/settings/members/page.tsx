@@ -15,8 +15,8 @@ export default async function MembersSettingsPage() {
       <AppLayout organizations={organizations} activeOrgId={activeOrgId}>
         <div className="space-y-6">
           <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-8 text-center">
-            <h2 className="text-xl font-semibold text-destructive">Unauthorized</h2>
-            <p className="mt-2 text-muted-foreground">
+            <h2 className="text-lg font-bold text-destructive">Unauthorized</h2>
+            <p className="mt-2 text-xs text-slate-500">
               You need admin permissions to access this page
             </p>
           </div>
@@ -37,12 +37,8 @@ export default async function MembersSettingsPage() {
       }
     >
       <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Organization Members</CardTitle>
-            <CardDescription>View and manage organization members</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
+          <CardContent className="p-0">
             <MemberList organizationId={org.id} />
           </CardContent>
         </Card>

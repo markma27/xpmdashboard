@@ -112,47 +112,46 @@ export function TimesheetUploadForm() {
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle>Upload Timesheet CSV</CardTitle>
-          <CardDescription>
-            Select a date range and upload a CSV file. The system will first delete existing data in the selected date range, then upload new data to avoid duplicates.
-          </CardDescription>
+      <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
+        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Upload Timesheet CSV</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-6 py-4">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="startDate">Start Date</Label>
+              <Label htmlFor="startDate" className="text-xs font-medium text-slate-600 uppercase tracking-wider">Start Date</Label>
               <Input
                 id="startDate"
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
+                className="h-9 text-xs"
                 required
                 disabled={uploading}
               />
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-slate-500">
                 Select the earliest time entry date in the CSV file
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="endDate">End Date</Label>
+              <Label htmlFor="endDate" className="text-xs font-medium text-slate-600 uppercase tracking-wider">End Date</Label>
               <Input
                 id="endDate"
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
+                className="h-9 text-xs"
                 required
                 disabled={uploading}
               />
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-slate-500">
                 Select the latest time entry date in the CSV file
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="file-input">CSV File</Label>
+              <Label htmlFor="file-input" className="text-xs font-medium text-slate-600 uppercase tracking-wider">CSV File</Label>
               <div className="flex items-center gap-4">
                 <Input
                   id="file-input"
@@ -170,7 +169,7 @@ export function TimesheetUploadForm() {
                   </div>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-slate-500">
                 The CSV file should contain the following columns: Client Group(s), Client, Account Manager, Job Manager, Staff, Date, Time, Billable Rate, Billable Amount, Billed?, Billable, Capacity Reducing?, Note
               </p>
             </div>
@@ -189,7 +188,7 @@ export function TimesheetUploadForm() {
                   ) : (
                     <AlertCircle className="h-5 w-5" />
                   )}
-                  <p className="text-sm flex-1">{message.text}</p>
+                  <p className="text-xs flex-1">{message.text}</p>
                   {warnings.length > 0 && (
                     <button
                       type="button"
@@ -230,7 +229,12 @@ export function TimesheetUploadForm() {
               </div>
             )}
 
-            <Button type="submit" disabled={uploading || !file || !startDate || !endDate}>
+            <Button 
+              type="submit" 
+              disabled={uploading || !file || !startDate || !endDate}
+              size="sm"
+              className="bg-black text-white hover:bg-black/80 active:bg-black/70 active:scale-[0.98] transition-all duration-150 h-9 px-4 font-semibold text-xs"
+            >
               {uploading ? (
                 <>
                   <Upload className="mr-2 h-4 w-4 animate-spin" />
@@ -247,40 +251,40 @@ export function TimesheetUploadForm() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Instructions</CardTitle>
+      <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
+        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Instructions</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="px-6 py-4 space-y-4">
           <div className="space-y-2">
-            <h3 className="font-semibold">Why upload CSV?</h3>
-            <p className="text-sm text-muted-foreground">
+            <h3 className="text-sm font-semibold text-slate-700">Why upload CSV?</h3>
+            <p className="text-xs text-slate-500">
               The XPM API does not provide staff billable rate information, so we cannot calculate billable amounts directly from the API.
               By regularly uploading CSV files exported from XPM, we can obtain complete billing information.
             </p>
           </div>
 
           <div className="space-y-2">
-            <h3 className="font-semibold">How to avoid duplicate data?</h3>
-            <p className="text-sm text-muted-foreground">
+            <h3 className="text-sm font-semibold text-slate-700">How to avoid duplicate data?</h3>
+            <p className="text-xs text-slate-500">
               Each time you upload, the system will first delete all existing data in the selected date range, then insert new data.
               This ensures no duplicate records while allowing you to re-upload corrected data.
             </p>
           </div>
 
           <div className="space-y-2">
-            <h3 className="font-semibold">Recommended upload frequency</h3>
-            <p className="text-sm text-muted-foreground">
+            <h3 className="text-sm font-semibold text-slate-700">Recommended upload frequency</h3>
+            <p className="text-xs text-slate-500">
               We recommend uploading once per week to keep data up to date. You can also upload anytime as needed.
             </p>
           </div>
 
           <div className="space-y-2">
-            <h3 className="font-semibold">CSV file format requirements</h3>
-            <p className="text-sm text-muted-foreground">
+            <h3 className="text-sm font-semibold text-slate-700">CSV file format requirements</h3>
+            <p className="text-xs text-slate-500">
               The CSV file should contain the following columns (column names must match exactly):
             </p>
-            <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 ml-4">
+            <ul className="list-disc list-inside text-xs text-slate-500 space-y-1 ml-4">
               <li>Client Group(s)</li>
               <li>Client</li>
               <li>Account Manager</li>

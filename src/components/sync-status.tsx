@@ -290,19 +290,28 @@ export function SyncStatus({ organizationId }: SyncStatusProps) {
   }
 
   if (loading) {
-    return <div className="text-center py-4 text-muted-foreground">Loading sync status...</div>
+    return (
+      <div className="flex items-center justify-center h-[200px]">
+        <p className="text-slate-500">Loading sync status...</p>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center pt-4 px-6">
         <div>
-          <h3 className="text-lg font-semibold">Sync Status</h3>
-          <p className="text-sm text-muted-foreground">
+          <h3 className="text-lg font-bold tracking-tight text-slate-800">Sync Status</h3>
+          <p className="text-xs text-slate-500 mt-1">
             Last sync status for all XPM tables
           </p>
         </div>
-        <Button onClick={handleSync} disabled={syncing}>
+        <Button 
+          onClick={handleSync} 
+          disabled={syncing}
+          size="sm"
+          className="bg-black text-white hover:bg-black/80 active:bg-black/70 active:scale-[0.98] transition-all duration-150 h-9 px-4 font-semibold text-xs"
+        >
           {syncing ? (
             <>
               <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
@@ -318,77 +327,81 @@ export function SyncStatus({ organizationId }: SyncStatusProps) {
       </div>
 
       {statuses.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-8 text-center">
-          <p className="text-sm text-muted-foreground">
+        <div className="flex items-center justify-center h-[200px] mx-6">
+          <p className="text-sm text-slate-500">
             No sync history. Click &quot;Sync Now&quot; to start syncing data.
           </p>
         </div>
       ) : (
-        <div className="grid gap-3">
-          {statuses.map((status) => (
-            <Card key={status.table_name}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {getStatusIcon(status.last_sync_status)}
-                    <CardTitle className="text-base">
-                      {formatTableName(status.table_name)}
-                    </CardTitle>
+        <div className="px-6 pb-4">
+          <div className="grid gap-3">
+            {statuses.map((status) => (
+              <Card key={status.table_name} className="shadow-sm border-slate-200">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {getStatusIcon(status.last_sync_status)}
+                      <CardTitle className="text-sm font-bold text-slate-700">
+                        {formatTableName(status.table_name)}
+                      </CardTitle>
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      {status.last_sync_count} records
+                    </div>
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    {status.last_sync_count} records
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div className="text-sm space-y-1 flex-1">
-                      <div>
-                        <span className="text-muted-foreground">Last sync: </span>
-                        {status.last_sync_at
-                          ? new Date(status.last_sync_at).toLocaleString()
-                          : 'Never'}
-                      </div>
-                      {status.error_message && (
-                        <div className="text-red-600 text-xs mt-2">
-                          Error: {status.error_message}
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="text-xs space-y-1 flex-1">
+                        <div>
+                          <span className="text-slate-500">Last sync: </span>
+                          <span className="text-slate-700">
+                            {status.last_sync_at
+                              ? new Date(status.last_sync_at).toLocaleString()
+                              : 'Never'}
+                          </span>
                         </div>
-                      )}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleSyncTable(status.table_name)}
-                      disabled={syncingTable === status.table_name || syncing}
-                      className="ml-4"
-                    >
-                      {syncingTable === status.table_name ? (
-                        <>
-                          <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
-                          Syncing...
-                        </>
-                      ) : (
-                        <>
-                          <RefreshCw className="mr-2 h-3 w-3" />
-                          Sync
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                  {syncingTable === status.table_name && progressMap[status.table_name] !== undefined && (
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">Progress</span>
-                        <span className="font-medium">{progressMap[status.table_name]}%</span>
+                        {status.error_message && (
+                          <div className="text-red-600 text-xs mt-2">
+                            Error: {status.error_message}
+                          </div>
+                        )}
                       </div>
-                      <Progress value={progressMap[status.table_name]} className="h-2" />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSyncTable(status.table_name)}
+                        disabled={syncingTable === status.table_name || syncing}
+                        className="ml-4 h-8 px-3 text-xs font-semibold"
+                      >
+                        {syncingTable === status.table_name ? (
+                          <>
+                            <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
+                            Syncing...
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="mr-2 h-3 w-3" />
+                            Sync
+                          </>
+                        )}
+                      </Button>
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                    {syncingTable === status.table_name && progressMap[status.table_name] !== undefined && (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-500">Progress</span>
+                          <span className="font-medium text-slate-700">{progressMap[status.table_name]}%</span>
+                        </div>
+                        <Progress value={progressMap[status.table_name]} className="h-2" />
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       )}
     </div>

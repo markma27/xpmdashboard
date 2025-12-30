@@ -546,7 +546,11 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
   }
 
   if (loading) {
-    return <div className="text-center py-4 text-muted-foreground">Loading staff...</div>
+    return (
+      <div className="flex items-center justify-center h-[200px]">
+        <p className="text-slate-500">Loading staff...</p>
+      </div>
+    )
   }
 
   return (
@@ -579,116 +583,123 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
       </Dialog>
 
       <div className="space-y-4">
-        <div className="flex justify-between items-center pt-4">
-        <div>
-          <p className="text-xs text-muted-foreground">
-            {visibleStaff.length} of {staffList.length} staff member{staffList.length !== 1 ? 's' : ''} shown
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="show-hidden"
-              checked={showHidden}
-              onChange={(e) => setShowHidden(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300"
-            />
-            <Label htmlFor="show-hidden" className="text-sm cursor-pointer">
-              Show hidden staff
-            </Label>
+        <div className="flex justify-between items-center pt-4 px-6">
+          <div>
+            <p className="text-xs text-slate-500">
+              {visibleStaff.length} of {staffList.length} staff member{staffList.length !== 1 ? 's' : ''} shown
+            </p>
           </div>
-          <Button onClick={handleSaveAll} disabled={saving} size="default">
-            <Save className="mr-2 h-4 w-4" />
-            {saving 
-              ? saveProgress 
-                ? `Saving... (${saveProgress.current}/${saveProgress.total})`
-                : 'Saving...'
-              : 'Save All'}
-          </Button>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="show-hidden"
+                checked={showHidden}
+                onChange={(e) => setShowHidden(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <Label htmlFor="show-hidden" className="text-xs cursor-pointer text-slate-600">
+                Show hidden staff
+              </Label>
+            </div>
+            <Button 
+              onClick={handleSaveAll} 
+              disabled={saving} 
+              size="sm"
+              className="bg-black text-white hover:bg-black/80 active:bg-black/70 active:scale-[0.98] transition-all duration-150 h-9 px-4 font-semibold text-xs"
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {saving 
+                ? saveProgress 
+                  ? `Saving... (${saveProgress.current}/${saveProgress.total})`
+                  : 'Saving...'
+                : 'Save All'}
+            </Button>
+          </div>
         </div>
-      </div>
 
       {staffList.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-8 text-center">
-          <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-sm text-muted-foreground">
-            No staff members found. Please upload timesheet data first.
-          </p>
+        <div className="flex items-center justify-center h-[200px]">
+          <div className="text-center">
+            <Users className="mx-auto h-12 w-12 text-slate-400 mb-4" />
+            <p className="text-sm text-slate-500">
+              No staff members found. Please upload timesheet data first.
+            </p>
+          </div>
         </div>
       ) : (
-        <div className="rounded-md border">
+        <div className="rounded-md border border-slate-200">
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-xs">
+            <table className="w-full border-collapse text-[10px]">
               <thead>
-                <tr className="border-b bg-muted/50">
+                <tr className="border-b bg-slate-50/50">
                   <th
-                    className="text-left p-2 font-semibold text-xs cursor-pointer hover:bg-muted/50 select-none"
+                    className="text-left p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r whitespace-nowrap"
                     onClick={() => handleSort('name')}
                   >
                     Name<SortIcon column="name" />
                   </th>
                   <th
-                    className="text-left p-2 font-semibold text-xs cursor-pointer hover:bg-muted/50 select-none"
+                    className="text-left p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r whitespace-nowrap"
                     onClick={() => handleSort('job_title')}
                   >
                     Job Title<SortIcon column="job_title" />
                   </th>
                   <th
-                    className="text-left p-2 font-semibold text-xs cursor-pointer hover:bg-muted/50 select-none"
+                    className="text-left p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r whitespace-nowrap"
                     onClick={() => handleSort('team')}
                   >
                     Team<SortIcon column="team" />
                   </th>
                   <th
-                    className="text-left p-2 font-semibold text-xs cursor-pointer hover:bg-muted/50 select-none"
+                    className="text-left p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r whitespace-nowrap"
                     onClick={() => handleSort('email')}
                   >
                     Email<SortIcon column="email" />
                   </th>
                   <th
-                    className="text-left p-2 font-semibold text-xs cursor-pointer hover:bg-muted/50 select-none"
+                    className="text-left p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30 whitespace-nowrap"
                     onClick={() => handleSort('target_billable_percentage')}
                   >
                     Target Billable (%)<SortIcon column="target_billable_percentage" />
                   </th>
                   <th
-                    className="text-left p-2 font-semibold text-xs cursor-pointer hover:bg-muted/50 select-none"
+                    className="text-left p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30 whitespace-nowrap"
                     onClick={() => handleSort('fte')}
                   >
                     FTE<SortIcon column="fte" />
                   </th>
                   <th
-                    className="text-left p-2 font-semibold text-xs cursor-pointer hover:bg-muted/50 select-none"
+                    className="text-left p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30 whitespace-nowrap"
                     onClick={() => handleSort('default_daily_hours')}
                   >
                     Daily Hours<SortIcon column="default_daily_hours" />
                   </th>
                   <th
-                    className="text-left p-2 font-semibold text-xs cursor-pointer hover:bg-muted/50 select-none"
+                    className="text-left p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30 whitespace-nowrap"
                     onClick={() => handleSort('start_date')}
                   >
                     Start Date<SortIcon column="start_date" />
                   </th>
                   <th
-                    className="text-left p-2 font-semibold text-xs cursor-pointer hover:bg-muted/50 select-none"
+                    className="text-left p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30 whitespace-nowrap"
                     onClick={() => handleSort('end_date')}
                   >
                     End Date<SortIcon column="end_date" />
                   </th>
                   <th
-                    className="text-center p-2 font-semibold text-xs cursor-pointer hover:bg-muted/50 select-none"
+                    className="text-center p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r whitespace-nowrap"
                     onClick={() => handleSort('report')}
                   >
                     Report<SortIcon column="report" />
                   </th>
-                  <th className="text-center p-2 font-semibold text-xs">Actions</th>
+                  <th className="text-center p-2 font-bold text-slate-700 whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100">
                 {visibleStaff.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={11} className="p-8 text-center text-slate-500">
                       No staff members to display
                     </td>
                   </tr>
@@ -696,46 +707,46 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
                   visibleStaff.map((staff) => (
                     <tr 
                       key={staff.id} 
-                      className={`border-b hover:bg-muted/30 ${
+                      className={`hover:bg-slate-50 transition-colors group ${
                         staff.is_hidden && showHidden ? 'bg-pink-50' : ''
                       }`}
                     >
-                      <td className="p-2">
-                        <div className="font-medium text-xs">{staff.name}</div>
+                      <td className="p-2 border-r">
+                        <div className="font-semibold text-slate-700 whitespace-nowrap">{staff.name}</div>
                       </td>
-                      <td className="p-2">
+                      <td className="p-2 border-r">
                         <Input
                           type="text"
                           value={getEditingValue(staff.staff_name, 'job_title') as string}
                           onChange={(e) =>
                             updateEditingValue(staff.staff_name, 'job_title', e.target.value)
                           }
-                          className="w-40 text-xs h-7"
+                          className="w-32 text-[10px] h-8"
                           placeholder="Job Title"
                           disabled={saving}
                         />
                       </td>
-                      <td className="p-2">
+                      <td className="p-2 border-r">
                         <Input
                           type="text"
                           value={getEditingValue(staff.staff_name, 'team') as string}
                           onChange={(e) => updateEditingValue(staff.staff_name, 'team', e.target.value)}
-                          className="w-40 text-xs h-7"
+                          className="w-32 text-[10px] h-8"
                           placeholder="Team"
                           disabled={saving}
                         />
                       </td>
-                      <td className="p-2">
+                      <td className="p-2 border-r">
                         <Input
                           type="email"
                           value={getEditingValue(staff.staff_name, 'email') as string}
                           onChange={(e) => updateEditingValue(staff.staff_name, 'email', e.target.value)}
-                          className="w-48 text-xs h-7"
+                          className="w-40 text-[10px] h-8"
                           placeholder="Email"
                           disabled={saving}
                         />
                       </td>
-                      <td className="p-2">
+                      <td className="p-2 border-r">
                         <Input
                           type="number"
                           min="0"
@@ -745,12 +756,12 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
                           onChange={(e) =>
                             updateEditingValue(staff.staff_name, 'target_billable_percentage', e.target.value)
                           }
-                          className="w-20 text-xs h-7"
+                          className="w-16 text-[10px] h-8"
                           placeholder="%"
                           disabled={saving}
                         />
                       </td>
-                      <td className="p-2">
+                      <td className="p-2 border-r">
                         <Input
                           type="number"
                           min="0"
@@ -758,12 +769,12 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
                           step="0.01"
                           value={getEditingValue(staff.staff_name, 'fte') as string}
                           onChange={(e) => updateEditingValue(staff.staff_name, 'fte', e.target.value)}
-                          className="w-20 text-xs h-7"
+                          className="w-16 text-[10px] h-8"
                           placeholder="0.0-1.0"
                           disabled={saving}
                         />
                       </td>
-                      <td className="p-2">
+                      <td className="p-2 border-r">
                         <Input
                           type="number"
                           min="0"
@@ -773,12 +784,12 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
                           onChange={(e) =>
                             updateEditingValue(staff.staff_name, 'default_daily_hours', e.target.value)
                           }
-                          className="w-20 text-xs h-7"
+                          className="w-16 text-[10px] h-8"
                           placeholder="hours"
                           disabled={saving}
                         />
                       </td>
-                      <td className="p-2">
+                      <td className="p-2 border-r">
                         {(() => {
                           const dateValue = getEditingValue(staff.staff_name, 'start_date') as string
                           return (
@@ -788,13 +799,13 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
                               onChange={(e) =>
                                 updateEditingValue(staff.staff_name, 'start_date', e.target.value || '')
                               }
-                              className="w-32 text-xs h-7"
+                              className="w-28 text-[10px] h-8"
                               disabled={saving}
                             />
                           )
                         })()}
                       </td>
-                      <td className="p-2">
+                      <td className="p-2 border-r">
                         {(() => {
                           const dateValue = getEditingValue(staff.staff_name, 'end_date') as string
                           return (
@@ -804,13 +815,13 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
                               onChange={(e) =>
                                 updateEditingValue(staff.staff_name, 'end_date', e.target.value || '')
                               }
-                              className="w-32 text-xs h-7"
+                              className="w-28 text-[10px] h-8"
                               disabled={saving}
                             />
                           )
                         })()}
                       </td>
-                      <td className="p-2">
+                      <td className="p-2 border-r">
                         <div className="flex justify-center">
                           <Button
                             size="sm"
@@ -820,7 +831,7 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
                               updateEditingValue(staff.staff_name, 'report', !currentReport)
                             }}
                             disabled={saving}
-                            className="text-xs h-7 px-2"
+                            className="text-[10px] h-8 px-2 font-semibold"
                           >
                             {(getEditingValue(staff.staff_name, 'report') as boolean) ? 'Yes' : 'No'}
                           </Button>
@@ -835,7 +846,7 @@ export function StaffTargetList({ organizationId }: StaffTargetListProps) {
                             handleToggleHidden(staff.staff_name, !currentHidden)
                           }}
                           disabled={saving}
-                          className="text-xs h-7 px-2"
+                          className="text-[10px] h-8 px-2 font-semibold"
                         >
                           {getEditingValue(staff.staff_name, 'is_hidden') ? 'Unhide' : 'Hide'}
                         </Button>

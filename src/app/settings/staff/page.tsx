@@ -37,8 +37,8 @@ export default async function StaffSettingsPage() {
       }
     >
       <div className="space-y-6">
-        <Card>
-          <CardContent>
+        <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
+          <CardContent className="p-0">
             <StaffTargetList organizationId={org.id} />
           </CardContent>
         </Card>

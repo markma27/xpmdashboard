@@ -143,7 +143,7 @@ export function BillableFilters({
             value={filter.value}
             onValueChange={(value) => updateFilter(filter.id, { value })}
           >
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-[200px] h-9 text-xs">
               <SelectValue placeholder="Select client group" />
             </SelectTrigger>
             <SelectContent>
@@ -171,7 +171,7 @@ export function BillableFilters({
               updateFilter(filter.id, { value: value === 'all' ? 'all' : value })
             }}
           >
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-[200px] h-9 text-xs">
               <SelectValue placeholder="All Partners" />
             </SelectTrigger>
             <SelectContent>
@@ -204,7 +204,7 @@ export function BillableFilters({
               updateFilter(filter.id, { value: value === 'all' ? 'all' : value })
             }}
           >
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-[200px] h-9 text-xs">
               <SelectValue placeholder="All Managers" />
             </SelectTrigger>
             <SelectContent>
@@ -231,7 +231,7 @@ export function BillableFilters({
                 updateFilter(filter.id, { operator: value })
               }
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[180px] h-9 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -243,7 +243,7 @@ export function BillableFilters({
               placeholder="Enter text (e.g., PG)"
               value={filter.value}
               onChange={(e) => updateFilter(filter.id, { value: e.target.value })}
-              className="w-[200px]"
+              className="w-[200px] h-9 text-xs"
             />
           </div>
         )
@@ -256,7 +256,7 @@ export function BillableFilters({
             value={staffValue}
             onValueChange={(value) => updateFilter(filter.id, { value: value === 'all' ? 'all' : value })}
           >
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-[200px] h-9 text-xs">
               <SelectValue placeholder="All Staff" />
             </SelectTrigger>
             <SelectContent>
@@ -296,7 +296,7 @@ export function BillableFilters({
             variant="outline"
             size="sm"
             onClick={addFilter}
-            className="w-fit"
+            className="h-9 px-4 font-semibold text-xs"
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Filter
@@ -306,7 +306,7 @@ export function BillableFilters({
               variant="default"
               size="sm"
               onClick={onApplyFilters}
-              className="w-fit"
+              className="bg-black text-white hover:bg-black/80 active:bg-black/70 active:scale-[0.98] transition-all duration-150 h-9 px-4 font-semibold text-xs"
             >
               <Check className="h-4 w-4 mr-2" />
               Apply Filter
@@ -318,7 +318,7 @@ export function BillableFilters({
               size="sm"
               onClick={onSaveFilters}
               disabled={saving}
-              className="w-fit"
+              className="h-9 px-4 font-semibold text-xs"
             >
               <Save className="h-4 w-4 mr-2" />
               {saving ? 'Saving...' : 'Save Filter'}
@@ -350,7 +350,7 @@ export function BillableFilters({
                   })
                 }}
               >
-                <SelectTrigger className="w-[220px]">
+                <SelectTrigger className="w-[220px] h-9 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -368,7 +368,7 @@ export function BillableFilters({
                 variant="ghost"
                 size="icon"
                 onClick={() => removeFilter(filter.id)}
-                className="h-9 w-9"
+                className="h-9 w-9 shrink-0"
               >
                 <X className="h-4 w-4" />
               </Button>
