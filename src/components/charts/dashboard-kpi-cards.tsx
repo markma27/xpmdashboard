@@ -45,6 +45,7 @@ interface KPICardProps {
   percentageChange: number | null
   isNegative?: boolean
   isPercentageMetric?: boolean
+  lastYearDate?: string | null
 }
 
 // SWR fetcher
@@ -69,7 +70,8 @@ function KPICard({
   lastYearValue, 
   percentageChange, 
   isNegative = false,
-  isPercentageMetric = false 
+  isPercentageMetric = false,
+  lastYearDate = null
 }: KPICardProps) {
   const isPositiveChange = percentageChange !== null && percentageChange >= 0
   
@@ -94,15 +96,20 @@ function KPICard({
         </div>
 
         <div className="px-4 pb-4">
-          <div className="border-t border-slate-100 pt-3 flex items-center justify-between">
-            {/* Last Year */}
-            <div className="text-sm font-medium text-slate-500">
-              Last Year: {lastYearValue}
+          <div className="border-t border-slate-100 pt-3 flex items-center">
+            {/* Last Year Text */}
+            <div className="text-sm font-medium text-slate-500 flex items-center flex-1">
+              <span>Last Year{lastYearDate && <span className="text-[10px] text-slate-400"> (YTD to {lastYearDate})</span>}</span>
+            </div>
+
+            {/* Last Year Value */}
+            <div className="flex items-center justify-center border-l border-slate-100 pl-4 pr-4 min-w-[120px] self-stretch">
+              <span className="text-sm font-medium text-slate-500">{lastYearValue}</span>
             </div>
 
             {/* Percentage Change */}
             {percentageChange !== null && (
-              <div className="flex items-center gap-1.5 border-l border-slate-100 pl-4">
+              <div className="flex items-center justify-center gap-1.5 border-l border-slate-100 pl-4 self-stretch">
                 {isPositiveChange ? (
                   <ArrowUp className="h-4 w-4 text-emerald-500 fill-emerald-500" />
                 ) : (
@@ -164,6 +171,53 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
   
   // Build base params
   const baseParams = `organizationId=${organizationId}${asOfDate ? `&asOfDate=${asOfDate}` : ''}`
+
+  // Format last year date for display
+  const formatLastYearDate = (dateString: string | undefined): string | null => {
+    if (!dateString) return null
+    const date = new Date(dateString + 'T00:00:00') // Add time to avoid timezone issues
+    const day = date.getDate().toString().padStart(2, '0')
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const month = monthNames[date.getMonth()]
+    const year = date.getFullYear()
+    return `${day} ${month} ${year}`
+  }
+
+  // Calculate last year end date (same day last year, but not exceeding last year's FY end)
+  // This matches the logic in /api/dashboard/kpi/route.ts
+  const calculateLastYearDate = (): string | null => {
+    if (!asOfDate) return null
+    
+    // Use asOfDate as currentYearEnd (same as API)
+    const currentYearEnd = asOfDate
+    
+    // Parse the date to determine financial year
+    const asOf = new Date(asOfDate + 'T00:00:00')
+    const currentMonth = asOf.getMonth() // 0-11
+    const currentYear = asOf.getFullYear()
+    
+    // Determine current financial year
+    let currentFYStartYear: number
+    if (currentMonth >= 6) {
+      currentFYStartYear = currentYear
+    } else {
+      currentFYStartYear = currentYear - 1
+    }
+    
+    const lastFYEndYear = currentFYStartYear
+    
+    // For last year "same time", calculate the same day last year
+    // Directly manipulate the date string to avoid timezone issues (same as API)
+    const [year, month, day] = currentYearEnd.split('-').map(Number)
+    const lastYearEndDate = `${year - 1}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    const lastYearFYEnd = `${lastFYEndYear}-06-30`
+    // Use the earlier of last year same date or last year FY end
+    const lastYearEnd = lastYearEndDate <= lastYearFYEnd ? lastYearEndDate : lastYearFYEnd
+    
+    return formatLastYearDate(lastYearEnd)
+  }
+
+  const formattedLastYearDate = calculateLastYearDate()
   
   // Fetch all KPI data using SWR (these run in parallel automatically)
   const { data: dashboardData, error: dashboardError, isLoading: dashboardLoading } = useSWR<DashboardKPIData>(
@@ -245,6 +299,7 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
         lastYearValue={formatCurrency(dashboardData.revenue.lastYear)}
         percentageChange={dashboardData.revenue.percentageChange}
         isNegative={dashboardData.revenue.currentYear < 0}
+        lastYearDate={formattedLastYearDate}
       />
 
       {/* Billable $ Card */}
@@ -254,6 +309,7 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
         lastYearValue={formatCurrency(dashboardData.billableAmount.lastYear)}
         percentageChange={dashboardData.billableAmount.percentageChange}
         isNegative={dashboardData.billableAmount.currentYear < 0}
+        lastYearDate={formattedLastYearDate}
       />
 
       {/* Billable % Card */}
@@ -263,6 +319,7 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
         lastYearValue={`${productivityData.lastYearBillablePercentage.toFixed(1)}%`}
         percentageChange={billablePercentageChange}
         isPercentageMetric={true}
+        lastYearDate={formattedLastYearDate}
       />
 
       {/* Hourly Rate Card */}
@@ -271,6 +328,7 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
         currentValue={`$${Math.round(productivityData.ytdAverageRate).toLocaleString('en-US')}`}
         lastYearValue={`$${Math.round(productivityData.lastYearAverageRate).toLocaleString('en-US')}`}
         percentageChange={hourlyRatePercentageChange}
+        lastYearDate={formattedLastYearDate}
       />
 
       {/* Recoverability $ Card */}
@@ -280,6 +338,7 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
         lastYearValue={formatCurrency(recoverabilityData.lastYearAmount)}
         percentageChange={recoverabilityData.percentageChange}
         isNegative={recoverabilityData.currentYearAmount < 0}
+        lastYearDate={formattedLastYearDate}
       />
 
       {/* Recoverability % Card */}
@@ -289,6 +348,7 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
         lastYearValue={`${recoverabilityData.lastYearPercentage.toFixed(1)}%`}
         percentageChange={recoverabilityPercentageChange}
         isPercentageMetric={true}
+        lastYearDate={formattedLastYearDate}
       />
     </div>
   )

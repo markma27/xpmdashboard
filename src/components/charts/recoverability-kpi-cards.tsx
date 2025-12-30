@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowUp, ArrowDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BillableFilter } from './billable-filters'
+import { useRecoverabilityReport } from './recoverability-report-context'
 
 interface RecoverabilityKPICardsProps {
   organizationId: string
@@ -27,6 +28,7 @@ interface KPICardProps {
   percentageChange: number | null
   isNegative?: boolean
   isPercentageMetric?: boolean
+  lastYearDate?: string | null
 }
 
 function KPICard({ 
@@ -35,7 +37,8 @@ function KPICard({
   lastYearValue, 
   percentageChange, 
   isNegative = false,
-  isPercentageMetric = false 
+  isPercentageMetric = false,
+  lastYearDate = null
 }: KPICardProps) {
   const isPositiveChange = percentageChange !== null && percentageChange >= 0
   
@@ -60,15 +63,20 @@ function KPICard({
         </div>
 
         <div className="px-4 pb-4">
-          <div className="border-t border-slate-100 pt-3 flex items-center justify-between">
-            {/* Last Year */}
-            <div className="text-sm font-medium text-slate-500">
-              Last Year: {lastYearValue}
+          <div className="border-t border-slate-100 pt-3 flex items-center">
+            {/* Last Year Text */}
+            <div className="text-sm font-medium text-slate-500 flex items-center flex-1">
+              <span>Last Year{lastYearDate && <span className="text-[10px] text-slate-400"> (YTD to {lastYearDate})</span>}</span>
+            </div>
+
+            {/* Last Year Value */}
+            <div className="flex items-center justify-center border-l border-slate-100 pl-4 pr-4 min-w-[120px] self-stretch">
+              <span className="text-sm font-medium text-slate-500">{lastYearValue}</span>
             </div>
 
             {/* Percentage Change */}
             {percentageChange !== null && (
-              <div className="flex items-center gap-1.5 border-l border-slate-100 pl-4">
+              <div className="flex items-center justify-center gap-1.5 border-l border-slate-100 pl-4 self-stretch">
                 {isPositiveChange ? (
                   <ArrowUp className="h-4 w-4 text-emerald-500 fill-emerald-500" />
                 ) : (
@@ -116,12 +124,72 @@ function KPICardSkeleton() {
 }
 
 export function RecoverabilityKPICards({ organizationId, filters = [] }: RecoverabilityKPICardsProps) {
+  const { lastUpdated } = useRecoverabilityReport()
   const [data, setData] = useState<KPIData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   // Memoize filters string to avoid unnecessary re-renders
   const filtersString = useMemo(() => JSON.stringify(filters), [filters])
+
+  // Format last year date for display
+  const formatLastYearDate = (dateString: string | null): string | null => {
+    if (!dateString) return null
+    // Try to parse the date - it could be YYYY-MM-DD or ISO timestamp
+    const date = new Date(dateString)
+    // Check if date is valid
+    if (isNaN(date.getTime())) return null
+    const day = date.getDate().toString().padStart(2, '0')
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const month = monthNames[date.getMonth()]
+    const year = date.getFullYear()
+    return `${day} ${month} ${year}`
+  }
+
+  // Calculate last year end date based on lastUpdated
+  // For Recoverability, we use lastUpdated date to calculate the same day last year
+  // This matches the logic in /api/dashboard/kpi/route.ts
+  const calculateLastYearDate = (): string | null => {
+    if (!lastUpdated) return null
+    
+    // Parse the date - it could be YYYY-MM-DD or ISO timestamp
+    const date = new Date(lastUpdated)
+    // Check if date is valid
+    if (isNaN(date.getTime())) return null
+    
+    // Convert to YYYY-MM-DD format for string manipulation
+    const year = date.getFullYear()
+    const month = date.getMonth() + 1 // getMonth() returns 0-11
+    const day = date.getDate()
+    const currentYearEnd = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    
+    const currentMonth = date.getMonth() // 0-11
+    const currentYear = date.getFullYear()
+    
+    // Determine current financial year
+    let currentFYStartYear: number
+    if (currentMonth >= 6) {
+      currentFYStartYear = currentYear
+    } else {
+      currentFYStartYear = currentYear - 1
+    }
+    
+    const lastFYEndYear = currentFYStartYear
+    
+    // For last year "same time", calculate the same day last year
+    // Directly manipulate the date string to avoid timezone issues (same as API)
+    const [yearNum, monthNum, dayNum] = currentYearEnd.split('-').map(Number)
+    // Validate parsed values
+    if (isNaN(yearNum) || isNaN(monthNum) || isNaN(dayNum)) return null
+    const lastYearEndDate = `${yearNum - 1}-${String(monthNum).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`
+    const lastYearFYEnd = `${lastFYEndYear}-06-30`
+    // Use the earlier of last year same date or last year FY end
+    const lastYearEnd = lastYearEndDate <= lastYearFYEnd ? lastYearEndDate : lastYearFYEnd
+    
+    return formatLastYearDate(lastYearEnd)
+  }
+
+  const formattedLastYearDate = calculateLastYearDate()
 
   useEffect(() => {
     async function fetchData() {
@@ -200,6 +268,7 @@ export function RecoverabilityKPICards({ organizationId, filters = [] }: Recover
         lastYearValue={formatCurrency(data.lastYearAmount)}
         percentageChange={data.percentageChange}
         isNegative={data.currentYearAmount < 0}
+        lastYearDate={formattedLastYearDate}
       />
       
       {/* Recoverability % Card */}
@@ -209,6 +278,7 @@ export function RecoverabilityKPICards({ organizationId, filters = [] }: Recover
         lastYearValue={`${data.lastYearPercentage.toFixed(1)}%`}
         percentageChange={recoverabilityPercentageChange}
         isPercentageMetric={true}
+        lastYearDate={formattedLastYearDate}
       />
     </div>
   )

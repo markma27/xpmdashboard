@@ -39,6 +39,7 @@ export function BillableReportProvider({
   const [appliedFilters, setAppliedFilters] = useState<BillableFilter[]>([])
   const [savingFilters, setSavingFilters] = useState(false)
   const [isInitializing, setIsInitializing] = useState(true)
+  const [filtersLoaded, setFiltersLoaded] = useState(false)
 
   // Fetch data on mount
   useEffect(() => {
@@ -55,7 +56,7 @@ export function BillableReportProvider({
           }
         )
         
-        // Set filters first, then mark as initialized
+        // Set filters first
         if (savedFiltersResponse.ok) {
           const savedFiltersResult = await savedFiltersResponse.json()
           if (savedFiltersResult.filters && savedFiltersResult.filters.length > 0) {
@@ -64,8 +65,8 @@ export function BillableReportProvider({
           }
         }
         
-        // Mark as initialized after filters are set
-        setIsInitializing(false)
+        // Mark filters as loaded
+        setFiltersLoaded(true)
         
         // Then fetch other data in parallel
         const [staffResponse, partnersResponse, clientManagersResponse, lastUploadResponse] = await Promise.all([
@@ -137,6 +138,17 @@ export function BillableReportProvider({
 
     fetchData()
   }, [organizationId])
+
+  // Mark as initialized after filters are loaded and appliedFilters is set
+  useEffect(() => {
+    if (filtersLoaded) {
+      // Use a small delay to ensure state updates are flushed
+      const timer = setTimeout(() => {
+        setIsInitializing(false)
+      }, 0)
+      return () => clearTimeout(timer)
+    }
+  }, [filtersLoaded, appliedFilters])
 
   const handleSaveFilters = async () => {
     try {

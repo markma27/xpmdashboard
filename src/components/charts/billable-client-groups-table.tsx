@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { TableSkeleton } from './chart-skeleton'
 import { BillableFilter } from './billable-filters'
@@ -48,6 +48,21 @@ export function BillableClientGroupsTable({
 
   const formattedLastUpdated = formatDateForHeader(lastUpdated)
 
+  // Memoize filters string to prevent unnecessary re-fetches when filters array reference changes
+  const filtersString = useMemo(() => {
+    if (filters.length === 0) return ''
+    const filtersParam = filters
+      .filter((f) => f.value && f.value !== 'all' && f.value.trim() !== '') // Exclude 'all' values and empty strings
+      .map((f) => {
+        if (f.operator) {
+          return `${f.type}:${f.operator}:${encodeURIComponent(f.value)}`
+        }
+        return `${f.type}:${encodeURIComponent(f.value)}`
+      })
+      .join('|')
+    return filtersParam
+  }, [filters])
+
   // Fetch client group data
   useEffect(() => {
     async function fetchData() {
@@ -61,19 +76,8 @@ export function BillableClientGroupsTable({
         }
         
         // Add filters to URL
-        if (filters.length > 0) {
-          const filtersParam = filters
-            .filter((f) => f.value && f.value !== 'all' && f.value.trim() !== '') // Exclude 'all' values and empty strings
-            .map((f) => {
-              if (f.operator) {
-                return `${f.type}:${f.operator}:${encodeURIComponent(f.value)}`
-              }
-              return `${f.type}:${encodeURIComponent(f.value)}`
-            })
-            .join('|')
-          if (filtersParam) {
-            url += `&filters=${encodeURIComponent(filtersParam)}`
-          }
+        if (filtersString) {
+          url += `&filters=${encodeURIComponent(filtersString)}`
         }
         
         const response = await fetch(url, {
@@ -97,7 +101,7 @@ export function BillableClientGroupsTable({
     }
 
     fetchData()
-  }, [organizationId, selectedMonth, filters])
+  }, [organizationId, selectedMonth, filtersString])
 
   const formatCurrency = (amount: number) => {
     if (amount === 0) return '-'
