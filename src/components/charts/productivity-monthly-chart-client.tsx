@@ -106,7 +106,7 @@ export function ProductivityMonthlyChartClient({
     return (
       <Card className="shadow-sm border-slate-200">
         <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
-          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Billable Hours</CardTitle>
+          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Monthly Billable Hours</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[400px]">
@@ -121,7 +121,7 @@ export function ProductivityMonthlyChartClient({
     return (
       <Card className="shadow-sm border-slate-200">
         <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
-          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Billable Hours</CardTitle>
+          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Monthly Billable Hours</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[400px]">
@@ -137,7 +137,7 @@ export function ProductivityMonthlyChartClient({
   return (
     <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
       <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
-        <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Billable Hours</CardTitle>
+        <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Monthly Billable Hours</CardTitle>
       </CardHeader>
       <CardContent className="pt-4">
         <ProductivityMonthlyChart 
