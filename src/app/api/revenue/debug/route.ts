@@ -15,42 +15,81 @@ export async function GET(request: NextRequest) {
     const lastYearStart = '2024-07-01'
     const lastYearEnd = '2025-06-30'
 
+    // Helper function to fetch all data with pagination
+    const fetchAllData = async (queryBuilder: any) => {
+      let allData: any[] = []
+      let page = 0
+      const pageSize = 1000
+      let hasMore = true
+      
+      while (hasMore) {
+        const { data: pageData, error: pageError } = await queryBuilder
+          .range(page * pageSize, (page + 1) * pageSize - 1)
+        
+        if (pageError) {
+          throw new Error(`Failed to fetch data: ${pageError.message}`)
+        }
+        
+        if (pageData && pageData.length > 0) {
+          allData = allData.concat(pageData)
+          page++
+          hasMore = pageData.length === pageSize
+        } else {
+          hasMore = false
+        }
+      }
+      
+      return allData
+    }
+
     // Query 1: Get all records for this client group in date range
-    const { data: allRecords, error: allError } = await supabase
-      .from('invoice_uploads')
-      .select('id, client_group, date, amount, organization_id')
-      .eq('organization_id', organizationId)
-      .ilike('client_group', `%${clientGroup}%`)
-      .order('date', { ascending: true })
+    const allRecords = await fetchAllData(
+      supabase
+        .from('invoice_uploads')
+        .select('id, client_group, date, amount, organization_id')
+        .eq('organization_id', organizationId)
+        .ilike('client_group', `%${clientGroup}%`)
+        .order('date', { ascending: true })
+    )
+    const allError = null
 
     // Query 2: Get records in last year date range
-    const { data: dateRangeRecords, error: dateError } = await supabase
-      .from('invoice_uploads')
-      .select('id, client_group, date, amount, organization_id')
-      .eq('organization_id', organizationId)
-      .gte('date', lastYearStart)
-      .lte('date', lastYearEnd)
-      .order('date', { ascending: true })
+    const dateRangeRecords = await fetchAllData(
+      supabase
+        .from('invoice_uploads')
+        .select('id, client_group, date, amount, organization_id')
+        .eq('organization_id', organizationId)
+        .gte('date', lastYearStart)
+        .lte('date', lastYearEnd)
+        .order('date', { ascending: true })
+    )
+    const dateError = null
 
     // Query 3: Get records matching both client group AND date range
-    const { data: combinedRecords, error: combinedError } = await supabase
-      .from('invoice_uploads')
-      .select('id, client_group, date, amount, organization_id')
-      .eq('organization_id', organizationId)
-      .ilike('client_group', `%${clientGroup}%`)
-      .gte('date', lastYearStart)
-      .lte('date', lastYearEnd)
-      .order('date', { ascending: true })
+    const combinedRecords = await fetchAllData(
+      supabase
+        .from('invoice_uploads')
+        .select('id, client_group, date, amount, organization_id')
+        .eq('organization_id', organizationId)
+        .ilike('client_group', `%${clientGroup}%`)
+        .gte('date', lastYearStart)
+        .lte('date', lastYearEnd)
+        .order('date', { ascending: true })
+    )
+    const combinedError = null
 
     // Query 4: Get exact client group match
-    const { data: exactMatch, error: exactError } = await supabase
-      .from('invoice_uploads')
-      .select('id, client_group, date, amount, organization_id')
-      .eq('organization_id', organizationId)
-      .eq('client_group', clientGroup)
-      .gte('date', lastYearStart)
-      .lte('date', lastYearEnd)
-      .order('date', { ascending: true })
+    const exactMatch = await fetchAllData(
+      supabase
+        .from('invoice_uploads')
+        .select('id, client_group, date, amount, organization_id')
+        .eq('organization_id', organizationId)
+        .eq('client_group', clientGroup)
+        .gte('date', lastYearStart)
+        .lte('date', lastYearEnd)
+        .order('date', { ascending: true })
+    )
+    const exactError = null
 
     // Calculate totals
     const calculateTotal = (records: any[]) => {

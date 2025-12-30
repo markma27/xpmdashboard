@@ -34,7 +34,15 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient()
 
     // Use provided date or default to today
-    const asOfDate = asOfDateParam ? new Date(asOfDateParam) : new Date()
+    // If asOfDateParam is already in YYYY-MM-DD format, use it directly to avoid timezone issues
+    const today = new Date().toISOString().split('T')[0]
+    const currentYearEnd = asOfDateParam && /^\d{4}-\d{2}-\d{2}$/.test(asOfDateParam) 
+      ? asOfDateParam 
+      : today
+    
+    // Parse the date to determine financial year (for month/year calculation)
+    // Use local date parsing to avoid timezone issues
+    const asOfDate = asOfDateParam ? new Date(asOfDateParam + 'T00:00:00') : new Date()
     const currentMonth = asOfDate.getMonth() // 0-11
     const currentYear = asOfDate.getFullYear()
     
@@ -51,12 +59,11 @@ export async function GET(request: NextRequest) {
     
     // Format dates as YYYY-MM-DD
     const currentYearStart = `${currentFYStartYear}-07-01`
-    const currentYearEnd = asOfDate.toISOString().split('T')[0]
     
     // For last year "same time", calculate the same day last year
-    const lastYearSameDate = new Date(asOfDate)
-    lastYearSameDate.setFullYear(lastYearSameDate.getFullYear() - 1)
-    const lastYearEndDate = lastYearSameDate.toISOString().split('T')[0]
+    // Directly manipulate the date string to avoid timezone issues
+    const [year, month, day] = currentYearEnd.split('-').map(Number)
+    const lastYearEndDate = `${year - 1}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
     const lastYearFYEnd = `${lastFYEndYear}-06-30`
     const lastYearEnd = lastYearEndDate <= lastYearFYEnd ? lastYearEndDate : lastYearFYEnd
     const lastYearStart = `${lastFYStartYear}-07-01`
@@ -89,6 +96,42 @@ export async function GET(request: NextRequest) {
         totalWIPAmount = Number(kpiData[0].total_wip) || 0
       } else {
         // Fallback: Fetch data and aggregate in JS (works without migration)
+        // Use pagination to fetch all data (same as billable page)
+        const fetchAllData = async (table: string, selectFields: string, dateField: string, startDate: string, endDate: string | null = null) => {
+          let allData: any[] = []
+          let page = 0
+          const pageSize = 1000
+          let hasMore = true
+          
+          while (hasMore) {
+            let query = supabase
+              .from(table)
+              .select(selectFields)
+              .eq('organization_id', organizationId)
+            
+            if (startDate && endDate) {
+              query = query.gte(dateField, startDate).lte(dateField, endDate)
+            }
+            
+            const { data: pageData, error: pageError } = await query
+              .range(page * pageSize, (page + 1) * pageSize - 1)
+            
+            if (pageError) {
+              throw new Error(`Failed to fetch ${table} data: ${pageError.message}`)
+            }
+            
+            if (pageData && pageData.length > 0) {
+              allData = allData.concat(pageData)
+              page++
+              hasMore = pageData.length === pageSize
+            } else {
+              hasMore = false
+            }
+          }
+          
+          return allData
+        }
+
         const [
           currentRevenueData,
           lastRevenueData,
@@ -96,99 +139,159 @@ export async function GET(request: NextRequest) {
           lastBillableData,
           wipData,
         ] = await Promise.all([
-          supabase
-            .from('invoice_uploads')
-            .select('amount')
-            .eq('organization_id', organizationId)
-            .gte('date', currentYearStart)
-            .lte('date', currentYearEnd),
-          supabase
-            .from('invoice_uploads')
-            .select('amount')
-            .eq('organization_id', organizationId)
-            .gte('date', lastYearStart)
-            .lte('date', lastYearEnd),
-          supabase
-            .from('timesheet_uploads')
-            .select('billable_amount')
-            .eq('organization_id', organizationId)
-            .gte('date', currentYearStart)
-            .lte('date', currentYearEnd),
-          supabase
-            .from('timesheet_uploads')
-            .select('billable_amount')
-            .eq('organization_id', organizationId)
-            .gte('date', lastYearStart)
-            .lte('date', lastYearEnd),
-          supabase
-            .from('wip_timesheet_uploads')
-            .select('billable_amount')
-            .eq('organization_id', organizationId),
+          fetchAllData('invoice_uploads', 'amount', 'date', currentYearStart, currentYearEnd),
+          fetchAllData('invoice_uploads', 'amount', 'date', lastYearStart, lastYearEnd),
+          fetchAllData('timesheet_uploads', 'billable_amount', 'date', currentYearStart, currentYearEnd),
+          fetchAllData('timesheet_uploads', 'billable_amount', 'date', lastYearStart, lastYearEnd),
+          fetchAllData('wip_timesheet_uploads', 'billable_amount', 'date', '', null),
         ])
 
         // Aggregate results in JS
-        currentYearRevenue = (currentRevenueData.data || []).reduce((sum, row) => {
+        currentYearRevenue = (currentRevenueData || []).reduce((sum, row) => {
           const amount = typeof row.amount === 'number' ? row.amount : parseFloat(row.amount || '0') || 0
           return sum + amount
         }, 0)
 
-        lastYearRevenue = (lastRevenueData.data || []).reduce((sum, row) => {
+        lastYearRevenue = (lastRevenueData || []).reduce((sum, row) => {
           const amount = typeof row.amount === 'number' ? row.amount : parseFloat(row.amount || '0') || 0
           return sum + amount
         }, 0)
 
-        currentYearBillableAmount = (currentBillableData.data || []).reduce((sum, row) => {
+        currentYearBillableAmount = (currentBillableData || []).reduce((sum, row) => {
           const amount = typeof row.billable_amount === 'number' ? row.billable_amount : parseFloat(row.billable_amount || '0') || 0
           return sum + amount
         }, 0)
 
-        lastYearBillableAmount = (lastBillableData.data || []).reduce((sum, row) => {
+        lastYearBillableAmount = (lastBillableData || []).reduce((sum, row) => {
           const amount = typeof row.billable_amount === 'number' ? row.billable_amount : parseFloat(row.billable_amount || '0') || 0
           return sum + amount
         }, 0)
 
-        totalWIPAmount = (wipData.data || []).reduce((sum, row) => {
+        totalWIPAmount = (wipData || []).reduce((sum, row) => {
           const amount = typeof row.billable_amount === 'number' ? row.billable_amount : parseFloat(row.billable_amount || '0') || 0
           return sum + amount
         }, 0)
       }
     } else {
       // With filters, fetch filtered data and aggregate in JS
-      const buildBillableQuery = (startDate: string, endDate: string) => {
-        let query = supabase
-          .from('timesheet_uploads')
-          .select('billable_amount')
-          .eq('organization_id', organizationId)
-          .gte('date', startDate)
-          .lte('date', endDate)
+      // Use pagination to fetch all data (same as billable page)
+      const fetchAllBillableData = async (startDate: string, endDate: string) => {
+        let allData: any[] = []
+        let page = 0
+        const pageSize = 1000
+        let hasMore = true
         
-        filters.forEach((filter) => {
-          if (filter.value && filter.value !== 'all') {
-            switch (filter.type) {
-              case 'staff':
-                query = query.eq('staff', filter.value)
-                break
-              case 'client_group':
-                query = query.eq('client_group', filter.value)
-                break
-              case 'account_manager':
-                query = query.eq('account_manager', filter.value)
-                break
-              case 'job_manager':
-                query = query.eq('job_manager', filter.value)
-                break
-              case 'job_name':
-                if (filter.operator === 'not_contains') {
-                  query = query.or(`job_name.not.ilike.%${filter.value}%,job_name.is.null`)
-                } else {
-                  query = query.ilike('job_name', `%${filter.value}%`)
-                }
-                break
+        while (hasMore) {
+          let query = supabase
+            .from('timesheet_uploads')
+            .select('billable_amount')
+            .eq('organization_id', organizationId)
+            .gte('date', startDate)
+            .lte('date', endDate)
+          
+          filters.forEach((filter) => {
+            if (filter.value && filter.value !== 'all') {
+              switch (filter.type) {
+                case 'staff':
+                  query = query.eq('staff', filter.value)
+                  break
+                case 'client_group':
+                  query = query.eq('client_group', filter.value)
+                  break
+                case 'account_manager':
+                  query = query.eq('account_manager', filter.value)
+                  break
+                case 'job_manager':
+                  query = query.eq('job_manager', filter.value)
+                  break
+                case 'job_name':
+                  if (filter.operator === 'not_contains') {
+                    query = query.or(`job_name.not.ilike.%${filter.value}%,job_name.is.null`)
+                  } else {
+                    query = query.ilike('job_name', `%${filter.value}%`)
+                  }
+                  break
+              }
             }
+          })
+          
+          const { data: pageData, error: pageError } = await query
+            .range(page * pageSize, (page + 1) * pageSize - 1)
+          
+          if (pageError) {
+            throw new Error(`Failed to fetch billable data: ${pageError.message}`)
           }
-        })
+          
+          if (pageData && pageData.length > 0) {
+            allData = allData.concat(pageData)
+            page++
+            hasMore = pageData.length === pageSize
+          } else {
+            hasMore = false
+          }
+        }
         
-        return query
+        return allData
+      }
+
+      const fetchAllInvoiceData = async (startDate: string, endDate: string) => {
+        let allData: any[] = []
+        let page = 0
+        const pageSize = 1000
+        let hasMore = true
+        
+        while (hasMore) {
+          const { data: pageData, error: pageError } = await supabase
+            .from('invoice_uploads')
+            .select('amount')
+            .eq('organization_id', organizationId)
+            .gte('date', startDate)
+            .lte('date', endDate)
+            .range(page * pageSize, (page + 1) * pageSize - 1)
+          
+          if (pageError) {
+            throw new Error(`Failed to fetch invoice data: ${pageError.message}`)
+          }
+          
+          if (pageData && pageData.length > 0) {
+            allData = allData.concat(pageData)
+            page++
+            hasMore = pageData.length === pageSize
+          } else {
+            hasMore = false
+          }
+        }
+        
+        return allData
+      }
+
+      const fetchAllWipData = async () => {
+        let allData: any[] = []
+        let page = 0
+        const pageSize = 1000
+        let hasMore = true
+        
+        while (hasMore) {
+          const { data: pageData, error: pageError } = await supabase
+            .from('wip_timesheet_uploads')
+            .select('billable_amount')
+            .eq('organization_id', organizationId)
+            .range(page * pageSize, (page + 1) * pageSize - 1)
+          
+          if (pageError) {
+            throw new Error(`Failed to fetch WIP data: ${pageError.message}`)
+          }
+          
+          if (pageData && pageData.length > 0) {
+            allData = allData.concat(pageData)
+            page++
+            hasMore = pageData.length === pageSize
+          } else {
+            hasMore = false
+          }
+        }
+        
+        return allData
       }
 
       const [
@@ -198,48 +301,35 @@ export async function GET(request: NextRequest) {
         lastBillableData,
         wipData,
       ] = await Promise.all([
-        supabase
-          .from('invoice_uploads')
-          .select('amount')
-          .eq('organization_id', organizationId)
-          .gte('date', currentYearStart)
-          .lte('date', currentYearEnd),
-        supabase
-          .from('invoice_uploads')
-          .select('amount')
-          .eq('organization_id', organizationId)
-          .gte('date', lastYearStart)
-          .lte('date', lastYearEnd),
-        buildBillableQuery(currentYearStart, currentYearEnd),
-        buildBillableQuery(lastYearStart, lastYearEnd),
-        supabase
-          .from('wip_timesheet_uploads')
-          .select('billable_amount')
-          .eq('organization_id', organizationId),
+        fetchAllInvoiceData(currentYearStart, currentYearEnd),
+        fetchAllInvoiceData(lastYearStart, lastYearEnd),
+        fetchAllBillableData(currentYearStart, currentYearEnd),
+        fetchAllBillableData(lastYearStart, lastYearEnd),
+        fetchAllWipData(),
       ])
 
       // Aggregate results in JS
-      currentYearRevenue = (currentRevenueData.data || []).reduce((sum, row) => {
+      currentYearRevenue = (currentRevenueData || []).reduce((sum, row) => {
         const amount = typeof row.amount === 'number' ? row.amount : parseFloat(row.amount || '0') || 0
         return sum + amount
       }, 0)
 
-      lastYearRevenue = (lastRevenueData.data || []).reduce((sum, row) => {
+      lastYearRevenue = (lastRevenueData || []).reduce((sum, row) => {
         const amount = typeof row.amount === 'number' ? row.amount : parseFloat(row.amount || '0') || 0
         return sum + amount
       }, 0)
 
-      currentYearBillableAmount = (currentBillableData.data || []).reduce((sum, row) => {
+      currentYearBillableAmount = (currentBillableData || []).reduce((sum, row) => {
         const amount = typeof row.billable_amount === 'number' ? row.billable_amount : parseFloat(row.billable_amount || '0') || 0
         return sum + amount
       }, 0)
 
-      lastYearBillableAmount = (lastBillableData.data || []).reduce((sum, row) => {
+      lastYearBillableAmount = (lastBillableData || []).reduce((sum, row) => {
         const amount = typeof row.billable_amount === 'number' ? row.billable_amount : parseFloat(row.billable_amount || '0') || 0
         return sum + amount
       }, 0)
 
-      totalWIPAmount = (wipData.data || []).reduce((sum, row) => {
+      totalWIPAmount = (wipData || []).reduce((sum, row) => {
         const amount = typeof row.billable_amount === 'number' ? row.billable_amount : parseFloat(row.billable_amount || '0') || 0
         return sum + amount
       }, 0)

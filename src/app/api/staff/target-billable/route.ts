@@ -53,15 +53,33 @@ export async function GET(request: NextRequest) {
     // Convert to sorted array
     const staffNames = Array.from(uniqueStaffNames).sort()
 
-    // Get staff settings from staff_settings table
-    const { data: settingsData, error: settingsError } = await supabase
-      .from('staff_settings')
-      .select('staff_name, target_billable_percentage, fte, default_daily_hours, is_hidden, job_title, team, email, report, start_date, end_date')
-      .eq('organization_id', org.id)
-
-    if (settingsError) {
-      throw new Error(`Failed to fetch staff settings: ${settingsError.message}`)
+    // Get staff settings from staff_settings table (with pagination)
+    let allSettings: any[] = []
+    let page = 0
+    const pageSize = 1000
+    let hasMore = true
+    
+    while (hasMore) {
+      const { data: pageData, error: pageError } = await supabase
+        .from('staff_settings')
+        .select('staff_name, target_billable_percentage, fte, default_daily_hours, is_hidden, job_title, team, email, report, start_date, end_date')
+        .eq('organization_id', org.id)
+        .range(page * pageSize, (page + 1) * pageSize - 1)
+      
+      if (pageError) {
+        throw new Error(`Failed to fetch staff settings: ${pageError.message}`)
+      }
+      
+      if (pageData && pageData.length > 0) {
+        allSettings = allSettings.concat(pageData)
+        page++
+        hasMore = pageData.length === pageSize
+      } else {
+        hasMore = false
+      }
     }
+    
+    const settingsData = allSettings
 
     // Create a map of staff_name -> staff settings
     const settingsMap = new Map<string, {
@@ -157,17 +175,35 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, updated: 0 })
       }
 
-      // Get all existing staff settings in one query
+      // Get all existing staff settings in one query (with pagination)
       const staffNames = staffUpdates.map(s => s.staff_name).filter(Boolean)
-      const { data: existingSettings, error: fetchError } = await supabase
-        .from('staff_settings')
-        .select('id, staff_name, target_billable_percentage, fte, default_daily_hours, job_title, team, email, report, start_date, end_date')
-        .eq('organization_id', org.id)
-        .in('staff_name', staffNames)
-
-      if (fetchError) {
-        throw new Error(`Failed to fetch existing settings: ${fetchError.message}`)
+      let allExistingSettings: any[] = []
+      let page = 0
+      const pageSize = 1000
+      let hasMore = true
+      
+      while (hasMore) {
+        const { data: pageData, error: pageError } = await supabase
+          .from('staff_settings')
+          .select('id, staff_name, target_billable_percentage, fte, default_daily_hours, job_title, team, email, report, start_date, end_date')
+          .eq('organization_id', org.id)
+          .in('staff_name', staffNames)
+          .range(page * pageSize, (page + 1) * pageSize - 1)
+        
+        if (pageError) {
+          throw new Error(`Failed to fetch existing settings: ${pageError.message}`)
+        }
+        
+        if (pageData && pageData.length > 0) {
+          allExistingSettings = allExistingSettings.concat(pageData)
+          page++
+          hasMore = pageData.length === pageSize
+        } else {
+          hasMore = false
+        }
       }
+      
+      const existingSettings = allExistingSettings
 
       // Create a map of existing settings
       const existingMap = new Map<string, any>()
