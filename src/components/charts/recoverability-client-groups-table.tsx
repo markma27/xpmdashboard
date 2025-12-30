@@ -144,7 +144,56 @@ export function RecoverabilityClientGroupsTable({
   }
 
   const calculateChange = (current: number, last: number) => {
-    if (last === 0) return current > 0 ? 100 : 0
+    // Handle edge cases
+    if (last === 0) {
+      // If this year is 0 and last year is 0, no change
+      if (current === 0) return 0
+      // If this year is 0 and last year is negative, it's a positive 100% change (improvement)
+      if (current === 0 && last < 0) return 100
+      // If this year is positive and last year is 0, it's a positive change
+      if (current > 0) return 100
+      // If this year is negative and last year is 0, it's a negative change
+      return -100
+    }
+    
+    if (current === 0) {
+      // If this year is 0 and last year is negative, it's a positive 100% change (improvement)
+      if (last < 0) return 100
+      // If this year is 0 and last year is positive, it's a negative 100% change
+      return -100
+    }
+    
+    // Both values are negative
+    if (current < 0 && last < 0) {
+      // If current is more negative (worse), it's a negative change
+      // If current is less negative (better), it's a positive change
+      // Use absolute values to compare magnitude
+      const absCurrent = Math.abs(current)
+      const absLast = Math.abs(last)
+      if (absCurrent > absLast) {
+        // More negative = worse = negative change
+        return -((absCurrent - absLast) / absLast) * 100
+      } else {
+        // Less negative = better = positive change
+        return ((absLast - absCurrent) / absLast) * 100
+      }
+    }
+    
+    // Current is positive, last is negative
+    if (current > 0 && last < 0) {
+      // This is always a positive change (improvement)
+      const absLast = Math.abs(last)
+      return ((current + absLast) / absLast) * 100
+    }
+    
+    // Current is negative, last is positive
+    if (current < 0 && last > 0) {
+      // This is always a negative change (worsening)
+      const absCurrent = Math.abs(current)
+      return -((absCurrent + last) / last) * 100
+    }
+    
+    // Both positive: standard calculation
     return ((current - last) / last) * 100
   }
 
