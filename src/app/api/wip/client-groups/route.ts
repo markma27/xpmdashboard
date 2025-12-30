@@ -72,9 +72,9 @@ export async function GET(request: NextRequest) {
       jobManagers: Map<string, number>
     }>()
 
-    // Get today's date for age calculation
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    // Get today's date for age calculation (use UTC to be consistent with stored dates)
+    const now = new Date()
+    const todayUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
 
     // Process data
     allData.forEach((record) => {
@@ -114,30 +114,32 @@ export async function GET(request: NextRequest) {
       
       if (record.date) {
         try {
-          let recordDate: Date | null = null
+          let recordDateUTC: number | null = null
           
           // Handle date - could be string (YYYY-MM-DD) or Date object
           if (typeof record.date === 'string') {
-            // Parse string date (YYYY-MM-DD format from Supabase)
+            // Parse string date (YYYY-MM-DD format from Supabase) as UTC
             const dateParts = record.date.split('-')
             if (dateParts.length === 3) {
               const year = parseInt(dateParts[0], 10)
               const month = parseInt(dateParts[1], 10) - 1 // Month is 0-indexed
               const day = parseInt(dateParts[2], 10)
               if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-                recordDate = new Date(year, month, day)
+                recordDateUTC = Date.UTC(year, month, day)
               }
             } else {
-              recordDate = new Date(record.date)
+              const d = new Date(record.date)
+              if (!isNaN(d.getTime())) {
+                recordDateUTC = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+              }
             }
           } else if (record.date instanceof Date) {
-            recordDate = new Date(record.date)
+            recordDateUTC = Date.UTC(record.date.getUTCFullYear(), record.date.getUTCMonth(), record.date.getUTCDate())
           }
           
           // Calculate days difference if we have a valid date
-          if (recordDate && !isNaN(recordDate.getTime())) {
-            recordDate.setHours(0, 0, 0, 0)
-            daysDiff = Math.floor((today.getTime() - recordDate.getTime()) / (1000 * 60 * 60 * 24))
+          if (recordDateUTC !== null) {
+            daysDiff = Math.floor((todayUTC - recordDateUTC) / (1000 * 60 * 60 * 24))
             dateProcessed = true
           }
         } catch (e) {

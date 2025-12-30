@@ -60,9 +60,9 @@ export async function GET(request: NextRequest) {
       days120Plus: 0,
     }
 
-    // Get today's date for age calculation
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    // Get today's date for age calculation (use UTC to be consistent with stored dates)
+    const now = new Date()
+    const todayUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
 
     // Process data and calculate aging
     allData.forEach((record) => {
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
 
       if (record.date) {
         try {
-          let recordDate: Date | null = null
+          let recordDateUTC: number | null = null
           
           if (typeof record.date === 'string') {
             const dateParts = record.date.split('-')
@@ -84,18 +84,20 @@ export async function GET(request: NextRequest) {
               const month = parseInt(dateParts[1], 10) - 1
               const day = parseInt(dateParts[2], 10)
               if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-                recordDate = new Date(year, month, day)
+                recordDateUTC = Date.UTC(year, month, day)
               }
             } else {
-              recordDate = new Date(record.date)
+              const d = new Date(record.date)
+              if (!isNaN(d.getTime())) {
+                recordDateUTC = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+              }
             }
           } else if (record.date instanceof Date) {
-            recordDate = new Date(record.date)
+            recordDateUTC = Date.UTC(record.date.getUTCFullYear(), record.date.getUTCMonth(), record.date.getUTCDate())
           }
           
-          if (recordDate && !isNaN(recordDate.getTime())) {
-            recordDate.setHours(0, 0, 0, 0)
-            const daysDiff = Math.floor((today.getTime() - recordDate.getTime()) / (1000 * 60 * 60 * 24))
+          if (recordDateUTC !== null) {
+            const daysDiff = Math.floor((todayUTC - recordDateUTC) / (1000 * 60 * 60 * 24))
             
             if (daysDiff < 0) {
               aging.lessThan30 += amount
