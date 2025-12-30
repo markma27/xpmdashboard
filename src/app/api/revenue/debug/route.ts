@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
         .ilike('client_group', `%${clientGroup}%`)
         .order('date', { ascending: true })
     )
-    const allError: Error | null = null
+    const allError: Error | null = null as Error | null
 
     // Query 2: Get records in last year date range
     const dateRangeRecords = await fetchAllData(
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
         .lte('date', lastYearEnd)
         .order('date', { ascending: true })
     )
-    const dateError: Error | null = null
+    const dateError: Error | null = null as Error | null
 
     // Query 3: Get records matching both client group AND date range
     const combinedRecords = await fetchAllData(
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
         .lte('date', lastYearEnd)
         .order('date', { ascending: true })
     )
-    const combinedError: Error | null = null
+    const combinedError: Error | null = null as Error | null
 
     // Query 4: Get exact client group match
     const exactMatch = await fetchAllData(
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
         .lte('date', lastYearEnd)
         .order('date', { ascending: true })
     )
-    const exactError: Error | null = null
+    const exactError: Error | null = null as Error | null
 
     // Calculate totals
     const calculateTotal = (records: any[]) => {
@@ -110,25 +110,25 @@ export async function GET(request: NextRequest) {
         allRecords: {
           count: allRecords?.length || 0,
           total: calculateTotal(allRecords || []),
-          error: allError?.message,
+          error: allError ? allError.message : undefined,
           sample: allRecords?.slice(0, 5),
         },
         dateRangeRecords: {
           count: dateRangeRecords?.length || 0,
           total: calculateTotal(dateRangeRecords || []),
-          error: dateError?.message,
+          error: dateError ? dateError.message : undefined,
           sample: dateRangeRecords?.slice(0, 5),
         },
         combinedRecords: {
           count: combinedRecords?.length || 0,
           total: calculateTotal(combinedRecords || []),
-          error: combinedError?.message,
+          error: combinedError ? combinedError.message : undefined,
           sample: combinedRecords?.slice(0, 10),
         },
         exactMatch: {
           count: exactMatch?.length || 0,
           total: calculateTotal(exactMatch || []),
-          error: exactError?.message,
+          error: exactError ? exactError.message : undefined,
           sample: exactMatch?.slice(0, 10),
         },
       },

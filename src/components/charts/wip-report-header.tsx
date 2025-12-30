@@ -30,7 +30,7 @@ export function WIPReportHeader() {
   return (
     <div className="flex items-center justify-between">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Work In Progress Report</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Work In Progress</h1>
         {formattedDate && (
           <p className="text-xs text-red-800 mt-1">
             Last updated: {formattedDate}

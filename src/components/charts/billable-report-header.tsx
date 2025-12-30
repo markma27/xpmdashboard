@@ -38,7 +38,7 @@ export function BillableReportHeader() {
   return (
     <div className="flex items-center justify-between">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Billable Report</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Billable</h1>
         {formattedDate && (
           <p className="text-xs text-red-800 mt-1">
             Last updated: {formattedDate}
