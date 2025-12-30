@@ -33,7 +33,6 @@ export function ProductivityClientGroupsTable({
   selectedMonth,
   asOfDate
 }: ProductivityClientGroupsTableProps) {
-  const { lastUpdated } = useProductivityReport()
   const [data, setData] = useState<ClientGroupData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -55,7 +54,54 @@ export function ProductivityClientGroupsTable({
     return `${day} ${month} ${year}`
   }
 
-  const formattedLastUpdated = formatDateForHeader(lastUpdated)
+  // Format month label for column header when a specific month is selected
+  const formatMonthLabel = (monthString: string | null | undefined): { currentYear: string; lastYear: string } | null => {
+    if (!monthString) return null
+    
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const fullMonthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+    
+    // Find the month index (0-11)
+    const monthIndex = fullMonthNames.findIndex(m => m.toLowerCase() === monthString.toLowerCase())
+    if (monthIndex === -1) return null
+    
+    // Determine the year based on financial year logic and lastUpdated date
+    // Financial year runs July to June
+    const now = new Date()
+    const currentCalendarYear = now.getFullYear()
+    const currentMonth = now.getMonth() // 0-11
+    
+    // Determine current financial year start year
+    let currentFYStartYear: number
+    if (currentMonth >= 6) {
+      // July-December: FY starts this year
+      currentFYStartYear = currentCalendarYear
+    } else {
+      // January-June: FY started last year
+      currentFYStartYear = currentCalendarYear - 1
+    }
+    
+    // For the selected month, determine which financial year it belongs to
+    // Months July-Dec belong to FY starting in the same calendar year
+    // Months Jan-Jun belong to FY starting in the previous calendar year
+    let selectedMonthYear: number
+    if (monthIndex >= 6) {
+      // July-December: belongs to FY starting in the same calendar year
+      selectedMonthYear = currentFYStartYear
+    } else {
+      // January-June: belongs to FY starting in the previous calendar year
+      selectedMonthYear = currentFYStartYear + 1
+    }
+    
+    const currentYearLabel = `${monthNames[monthIndex]} ${selectedMonthYear}`
+    const lastYearLabel = `${monthNames[monthIndex]} ${selectedMonthYear - 1}`
+    
+    return { currentYear: currentYearLabel, lastYear: lastYearLabel }
+  }
+
+  // Use asOfDate (from Date field) instead of lastUpdated for the date note
+  const formattedAsOfDate = formatDateForHeader(asOfDate || null)
+  const monthLabel = formatMonthLabel(selectedMonth)
 
   // Fetch client group data
   useEffect(() => {
@@ -316,13 +362,13 @@ export function ProductivityClientGroupsTable({
                   colSpan={3}
                   className="text-center p-2 font-bold text-slate-700 bg-slate-100/50 uppercase tracking-wider text-[10px] border-r"
                 >
-                  Current Year{formattedLastUpdated && <span className="font-normal text-slate-500 text-[9px] normal-case ml-1">(YTD to {formattedLastUpdated})</span>}
+                  Current Year{monthLabel ? <span className="font-normal text-slate-500 text-[9px] normal-case ml-1">({monthLabel.currentYear})</span> : formattedAsOfDate && <span className="font-normal text-slate-500 text-[9px] normal-case ml-1">(YTD to {formattedAsOfDate})</span>}
                 </th>
                 <th 
                   colSpan={3}
                   className="text-center p-2 font-bold text-slate-700 bg-slate-100/50 uppercase tracking-wider text-[10px] border-r"
                 >
-                  Last Year<span className="font-normal text-slate-500 text-[9px] normal-case ml-1">(Full Year)</span>
+                  Last Year{monthLabel ? <span className="font-normal text-slate-500 text-[9px] normal-case ml-1">({monthLabel.lastYear})</span> : <span className="font-normal text-slate-500 text-[9px] normal-case ml-1">(Full Year)</span>}
                 </th>
                 <th 
                   rowSpan={2}

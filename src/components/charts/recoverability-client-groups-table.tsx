@@ -49,7 +49,53 @@ export function RecoverabilityClientGroupsTable({
     return `${day} ${month} ${year}`
   }
 
+  // Format month label for column header when a specific month is selected
+  const formatMonthLabel = (monthString: string | null | undefined): { currentYear: string; lastYear: string } | null => {
+    if (!monthString) return null
+    
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const fullMonthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+    
+    // Find the month index (0-11)
+    const monthIndex = fullMonthNames.findIndex(m => m.toLowerCase() === monthString.toLowerCase())
+    if (monthIndex === -1) return null
+    
+    // Determine the year based on financial year logic and lastUpdated date
+    // Financial year runs July to June
+    const now = new Date()
+    const currentCalendarYear = now.getFullYear()
+    const currentMonth = now.getMonth() // 0-11
+    
+    // Determine current financial year start year
+    let currentFYStartYear: number
+    if (currentMonth >= 6) {
+      // July-December: FY starts this year
+      currentFYStartYear = currentCalendarYear
+    } else {
+      // January-June: FY started last year
+      currentFYStartYear = currentCalendarYear - 1
+    }
+    
+    // For the selected month, determine which financial year it belongs to
+    // Months July-Dec belong to FY starting in the same calendar year
+    // Months Jan-Jun belong to FY starting in the previous calendar year
+    let selectedMonthYear: number
+    if (monthIndex >= 6) {
+      // July-December: belongs to FY starting in the same calendar year
+      selectedMonthYear = currentFYStartYear
+    } else {
+      // January-June: belongs to FY starting in the previous calendar year
+      selectedMonthYear = currentFYStartYear + 1
+    }
+    
+    const currentYearLabel = `${monthNames[monthIndex]} ${selectedMonthYear}`
+    const lastYearLabel = `${monthNames[monthIndex]} ${selectedMonthYear - 1}`
+    
+    return { currentYear: currentYearLabel, lastYear: lastYearLabel }
+  }
+
   const formattedLastUpdated = formatDateForHeader(lastUpdated)
+  const monthLabel = formatMonthLabel(selectedMonth)
 
   useEffect(() => {
     async function fetchData() {
@@ -230,16 +276,16 @@ export function RecoverabilityClientGroupsTable({
                   Client Manager<SortIcon column="clientManager" />
                 </th>
                 <th 
-                  className="text-right p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
+                  className="text-right p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30 max-w-[140px]"
                   onClick={() => handleSort('currentYear')}
                 >
-                  Current Year{formattedLastUpdated && <span className="font-normal text-slate-500 text-[9px]"> (YTD to {formattedLastUpdated})</span>}<SortIcon column="currentYear" />
+                  Current Year{monthLabel ? <span className="font-normal text-slate-500 text-[9px]"> ({monthLabel.currentYear})</span> : formattedLastUpdated && <span className="font-normal text-slate-500 text-[9px]"> (YTD to {formattedLastUpdated})</span>}<SortIcon column="currentYear" />
                 </th>
                 <th 
                   className="text-right p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
                   onClick={() => handleSort('lastYear')}
                 >
-                  Last Year<span className="font-normal text-slate-500 text-[9px]"> (Full Year)</span><SortIcon column="lastYear" />
+                  Last Year{monthLabel ? <span className="font-normal text-slate-500 text-[9px]"> ({monthLabel.lastYear})</span> : <span className="font-normal text-slate-500 text-[9px]"> (Full Year)</span>}<SortIcon column="lastYear" />
                 </th>
                 <th 
                   className="text-right p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
@@ -259,7 +305,7 @@ export function RecoverabilityClientGroupsTable({
                     <td className="p-2 border-r">{item.clientGroup}</td>
                     <td className="p-2 border-r">{item.partner || '-'}</td>
                     <td className="p-2 border-r">{item.clientManager || '-'}</td>
-                    <td className={`p-2 text-right font-medium border-r ${item.currentYear < 0 ? 'text-red-600' : ''}`}>
+                    <td className={`p-2 text-right font-medium border-r max-w-[140px] ${item.currentYear < 0 ? 'text-red-600' : ''}`}>
                       {formatCurrency(item.currentYear)}
                     </td>
                     <td className="p-2 text-right text-slate-500 border-r">
@@ -275,7 +321,7 @@ export function RecoverabilityClientGroupsTable({
                 <td className="p-2 border-r rounded-bl-lg">Total</td>
                 <td className="p-2 border-r"></td>
                 <td className="p-2 border-r"></td>
-                <td className={`p-2 text-right border-r ${totalCurrentYear < 0 ? 'text-red-600' : ''}`}>
+                <td className={`p-2 text-right border-r max-w-[140px] ${totalCurrentYear < 0 ? 'text-red-600' : ''}`}>
                   {formatCurrency(totalCurrentYear)}
                 </td>
                 <td className="p-2 text-right border-r">

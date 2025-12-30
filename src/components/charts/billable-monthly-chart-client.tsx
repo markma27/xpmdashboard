@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { BillableMonthlyChart } from './billable-monthly-chart'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartSkeleton } from './chart-skeleton'
 import { BillableFilter } from './billable-filters'
+import { useBillableReport } from './billable-report-context'
 
 interface MonthlyBillableData {
   month: string
@@ -25,9 +26,12 @@ export function BillableMonthlyChartClient({
   onMonthClick,
   filters = []
 }: BillableMonthlyChartClientProps) {
+  const { filtersLoaded } = useBillableReport()
   const [data, setData] = useState<MonthlyBillableData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // Track the last successfully fetched filters to prevent duplicate fetches
+  const lastFetchedFiltersRef = useRef<string | undefined>(undefined)
 
   // Memoize filters string to prevent unnecessary re-fetches when filters array reference changes
   const filtersString = useMemo(() => {
@@ -45,6 +49,20 @@ export function BillableMonthlyChartClient({
   }, [filters])
 
   useEffect(() => {
+    // Don't fetch until filters are loaded
+    if (!filtersLoaded) {
+      return
+    }
+
+    // Skip if we've already fetched with these exact filters
+    if (lastFetchedFiltersRef.current === filtersString) {
+      return
+    }
+
+    // Create abort controller for this fetch
+    const abortController = new AbortController()
+    let isCancelled = false
+    
     async function fetchData() {
       try {
         setLoading(true)
@@ -62,6 +80,7 @@ export function BillableMonthlyChartClient({
           headers: {
             'Cache-Control': 'no-cache',
           },
+          signal: abortController.signal,
         })
         
         if (!response.ok) {
@@ -69,16 +88,34 @@ export function BillableMonthlyChartClient({
         }
         
         const result = await response.json()
-        setData(result)
+        
+        // Only update state if not cancelled
+        if (!isCancelled) {
+          setData(result)
+          setLoading(false)
+          // Mark this filter combination as successfully fetched
+          lastFetchedFiltersRef.current = filtersString
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred')
-      } finally {
-        setLoading(false)
+        // Ignore abort errors
+        if (err instanceof Error && err.name === 'AbortError') {
+          return
+        }
+        if (!isCancelled) {
+          setError(err instanceof Error ? err.message : 'An error occurred')
+          setLoading(false)
+        }
       }
     }
 
     fetchData()
-  }, [organizationId, filtersString])
+    
+    // Cleanup: abort any in-flight request when effect re-runs or unmounts
+    return () => {
+      isCancelled = true
+      abortController.abort()
+    }
+  }, [organizationId, filtersString, filtersLoaded])
 
   if (loading) {
     return <ChartSkeleton />

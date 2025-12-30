@@ -17,6 +17,7 @@ interface BillableReportContextValue {
   savingFilters: boolean
   setSavingFilters: (saving: boolean) => void
   isInitializing: boolean
+  filtersLoaded: boolean
   handleSaveFilters: () => Promise<void>
   organizationId: string
 }
@@ -139,7 +140,9 @@ export function BillableReportProvider({
     fetchData()
   }, [organizationId])
 
-  // Mark as initialized after filters are loaded and appliedFilters is set
+  // Mark as initialized after filters are loaded
+  // Note: appliedFilters is intentionally NOT in the dependency array
+  // because it's already set before filtersLoaded becomes true
   useEffect(() => {
     if (filtersLoaded) {
       // Use a small delay to ensure state updates are flushed
@@ -148,7 +151,7 @@ export function BillableReportProvider({
       }, 0)
       return () => clearTimeout(timer)
     }
-  }, [filtersLoaded, appliedFilters])
+  }, [filtersLoaded])
 
   const handleSaveFilters = async () => {
     try {
@@ -192,6 +195,7 @@ export function BillableReportProvider({
       savingFilters,
       setSavingFilters,
       isInitializing,
+      filtersLoaded,
       handleSaveFilters,
       organizationId,
     }}>

@@ -60,14 +60,14 @@ const navigation: NavSection[] = [
         icon: BarChart3,
       },
       {
-        name: 'Work In Progress',
-        href: '/reports/workinprogress',
-        icon: Briefcase,
-      },
-      {
         name: 'Productivity',
         href: '/reports/productivity',
         icon: TrendingUp,
+      },
+      {
+        name: 'Work In Progress',
+        href: '/reports/workinprogress',
+        icon: Briefcase,
       },
     ],
   },
@@ -144,7 +144,10 @@ export function Sidebar() {
         {navigation.map((section, sectionIdx) => (
           <div key={section.title || sectionIdx} className="space-y-1">
             {section.title && (
-              <div className="px-3 text-[9px] font-bold tracking-wider text-slate-500 uppercase">
+              <div className={cn(
+                "px-3 text-[9px] font-bold tracking-wider text-slate-500 uppercase",
+                (section.title === 'SETTINGS' || section.title === 'REPORTS' || section.title === 'UPLOAD') && "mb-3"
+              )}>
                 {section.title}
               </div>
             )}

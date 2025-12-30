@@ -38,7 +38,7 @@ export function ProductivityReportHeader() {
   return (
     <div className="flex items-center justify-between">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Productivity Analytics</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Productivity</h1>
         {formattedDate && (
           <p className="text-xs text-red-800 mt-1">
             Last updated: {formattedDate}
