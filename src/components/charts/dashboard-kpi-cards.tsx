@@ -96,20 +96,23 @@ function KPICard({
         </div>
 
         <div className="px-4 pb-4">
-          <div className="border-t border-slate-100 pt-3 flex items-center">
-            {/* Last Year Text */}
-            <div className="text-sm font-medium text-slate-500 flex items-center flex-1">
-              <span>Last Year{lastYearDate && <span className="text-[10px] text-slate-400"> (YTD to {lastYearDate})</span>}</span>
+          <div className="border-t border-slate-100 pt-3 flex flex-col md:flex-row md:items-center gap-1 md:gap-0">
+            {/* Last Year Text - Stack date below on tablet */}
+            <div className="text-sm font-medium text-slate-500 flex flex-col md:flex-row md:items-center flex-1">
+              <span className="whitespace-nowrap">Last Year</span>
+              {lastYearDate && (
+                <span className="text-[9px] md:text-[10px] text-slate-400 md:ml-1 whitespace-nowrap">(YTD to {lastYearDate})</span>
+              )}
             </div>
 
             {/* Last Year Value */}
-            <div className="flex items-center justify-center border-l border-slate-100 pl-4 pr-4 min-w-[120px] self-stretch">
+            <div className="flex items-center justify-start md:justify-center md:border-l md:border-slate-100 md:pl-4 md:pr-4 md:min-w-[120px] md:self-stretch">
               <span className="text-sm font-medium text-slate-500">{lastYearValue}</span>
             </div>
 
             {/* Percentage Change */}
             {percentageChange !== null && (
-              <div className="flex items-center justify-center gap-1.5 border-l border-slate-100 pl-4 self-stretch">
+              <div className="flex items-center justify-start md:justify-center gap-1.5 md:border-l md:border-slate-100 md:pl-4 md:self-stretch">
                 {isPositiveChange ? (
                   <ArrowUp className="h-4 w-4 text-emerald-500 fill-emerald-500" />
                 ) : (

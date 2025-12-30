@@ -53,7 +53,7 @@ export function DashboardBillableByPartnerChart({ data, loading }: DashboardBill
         <div className="text-sm font-medium flex items-center gap-2">
           <div 
             className="w-3 h-3 rounded-sm" 
-            style={{ backgroundColor: currentYearPayload?.color || '#fca5a5' }}
+            style={{ backgroundColor: currentYearPayload?.color || '#75CBA8' }}
           />
           <span>
             Current Year: {formatCurrency(currentYearValue)}
@@ -97,7 +97,7 @@ export function DashboardBillableByPartnerChart({ data, loading }: DashboardBill
             />
             <Bar 
               dataKey="Current Year" 
-              fill="#fca5a5" 
+              fill="#75CBA8" 
               name="Current Year"
               radius={[3, 3, 0, 0]}
               barSize={50}

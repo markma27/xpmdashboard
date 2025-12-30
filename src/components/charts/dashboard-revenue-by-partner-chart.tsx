@@ -53,7 +53,7 @@ export function DashboardRevenueByPartnerChart({ data, loading }: DashboardReven
         <div className="text-sm font-medium flex items-center gap-2">
           <div 
             className="w-3 h-3 rounded-sm" 
-            style={{ backgroundColor: currentYearPayload?.color || '#75CBA8' }}
+            style={{ backgroundColor: currentYearPayload?.color || '#fca5a5' }}
           />
           <span>
             Current Year: {formatCurrency(currentYearValue)}
@@ -97,7 +97,7 @@ export function DashboardRevenueByPartnerChart({ data, loading }: DashboardReven
             />
             <Bar 
               dataKey="Current Year" 
-              fill="#75CBA8" 
+              fill="#fca5a5" 
               name="Current Year"
               radius={[3, 3, 0, 0]}
               barSize={50}
