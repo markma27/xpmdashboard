@@ -74,7 +74,8 @@ export async function GET(request: NextRequest) {
       while (hasMore) {
         let query = supabase
           .from('timesheet_uploads')
-          .select('date, billable_amount, client_group, account_manager, job_manager, job_name, staff')
+          // NOTE: include `id` so we can apply deterministic ordering for stable pagination
+          .select('id, date, billable_amount, client_group, account_manager, job_manager, job_name, staff')
           .eq('organization_id', organizationId)
           .gte('date', startDate)
           .lte('date', endDate)
@@ -117,6 +118,11 @@ export async function GET(request: NextRequest) {
         })
         
         const { data: pageData, error: pageError } = await query
+          // Deterministic ordering is critical when paginating with range()
+          // Otherwise PostgREST may return rows in an unspecified order, causing
+          // missing/duplicate rows across pages and non-deterministic totals.
+          .order('date', { ascending: true })
+          .order('id', { ascending: true })
           .range(page * pageSize, (page + 1) * pageSize - 1)
         
         if (pageError) {
