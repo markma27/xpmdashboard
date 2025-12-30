@@ -54,6 +54,19 @@ export function DashboardStaffPerformanceTable({ organizationId, asOfDate }: Das
   const [sortColumn, setSortColumn] = useState<SortColumn>('currentYearBillableAmount')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
 
+  // Format date as DD MMM YYYY for column header
+  const formatDateForHeader = (dateString: string | undefined) => {
+    if (!dateString) return null
+    const date = new Date(dateString + 'T00:00:00') // Add time to avoid timezone issues
+    const day = date.getDate().toString().padStart(2, '0')
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const month = monthNames[date.getMonth()]
+    const year = date.getFullYear()
+    return `${day} ${month} ${year}`
+  }
+
+  const formattedAsOfDate = formatDateForHeader(asOfDate)
+
   useEffect(() => {
     async function fetchData() {
       try {
@@ -259,7 +272,7 @@ export function DashboardStaffPerformanceTable({ organizationId, asOfDate }: Das
               <tr className="border-b bg-slate-50/50">
                 {/* Current Year Columns - spans all columns including Staff */}
                 <th colSpan={11} className="text-center py-2 px-2 font-bold text-slate-700 bg-slate-100/50 uppercase tracking-wider text-[10px]">
-                  Current Year Performance Metrics
+                  Current Year Performance Metrics{formattedAsOfDate && <span className="font-normal text-slate-500 text-[9px] normal-case ml-1">(YTD up to {formattedAsOfDate})</span>}
                 </th>
               </tr>
               <tr className="border-b bg-slate-50/30">

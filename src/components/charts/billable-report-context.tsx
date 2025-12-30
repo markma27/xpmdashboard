@@ -55,6 +55,7 @@ export function BillableReportProvider({
           }
         )
         
+        // Set filters first, then mark as initialized
         if (savedFiltersResponse.ok) {
           const savedFiltersResult = await savedFiltersResponse.json()
           if (savedFiltersResult.filters && savedFiltersResult.filters.length > 0) {
@@ -63,6 +64,7 @@ export function BillableReportProvider({
           }
         }
         
+        // Mark as initialized after filters are set
         setIsInitializing(false)
         
         // Then fetch other data in parallel

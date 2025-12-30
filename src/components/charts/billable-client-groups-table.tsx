@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { TableSkeleton } from './chart-skeleton'
 import { BillableFilter } from './billable-filters'
+import { useBillableReport } from './billable-report-context'
 
 interface ClientGroupData {
   clientGroup: string
@@ -27,11 +28,25 @@ export function BillableClientGroupsTable({
   selectedMonth,
   filters = []
 }: BillableClientGroupsTableProps) {
+  const { lastUpdated } = useBillableReport()
   const [data, setData] = useState<ClientGroupData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [sortColumn, setSortColumn] = useState<SortColumn>('currentYear')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+
+  // Format date as DD MMM YYYY for column header
+  const formatDateForHeader = (dateString: string | null) => {
+    if (!dateString) return null
+    const date = new Date(dateString)
+    const day = date.getDate().toString().padStart(2, '0')
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const month = monthNames[date.getMonth()]
+    const year = date.getFullYear()
+    return `${day} ${month} ${year}`
+  }
+
+  const formattedLastUpdated = formatDateForHeader(lastUpdated)
 
   // Fetch client group data
   useEffect(() => {
@@ -232,13 +247,13 @@ export function BillableClientGroupsTable({
                   className="text-right p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
                   onClick={() => handleSort('currentYear')}
                 >
-                  Current Year<SortIcon column="currentYear" />
+                  Current Year{formattedLastUpdated && <span className="font-normal text-slate-500 text-[9px]"> (YTD to {formattedLastUpdated})</span>}<SortIcon column="currentYear" />
                 </th>
                 <th 
                   className="text-right p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
                   onClick={() => handleSort('lastYear')}
                 >
-                  Last Year<SortIcon column="lastYear" />
+                  Last Year<span className="font-normal text-slate-500 text-[9px]"> (Full Year)</span><SortIcon column="lastYear" />
                 </th>
                 <th 
                   className="text-right p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"

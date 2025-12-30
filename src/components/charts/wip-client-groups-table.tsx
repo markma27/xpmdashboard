@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { TableSkeleton } from './chart-skeleton'
+import { useWIPReport } from './wip-report-context'
 
 interface ClientGroupData {
   clientGroup: string
@@ -32,11 +33,25 @@ export function WIPClientGroupsTable({
   selectedPartner: externalSelectedPartner,
   selectedClientManager: externalSelectedClientManager
 }: WIPClientGroupsTableProps) {
+  const { lastUpdated } = useWIPReport()
   const [data, setData] = useState<ClientGroupData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [sortColumn, setSortColumn] = useState<SortColumn>('amount')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+
+  // Format date as DD MMM YYYY for column header
+  const formatDateForHeader = (dateString: string | null) => {
+    if (!dateString) return null
+    const date = new Date(dateString)
+    const day = date.getDate().toString().padStart(2, '0')
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const month = monthNames[date.getMonth()]
+    const year = date.getFullYear()
+    return `${day} ${month} ${year}`
+  }
+
+  const formattedLastUpdated = formatDateForHeader(lastUpdated)
 
   useEffect(() => {
     async function fetchData() {
@@ -222,55 +237,55 @@ export function WIPClientGroupsTable({
             <thead>
               <tr className="border-b bg-slate-50/50">
                 <th 
-                  className="text-left p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
+                  className="text-left p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
                   onClick={() => handleSort('clientGroup')}
                 >
                   Client Group<SortIcon column="clientGroup" />
                 </th>
                 <th 
-                  className="text-left p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
+                  className="text-left p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
                   onClick={() => handleSort('partner')}
                 >
                   Partner<SortIcon column="partner" />
                 </th>
                 <th 
-                  className="text-left p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
+                  className="text-left p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
                   onClick={() => handleSort('clientManager')}
                 >
                   Client Manager<SortIcon column="clientManager" />
                 </th>
                 <th 
-                  className="text-right p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
+                  className="text-right p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
                   onClick={() => handleSort('amount')}
                 >
-                  WIP Amount<SortIcon column="amount" />
+                  WIP Amount{formattedLastUpdated && <span className="font-normal text-slate-500 text-[9px]"> ({formattedLastUpdated})</span>}<SortIcon column="amount" />
                 </th>
                 <th 
-                  className="text-right p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
+                  className="text-right p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
                   onClick={() => handleSort('lessThan30')}
                 >
                   &lt; 30 days<SortIcon column="lessThan30" />
                 </th>
                 <th 
-                  className="text-right p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
+                  className="text-right p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
                   onClick={() => handleSort('days30to60')}
                 >
                   30 - 60 days<SortIcon column="days30to60" />
                 </th>
                 <th 
-                  className="text-right p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
+                  className="text-right p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
                   onClick={() => handleSort('days60to90')}
                 >
                   60 - 90 days<SortIcon column="days60to90" />
                 </th>
                 <th 
-                  className="text-right p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
+                  className="text-right p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
                   onClick={() => handleSort('days90to120')}
                 >
                   90 - 120 days<SortIcon column="days90to120" />
                 </th>
                 <th 
-                  className="text-right p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
+                  className="text-right p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
                   onClick={() => handleSort('days120Plus')}
                 >
                   120 days +<SortIcon column="days120Plus" />
@@ -280,49 +295,49 @@ export function WIPClientGroupsTable({
             <tbody className="divide-y divide-slate-100">
               {sortedData.map((item, index) => (
                 <tr key={index} className="hover:bg-slate-50 transition-colors group">
-                  <td className="p-3 border-r">{item.clientGroup}</td>
-                  <td className="p-3 border-r">{item.partner || '-'}</td>
-                  <td className="p-3 border-r">{item.clientManager || '-'}</td>
-                  <td className="p-3 text-right font-medium border-r">
+                  <td className="p-2 border-r">{item.clientGroup}</td>
+                  <td className="p-2 border-r">{item.partner || '-'}</td>
+                  <td className="p-2 border-r">{item.clientManager || '-'}</td>
+                  <td className="p-2 text-right font-medium border-r">
                     {formatCurrency(item.amount)}
                   </td>
-                  <td className="p-3 text-right text-slate-500 border-r">
+                  <td className="p-2 text-right text-slate-500 border-r">
                     {formatCurrency(item.aging?.lessThan30 || 0)}
                   </td>
-                  <td className="p-3 text-right text-slate-500 border-r">
+                  <td className="p-2 text-right text-slate-500 border-r">
                     {formatCurrency(item.aging?.days30to60 || 0)}
                   </td>
-                  <td className="p-3 text-right text-slate-500 border-r">
+                  <td className="p-2 text-right text-slate-500 border-r">
                     {formatCurrency(item.aging?.days60to90 || 0)}
                   </td>
-                  <td className="p-3 text-right text-slate-500 border-r">
+                  <td className="p-2 text-right text-slate-500 border-r">
                     {formatCurrency(item.aging?.days90to120 || 0)}
                   </td>
-                  <td className="p-3 text-right text-slate-500 font-bold">
+                  <td className="p-2 text-right text-slate-500 font-bold">
                     {formatCurrency(item.aging?.days120Plus || 0)}
                   </td>
                 </tr>
               ))}
               <tr className="border-t-2 border-slate-200 font-bold bg-slate-50/80 rounded-b-lg">
-                <td className="p-3 border-r rounded-bl-lg">Total</td>
-                <td className="p-3 border-r"></td>
-                <td className="p-3 border-r"></td>
-                <td className="p-3 text-right border-r">
+                <td className="p-2 border-r rounded-bl-lg">Total</td>
+                <td className="p-2 border-r"></td>
+                <td className="p-2 border-r"></td>
+                <td className="p-2 text-right border-r">
                   {formatCurrency(totalAmount)}
                 </td>
-                <td className="p-3 text-right border-r">
+                <td className="p-2 text-right border-r">
                   {formatCurrency(totalAging.lessThan30)}
                 </td>
-                <td className="p-3 text-right border-r">
+                <td className="p-2 text-right border-r">
                   {formatCurrency(totalAging.days30to60)}
                 </td>
-                <td className="p-3 text-right border-r">
+                <td className="p-2 text-right border-r">
                   {formatCurrency(totalAging.days60to90)}
                 </td>
-                <td className="p-3 text-right border-r">
+                <td className="p-2 text-right border-r">
                   {formatCurrency(totalAging.days90to120)}
                 </td>
-                <td className="p-3 text-right rounded-br-lg">
+                <td className="p-2 text-right rounded-br-lg">
                   {formatCurrency(totalAging.days120Plus)}
                 </td>
               </tr>

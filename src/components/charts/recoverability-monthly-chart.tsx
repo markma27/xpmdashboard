@@ -147,11 +147,16 @@ export function RecoverabilityMonthlyChart({ data, selectedMonth, onMonthClick }
             position="top"
             formatter={(value: number) => {
               if (value === 0) return ''
+              // Format negative numbers: swap negative sign and $
+              const isNegative = value < 0
+              const absValue = Math.abs(value)
               // Show full amount if less than $10k, otherwise use 'k' notation
-              if (value < 10000) {
-                return `$${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+              if (absValue < 10000) {
+                const formatted = absValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+                return isNegative ? `-$${formatted}` : `$${formatted}`
               }
-              return `$${(value / 1000).toFixed(0)}k`
+              const kValue = (absValue / 1000).toFixed(0)
+              return isNegative ? `-$${kValue}k` : `$${kValue}k`
             }}
             style={{ fontSize: '9px', fill: '#475569', fontWeight: 600 }}
           />
@@ -178,11 +183,16 @@ export function RecoverabilityMonthlyChart({ data, selectedMonth, onMonthClick }
             position="top"
             formatter={(value: number) => {
               if (value === 0) return ''
+              // Format negative numbers: swap negative sign and $
+              const isNegative = value < 0
+              const absValue = Math.abs(value)
               // Show full amount if less than $10k, otherwise use 'k' notation
-              if (value < 10000) {
-                return `$${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+              if (absValue < 10000) {
+                const formatted = absValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+                return isNegative ? `-$${formatted}` : `$${formatted}`
               }
-              return `$${(value / 1000).toFixed(0)}k`
+              const kValue = (absValue / 1000).toFixed(0)
+              return isNegative ? `-$${kValue}k` : `$${kValue}k`
             }}
             style={{ fontSize: '9px', fill: '#64748b', fontWeight: 600 }}
           />

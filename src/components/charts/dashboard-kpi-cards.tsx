@@ -224,8 +224,12 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
     ? productivityData.ytdBillablePercentage - productivityData.lastYearBillablePercentage
     : null
 
-  const hourlyRatePercentageChange = productivityData && productivityData.lastYearAverageRate > 0
-    ? ((productivityData.ytdAverageRate - productivityData.lastYearAverageRate) / productivityData.lastYearAverageRate) * 100
+  const hourlyRatePercentageChange = productivityData
+    ? Math.abs(productivityData.lastYearAverageRate) > 0.01
+      ? ((productivityData.ytdAverageRate - productivityData.lastYearAverageRate) / Math.abs(productivityData.lastYearAverageRate)) * 100
+      : Math.abs(productivityData.ytdAverageRate) > 0.01
+        ? (productivityData.ytdAverageRate > 0 ? 100 : -100)
+        : null
     : null
 
   const recoverabilityPercentageChange = recoverabilityData !== null
@@ -263,7 +267,7 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
 
       {/* Hourly Rate Card */}
       <KPICard 
-        title="Avg Hourly Rate"
+        title="Average Hourly Rate"
         currentValue={`$${Math.round(productivityData.ytdAverageRate).toLocaleString('en-US')}`}
         lastYearValue={`$${Math.round(productivityData.lastYearAverageRate).toLocaleString('en-US')}`}
         percentageChange={hourlyRatePercentageChange}

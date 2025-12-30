@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { TableSkeleton } from './chart-skeleton'
+import { useProductivityReport } from './productivity-report-context'
 
 interface ClientGroupData {
   clientGroup: string
@@ -32,6 +33,7 @@ export function ProductivityClientGroupsTable({
   selectedMonth,
   asOfDate
 }: ProductivityClientGroupsTableProps) {
+  const { lastUpdated } = useProductivityReport()
   const [data, setData] = useState<ClientGroupData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -41,6 +43,19 @@ export function ProductivityClientGroupsTable({
   
   // Use external selectedStaff if provided, otherwise use internal state
   const selectedStaff = externalSelectedStaff !== undefined ? externalSelectedStaff : internalSelectedStaff
+
+  // Format date as DD MMM YYYY for column header
+  const formatDateForHeader = (dateString: string | null) => {
+    if (!dateString) return null
+    const date = new Date(dateString)
+    const day = date.getDate().toString().padStart(2, '0')
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const month = monthNames[date.getMonth()]
+    const year = date.getFullYear()
+    return `${day} ${month} ${year}`
+  }
+
+  const formattedLastUpdated = formatDateForHeader(lastUpdated)
 
   // Fetch client group data
   useEffect(() => {
@@ -301,13 +316,13 @@ export function ProductivityClientGroupsTable({
                   colSpan={3}
                   className="text-center p-2 font-bold text-slate-700 bg-slate-100/50 uppercase tracking-wider text-[10px] border-r"
                 >
-                  Current Year
+                  Current Year{formattedLastUpdated && <span className="font-normal text-slate-500 text-[9px] normal-case ml-1">(YTD to {formattedLastUpdated})</span>}
                 </th>
                 <th 
                   colSpan={3}
                   className="text-center p-2 font-bold text-slate-700 bg-slate-100/50 uppercase tracking-wider text-[10px] border-r"
                 >
-                  Last Year
+                  Last Year<span className="font-normal text-slate-500 text-[9px] normal-case ml-1">(Full Year)</span>
                 </th>
                 <th 
                   rowSpan={2}

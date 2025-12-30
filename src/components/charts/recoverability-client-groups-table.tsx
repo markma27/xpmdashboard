@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { TableSkeleton } from './chart-skeleton'
 import { BillableFilter } from './billable-filters'
+import { useRecoverabilityReport } from './recoverability-report-context'
 
 interface ClientGroupData {
   clientGroup: string
@@ -27,14 +28,28 @@ export function RecoverabilityClientGroupsTable({
   selectedMonth,
   filters = []
 }: RecoverabilityClientGroupsTableProps) {
+  const { lastUpdated } = useRecoverabilityReport()
   const [data, setData] = useState<ClientGroupData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [sortColumn, setSortColumn] = useState<SortColumn>('currentYear')
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
 
   // Memoize filters string to avoid unnecessary re-renders
   const filtersString = useMemo(() => JSON.stringify(filters), [filters])
+
+  // Format date as DD MMM YYYY for column header
+  const formatDateForHeader = (dateString: string | null) => {
+    if (!dateString) return null
+    const date = new Date(dateString)
+    const day = date.getDate().toString().padStart(2, '0')
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const month = monthNames[date.getMonth()]
+    const year = date.getFullYear()
+    return `${day} ${month} ${year}`
+  }
+
+  const formattedLastUpdated = formatDateForHeader(lastUpdated)
 
   useEffect(() => {
     async function fetchData() {
@@ -171,9 +186,10 @@ export function RecoverabilityClientGroupsTable({
       // Toggle direction if clicking the same column
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
     } else {
-      // Set new column and default to descending
+      // Set new column
       setSortColumn(column)
-      setSortDirection('desc')
+      // Default to ascending for currentYear (smallest to largest), descending for others
+      setSortDirection(column === 'currentYear' ? 'asc' : 'desc')
     }
   }
 
@@ -196,37 +212,37 @@ export function RecoverabilityClientGroupsTable({
             <thead>
               <tr className="border-b bg-slate-50/50">
                 <th 
-                  className="text-left p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
+                  className="text-left p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
                   onClick={() => handleSort('clientGroup')}
                 >
                   Client Group<SortIcon column="clientGroup" />
                 </th>
                 <th 
-                  className="text-left p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
+                  className="text-left p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
                   onClick={() => handleSort('partner')}
                 >
                   Partner<SortIcon column="partner" />
                 </th>
                 <th 
-                  className="text-left p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
+                  className="text-left p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
                   onClick={() => handleSort('clientManager')}
                 >
                   Client Manager<SortIcon column="clientManager" />
                 </th>
                 <th 
-                  className="text-right p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
+                  className="text-right p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
                   onClick={() => handleSort('currentYear')}
                 >
-                  Current Year<SortIcon column="currentYear" />
+                  Current Year{formattedLastUpdated && <span className="font-normal text-slate-500 text-[9px]"> (YTD to {formattedLastUpdated})</span>}<SortIcon column="currentYear" />
                 </th>
                 <th 
-                  className="text-right p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
+                  className="text-right p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
                   onClick={() => handleSort('lastYear')}
                 >
-                  Last Year<SortIcon column="lastYear" />
+                  Last Year<span className="font-normal text-slate-500 text-[9px]"> (Full Year)</span><SortIcon column="lastYear" />
                 </th>
                 <th 
-                  className="text-right p-3 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
+                  className="text-right p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
                   onClick={() => handleSort('change')}
                 >
                   Change<SortIcon column="change" />
@@ -240,32 +256,32 @@ export function RecoverabilityClientGroupsTable({
                 
                 return (
                   <tr key={index} className="hover:bg-slate-50 transition-colors group">
-                    <td className="p-3 border-r">{item.clientGroup}</td>
-                    <td className="p-3 border-r">{item.partner || '-'}</td>
-                    <td className="p-3 border-r">{item.clientManager || '-'}</td>
-                    <td className={`p-3 text-right font-medium border-r ${item.currentYear < 0 ? 'text-red-600' : ''}`}>
+                    <td className="p-2 border-r">{item.clientGroup}</td>
+                    <td className="p-2 border-r">{item.partner || '-'}</td>
+                    <td className="p-2 border-r">{item.clientManager || '-'}</td>
+                    <td className={`p-2 text-right font-medium border-r ${item.currentYear < 0 ? 'text-red-600' : ''}`}>
                       {formatCurrency(item.currentYear)}
                     </td>
-                    <td className="p-3 text-right text-slate-500 border-r">
+                    <td className="p-2 text-right text-slate-500 border-r">
                       {formatCurrency(item.lastYear)}
                     </td>
-                    <td className={`p-3 text-right font-bold ${changeColor}`}>
+                    <td className={`p-2 text-right font-bold ${changeColor}`}>
                       {change >= 0 ? '+' : ''}{change.toFixed(1)}%
                     </td>
                   </tr>
                 )
               })}
               <tr className="border-t-2 border-slate-200 font-bold bg-slate-50/80 rounded-b-lg">
-                <td className="p-3 border-r rounded-bl-lg">Total</td>
-                <td className="p-3 border-r"></td>
-                <td className="p-3 border-r"></td>
-                <td className={`p-3 text-right border-r ${totalCurrentYear < 0 ? 'text-red-600' : ''}`}>
+                <td className="p-2 border-r rounded-bl-lg">Total</td>
+                <td className="p-2 border-r"></td>
+                <td className="p-2 border-r"></td>
+                <td className={`p-2 text-right border-r ${totalCurrentYear < 0 ? 'text-red-600' : ''}`}>
                   {formatCurrency(totalCurrentYear)}
                 </td>
-                <td className="p-3 text-right border-r">
+                <td className="p-2 text-right border-r">
                   {formatCurrency(totalLastYear)}
                 </td>
-                <td className={`p-3 text-right rounded-br-lg ${calculateChange(totalCurrentYear, totalLastYear) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                <td className={`p-2 text-right rounded-br-lg ${calculateChange(totalCurrentYear, totalLastYear) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                   {calculateChange(totalCurrentYear, totalLastYear) >= 0 ? '+' : ''}
                   {calculateChange(totalCurrentYear, totalLastYear).toFixed(1)}%
                 </td>
