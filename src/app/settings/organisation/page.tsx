@@ -30,28 +30,28 @@ export default async function OrganisationSettingsPage() {
       activeOrgId={activeOrgId}
       header={
         <PageHeader 
-          title="Organization Settings"
-          description="Manage your organization information"
+          title="Organisation Settings"
+          description="Manage your organisation information"
         />
       }
     >
       <div className="space-y-6">
         <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
           <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
-            <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Organization Information</CardTitle>
+            <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Organisation Information</CardTitle>
           </CardHeader>
           <CardContent className="px-6 py-4">
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-medium text-slate-600 uppercase tracking-wider">Organization Name</label>
+                <label className="text-xs font-medium text-slate-600 uppercase tracking-wider">Organisation Name</label>
                 <p className="mt-1 text-sm text-slate-700">{org.name}</p>
               </div>
               <div>
-                <label className="text-xs font-medium text-slate-600 uppercase tracking-wider">Organization Slug</label>
+                <label className="text-xs font-medium text-slate-600 uppercase tracking-wider">Organisation Slug</label>
                 <p className="mt-1 text-sm text-slate-700">{org.slug}</p>
               </div>
               <p className="text-xs text-slate-500">
-                Organization settings editing coming soon
+                Organisation settings editing coming soon
               </p>
             </div>
           </CardContent>

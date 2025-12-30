@@ -6,9 +6,10 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import Link from 'next/link'
 import Image from 'next/image'
+import { Loader2 } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -44,14 +45,14 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="w-full max-w-md space-y-6">
+    <div className="flex min-h-screen items-center justify-center p-4 bg-gray-50">
+      <div className="w-full max-w-[400px] space-y-8">
         {/* Logo */}
-        <div className="flex justify-center mb-2">
-          <Link href="/" className="relative w-48 h-16 hover:opacity-80 transition-opacity">
+        <div className="flex justify-center mb-2 scale-110">
+          <Link href="/" className="relative w-64 h-24 hover:opacity-90 transition-all active:scale-[0.98]">
             <Image
-              src="/Logo.svg"
-              alt="XPM Dashboard Logo"
+              src="/Logo_login.svg"
+              alt="Logo"
               fill
               className="object-contain"
               priority
@@ -60,17 +61,14 @@ export default function LoginPage() {
         </div>
 
         {/* Login Card */}
-        <Card className="shadow-lg">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">Sign In</CardTitle>
-            <CardDescription className="text-center">
-              Sign in to your XPM Dashboard account
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+        <Card className="shadow-xl border-slate-200/60 rounded-2xl overflow-hidden bg-white">
+          <div className="bg-gradient-to-r from-blue-50 via-green-50 to-green-50/30 py-4 flex items-center justify-center border-b border-slate-100">
+            <h2 className="text-xl font-bold text-slate-800 tracking-tight">Sign In</h2>
+          </div>
+          <CardContent className="p-8">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Email Address</Label>
                 <Input
                   id="email"
                   type="email"
@@ -79,35 +77,44 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={loading}
-                  className="h-11"
+                  className="h-11 text-sm bg-slate-50/50 border-slate-200 focus:bg-white focus:ring-black/5 transition-all"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Password</Label>
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Enter your password"
+                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   disabled={loading}
-                  className="h-11"
+                  className="h-11 text-sm bg-slate-50/50 border-slate-200 focus:bg-white focus:ring-black/5 transition-all"
                 />
               </div>
               {error && (
-                <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive border border-destructive/20">
+                <div className="rounded-lg bg-red-50 p-3 text-xs font-medium text-red-600 border border-red-100">
                   {error}
                 </div>
               )}
-              <Button type="submit" className="w-full h-11" disabled={loading}>
-                {loading ? 'Signing in...' : 'Sign In'}
+              <Button 
+                type="submit" 
+                className="w-full h-11 bg-black text-white hover:bg-black/80 active:bg-black/70 active:scale-[0.98] transition-all duration-150 font-bold text-sm shadow-lg shadow-black/5 mt-2" 
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : 'Sign In'}
               </Button>
             </form>
-            <div className="mt-6 text-center text-sm">
-              <span className="text-muted-foreground">Don&apos;t have an account?</span>{' '}
-              <Link href="/auth/signup" className="text-primary hover:underline font-medium">
-                Sign Up
+            <div className="mt-8 text-center text-xs border-t border-slate-100 pt-6">
+              <span className="text-slate-400 font-medium">Don&apos;t have an account?</span>{' '}
+              <Link href="/auth/signup" className="text-slate-900 hover:underline font-bold ml-1">
+                Get Started
               </Link>
             </div>
           </CardContent>
@@ -115,8 +122,8 @@ export default function LoginPage() {
 
         {/* Back to Home */}
         <div className="text-center">
-          <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            ← Back to home
+          <Link href="/" className="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-widest flex items-center justify-center gap-2 group">
+            <span className="group-hover:-translate-x-1 transition-transform">←</span> Back to home
           </Link>
         </div>
       </div>

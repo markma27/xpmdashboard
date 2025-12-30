@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useRouter } from 'next/navigation'
-import { Upload, FileText, AlertCircle, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Upload, FileText, AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export function WIPTimesheetUploadForm() {
   const router = useRouter()
@@ -17,6 +18,37 @@ export function WIPTimesheetUploadForm() {
   const [autoFilled, setAutoFilled] = useState<string[]>([])
   const [showWarnings, setShowWarnings] = useState(false)
   const [showAutoFilled, setShowAutoFilled] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!uploading) setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    if (uploading) return
+
+    const droppedFile = e.dataTransfer.files?.[0]
+    if (droppedFile) {
+      if (droppedFile.type !== 'text/csv' && !droppedFile.name.endsWith('.csv')) {
+        setMessage({ type: 'error', text: 'Please select a CSV file' })
+        return
+      }
+      setFile(droppedFile)
+      setMessage(null)
+    }
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
@@ -108,29 +140,55 @@ export function WIPTimesheetUploadForm() {
         <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
           <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Upload WIP Timesheet CSV</CardTitle>
         </CardHeader>
-        <CardContent className="px-6 py-4">
+        <CardContent className="px-6 py-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="wip-file-input" className="text-xs font-medium text-slate-600 uppercase tracking-wider">CSV File</Label>
-              <div className="flex items-center gap-4">
-                <Input
+              <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">CSV File</Label>
+              <div 
+                onClick={() => document.getElementById('wip-file-input')?.click()}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={cn(
+                  "border-2 border-dashed rounded-xl p-10 transition-all cursor-pointer flex flex-col items-center justify-center gap-3",
+                  isDragging ? "border-black bg-slate-100 scale-[1.01]" : 
+                  file ? "border-emerald-200 bg-emerald-50/30" : "border-slate-200 bg-slate-50/50 hover:bg-slate-50 hover:border-slate-300",
+                  uploading && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                <input
                   id="wip-file-input"
                   type="file"
                   accept=".csv"
                   onChange={handleFileChange}
                   disabled={uploading}
-                  className="cursor-pointer"
+                  className="hidden"
                 />
-                {file && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <FileText className="h-4 w-4" />
-                    <span>{file.name}</span>
-                    <span className="text-xs">({(file.size / 1024).toFixed(2)} KB)</span>
-                  </div>
+                {file ? (
+                  <>
+                    <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center">
+                      <FileText className="h-6 w-6 text-emerald-600" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-bold text-slate-700">{file.name}</p>
+                      <p className="text-xs text-slate-500">{(file.size / 1024).toFixed(2)} KB</p>
+                    </div>
+                    <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Click to change file</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center">
+                      <Upload className="h-6 w-6 text-slate-500" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-bold text-slate-700">Click to select WIP CSV file</p>
+                      <p className="text-xs text-slate-500 mt-1">or drag and drop here</p>
+                    </div>
+                  </>
                 )}
               </div>
-              <p className="text-xs text-slate-500">
-                The CSV file should contain the following columns: Job Manager, Client Group(s), Client, Account Manager, Staff, Date, Job No., Name, Time, Billable Rate, Billable Amount, Billed?, Note
+              <p className="text-[10px] text-slate-400 leading-relaxed mt-2">
+                Required columns: Job Manager, Client Group(s), Client, Account Manager, Staff, Date, Job No., Name, Time, Billable Rate, Billable Amount, Billed?, Note
               </p>
             </div>
 
@@ -139,7 +197,7 @@ export function WIPTimesheetUploadForm() {
                 <div
                   className={`flex items-center gap-2 rounded-lg border p-4 ${
                     message.type === 'success'
-                      ? 'border-green-500/50 bg-green-500/10 text-green-700 dark:text-green-400'
+                      ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-700'
                       : 'border-destructive/50 bg-destructive/10 text-destructive'
                   }`}
                 >
@@ -148,25 +206,23 @@ export function WIPTimesheetUploadForm() {
                   ) : (
                     <AlertCircle className="h-5 w-5" />
                   )}
-                  <p className="text-xs flex-1">{message.text}</p>
+                  <p className="text-xs flex-1 font-medium">{message.text}</p>
                   {(warnings.length > 0 || autoFilled.length > 0) && (
                     <div className="flex gap-2">
                       {warnings.length > 0 && (
                         <button
                           type="button"
                           onClick={() => setShowWarnings(!showWarnings)}
-                          className="text-sm underline hover:no-underline"
+                          className="text-xs font-bold underline hover:no-underline"
                         >
                           {showWarnings ? (
-                            <>
-                              <ChevronUp className="inline h-4 w-4 mr-1" />
-                              Hide errors
-                            </>
+                            <div className="flex items-center gap-1">
+                              <ChevronUp className="h-3 w-3" /> Hide errors
+                            </div>
                           ) : (
-                            <>
-                              <ChevronDown className="inline h-4 w-4 mr-1" />
-                              Show errors
-                            </>
+                            <div className="flex items-center gap-1">
+                              <ChevronDown className="h-3 w-3" /> Show errors
+                            </div>
                           )}
                         </button>
                       )}
@@ -174,18 +230,16 @@ export function WIPTimesheetUploadForm() {
                         <button
                           type="button"
                           onClick={() => setShowAutoFilled(!showAutoFilled)}
-                          className="text-sm underline hover:no-underline"
+                          className="text-xs font-bold underline hover:no-underline"
                         >
                           {showAutoFilled ? (
-                            <>
-                              <ChevronUp className="inline h-4 w-4 mr-1" />
-                              Hide auto-filled
-                            </>
+                            <div className="flex items-center gap-1">
+                              <ChevronUp className="h-3 w-3" /> Hide auto-filled
+                            </div>
                           ) : (
-                            <>
-                              <ChevronDown className="inline h-4 w-4 mr-1" />
-                              Show auto-filled
-                            </>
+                            <div className="flex items-center gap-1">
+                              <ChevronDown className="h-3 w-3" /> Show auto-filled
+                            </div>
                           )}
                         </button>
                       )}
@@ -194,15 +248,15 @@ export function WIPTimesheetUploadForm() {
                 </div>
                 {showWarnings && warnings.length > 0 && (
                   <div className="rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-4 max-h-64 overflow-y-auto">
-                    <h4 className="text-sm font-semibold mb-2 text-yellow-700 dark:text-yellow-400">
+                    <h4 className="text-xs font-bold mb-2 text-yellow-700">
                       Failed Records ({warnings.length}):
                     </h4>
-                    <ul className="space-y-1 text-xs text-yellow-800 dark:text-yellow-300">
+                    <ul className="space-y-1 text-[10px] text-yellow-800 font-mono">
                       {warnings.slice(0, 50).map((warning, index) => (
-                        <li key={index} className="font-mono">{warning}</li>
+                        <li key={index}>{warning}</li>
                       ))}
                       {warnings.length > 50 && (
-                        <li className="text-yellow-600 dark:text-yellow-400 italic">
+                        <li className="text-yellow-600 italic font-sans">
                           ... and {warnings.length - 50} more errors
                         </li>
                       )}
@@ -211,18 +265,18 @@ export function WIPTimesheetUploadForm() {
                 )}
                 {showAutoFilled && autoFilled.length > 0 && (
                   <div className="rounded-lg border border-blue-500/50 bg-blue-500/10 p-4 max-h-64 overflow-y-auto">
-                    <h4 className="text-sm font-semibold mb-2 text-blue-700 dark:text-blue-400">
+                    <h4 className="text-xs font-bold mb-2 text-blue-700">
                       Auto-filled Records ({autoFilled.length}):
                     </h4>
-                    <p className="text-xs text-blue-600 dark:text-blue-400 mb-2">
-                      These records were successfully uploaded with staff name set to &quot;Disbursement&quot;
+                    <p className="text-[10px] text-blue-600 mb-2">
+                      Successfully uploaded with staff set to &quot;Disbursement&quot;
                     </p>
-                    <ul className="space-y-1 text-xs text-blue-800 dark:text-blue-300">
+                    <ul className="space-y-1 text-[10px] text-blue-800 font-mono">
                       {autoFilled.slice(0, 50).map((info, index) => (
-                        <li key={index} className="font-mono">{info}</li>
+                        <li key={index}>{info}</li>
                       ))}
                       {autoFilled.length > 50 && (
-                        <li className="text-blue-600 dark:text-blue-400 italic">
+                        <li className="text-blue-600 italic font-sans">
                           ... and {autoFilled.length - 50} more records
                         </li>
                       )}
@@ -236,17 +290,17 @@ export function WIPTimesheetUploadForm() {
               type="submit" 
               disabled={uploading || !file}
               size="sm"
-              className="bg-black text-white hover:bg-black/80 active:bg-black/70 active:scale-[0.98] transition-all duration-150 h-9 px-4 font-semibold text-xs"
+              className="bg-black text-white hover:bg-black/80 active:bg-black/70 active:scale-[0.98] transition-all duration-150 h-10 px-8 font-bold text-xs"
             >
               {uploading ? (
                 <>
-                  <Upload className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Uploading...
                 </>
               ) : (
                 <>
                   <Upload className="mr-2 h-4 w-4" />
-                  Upload
+                  Upload WIP CSV
                 </>
               )}
             </Button>

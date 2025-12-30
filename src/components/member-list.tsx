@@ -115,7 +115,7 @@ export function MemberList({ organizationId }: MemberListProps) {
     <div className="space-y-4">
       <div className="flex justify-between items-center pt-4 px-6">
         <div>
-          <h3 className="text-lg font-bold tracking-tight text-slate-800">Organization Members</h3>
+          <h3 className="text-lg font-bold tracking-tight text-slate-800">Organisation Members</h3>
           <p className="text-xs text-slate-500 mt-1">
             {members.length} member{members.length !== 1 ? 's' : ''}
           </p>

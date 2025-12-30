@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
           if (Array.isArray(connections)) {
             tenants = connections.map((conn: any) => ({
               tenantId: conn.tenantId,
-              tenantName: conn.tenantName || 'Xero Organization',
+              tenantName: conn.tenantName || 'Xero Organisation',
             }))
           } else {
             throw new Error(`Failed to get tenant information: Invalid response format`)

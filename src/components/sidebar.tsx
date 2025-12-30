@@ -132,7 +132,7 @@ export function Sidebar() {
       <div className="flex h-14 items-center justify-center px-4 shrink-0">
         <Image
           src="/Logo.svg"
-          alt="XPM Dashboard"
+          alt="Logo"
           width={120}
           height={36}
           className="h-auto w-auto object-contain"

@@ -165,7 +165,7 @@ export function XeroConnectionList({ organizationId }: XeroConnectionListProps) 
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-base">
-                      {connection.tenant_name || 'Xero Organization'}
+                      {connection.tenant_name || 'Xero Organisation'}
                     </CardTitle>
                     <CardDescription className="text-xs">
                       Tenant ID: {connection.tenant_id}

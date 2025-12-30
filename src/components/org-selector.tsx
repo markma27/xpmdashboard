@@ -70,7 +70,7 @@ export function OrgSelector({ organizations, activeOrgId: initialActiveOrgId }: 
         onClick={() => router.push('/onboarding/create-org')}
       >
         <Plus className="mr-2 h-4 w-4" />
-        Create Organization
+        Create Organisation
       </Button>
     )
   }
@@ -78,8 +78,8 @@ export function OrgSelector({ organizations, activeOrgId: initialActiveOrgId }: 
   return (
     <Select value={activeOrgId || undefined} onValueChange={handleOrgChange}>
       <SelectTrigger className="w-[200px]">
-        <SelectValue placeholder="Select Organization">
-          {activeOrg?.name || 'Select Organization'}
+        <SelectValue placeholder="Select Organisation">
+          {activeOrg?.name || 'Select Organisation'}
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
@@ -97,7 +97,7 @@ export function OrgSelector({ organizations, activeOrgId: initialActiveOrgId }: 
           className="text-primary"
         >
           <Plus className="mr-2 h-4 w-4 inline" />
-          Create New Organization
+          Create New Organisation
         </SelectItem>
       </SelectContent>
     </Select>
