@@ -3,13 +3,14 @@
 ## 1. Project Overview
 
 ### 1.1 Project Objectives
-Build a multi-tenant SaaS platform that provides accounting firms with analytics and reporting dashboards based on Xero Practice Manager (XPM) data. The platform automatically syncs XPM data to Supabase, delivering real-time business insights, productivity analysis, and financial reports.
+Build a multi-tenant SaaS platform that provides accounting firms with analytics and reporting dashboards based on Xero Practice Manager (XPM) data. The platform supports both automated XPM data synchronization and manual data uploads, delivering real-time business insights, productivity analysis, and financial reports.
 
 ### 1.2 Core Value Propositions
-- **Automated Data Sync**: Automatically sync business data from XPM without manual exports
+- **Flexible Data Input**: Support both automated XPM API sync and manual CSV uploads for timesheets, invoices, and WIP data
 - **Real-time Dashboards**: Visual reports and analytics based on the latest data
 - **Multi-tenant Architecture**: Each accounting firm has independent data space and configuration
-- **Deep Analytics**: Multi-dimensional analysis of revenue, productivity, project profitability, and more
+- **Deep Analytics**: Multi-dimensional analysis of revenue, productivity, billable hours, work in progress, and recoverability
+- **Staff Performance Tracking**: Monitor staff productivity, billable rates, and capacity utilization
 
 ### 1.3 Target Users
 - **Primary Users**: Accounting Firms
@@ -21,18 +22,22 @@ Build a multi-tenant SaaS platform that provides accounting firms with analytics
 ### 2.1 User Roles
 1. **Organization Admin**
    - Manage organization settings
-   - Connect/disconnect XPM connections
-   - Manage team members
-   - View all reports
+   - Connect/disconnect Xero connections
+   - Manage team members and staff settings
+   - View all reports and dashboards
+   - Upload and manage data files
+   - Configure staff target billable rates
 
 2. **Team Member**
    - View assigned dashboards and reports
-   - Export report data
+   - Export report data (CSV)
    - Cannot modify organization settings
+   - Cannot upload data files
 
 3. **Viewer (Read-only)**
    - View reports only
    - No export permissions
+   - No data upload permissions
 
 ### 2.2 Permission Model
 - User authentication based on Supabase Auth
@@ -43,56 +48,130 @@ Build a multi-tenant SaaS platform that provides accounting firms with analytics
 ## 3. Functional Requirements
 
 ### 3.1 User Authentication and Management
-- [ ] Supabase Auth integration (email/password login)
-- [ ] User registration flow
-- [ ] Organization creation and management
-- [ ] Team member invitation and management
-- [ ] User role assignment
+- [x] Supabase Auth integration (email/password login)
+- [x] User registration flow
+- [x] Organization creation and management
+- [x] Team member invitation and management
+- [x] User role assignment
 - [ ] Password reset functionality
 
-### 3.2 XPM Connection Management
-- [ ] Xero OAuth 2.0 connection flow
-- [ ] Support for `practicemanager` scope
-- [ ] Multi-organization support (one user can connect multiple Xero organizations)
-- [ ] Connection status display
-- [ ] Reconnect/disconnect functionality
-- [ ] Automatic token refresh
+### 3.2 Xero Connection Management
+- [x] Xero OAuth 2.0 connection flow
+- [x] Support for `practicemanager` scope
+- [x] Multi-organization support (one user can connect multiple Xero organizations)
+- [x] Connection status display
+- [x] Reconnect/disconnect functionality
+- [x] Automatic token refresh
 
 ### 3.3 Data Synchronization
-- [ ] Automatic incremental sync (based on XPM_SYNC_ARCHITECTURE.md)
+- [x] Manual sync trigger functionality
+- [x] Sync status monitoring
+- [ ] Automatic incremental sync (scheduled sync)
 - [ ] Sync 13 XPM tables:
   - Clients, Client Groups, Jobs, Tasks, Time Entries
   - Invoices, Staff, Quotes, Expense Claims
   - Categories, Costs, Custom Fields, Templates
-- [ ] Sync status monitoring and logging
-- [ ] Manual sync trigger functionality
 - [ ] Sync error handling and retry mechanism
 - [ ] Sync history records
 
-### 3.4 Dashboards and Reports
+### 3.4 Data Upload Functionality
+- [x] Timesheet CSV upload
+- [x] WIP (Work In Progress) timesheet CSV upload
+- [x] Recoverability timesheet CSV upload
+- [x] Invoice CSV upload
+- [x] Upload history tracking
+- [x] Last upload date display
 
-#### 3.4.1 Revenue
-- [ ] Total Revenue by Month, by Client Groups & by Partners
-- [ ] Total Revenue by Month, by Client Groups & by Managers
+### 3.5 Dashboards and Reports
 
-#### 3.4.2 Billable
-- [ ] Billable Hours by Month, by Client Groups & by Partners
-- [ ] Billable $ Amount by Month, by Client Groups & by Managers
+#### 3.5.1 Dashboard Overview
+- [x] KPI cards showing:
+  - Revenue (current year vs last year)
+  - Billable amount (current year vs last year)
+  - Productivity metrics
+  - Recoverability metrics
+- [x] Revenue by Client Group chart
+- [x] Revenue by Partner chart
+- [x] Billable by Client Group chart
+- [x] Billable by Partner chart
+- [x] Staff Performance table
 
-#### 3.4.3 Work In Progress
-- [ ] Work In Progress by Client Groups & by Partners
-- [ ] Work In Progress by Client Groups & by Managers
+#### 3.5.2 Revenue Report
+- [x] Monthly revenue chart (with partner/client manager filters)
+- [x] Revenue by Client Groups table
+- [x] Filter by Partner
+- [x] Filter by Client Manager
+- [x] Month selection
+- [x] CSV export
 
-#### 3.4.4 Productivity Analytics
-- [ ] To be built
+#### 3.5.3 Billable Report
+- [x] Monthly billable hours chart
+- [x] Monthly billable amount chart
+- [x] Billable by Client Groups table
+- [x] Billable by Partners table
+- [x] Billable by Staff table
+- [x] Filter by Partner, Client Manager, Client Group, Staff
+- [x] Date range selection
+- [x] Saved filters functionality
+- [x] CSV export
 
-### 3.5 Data Export
-- [ ] Export reports as CSV
+#### 3.5.4 Work In Progress (WIP) Report
+- [x] WIP by Client Groups table
+- [x] WIP by Partners chart
+- [x] WIP by Client Managers chart
+- [x] WIP Aging Summary (bar and pie charts)
+- [x] Filter by Partner, Client Manager, Client Group
+- [x] CSV export
+
+#### 3.5.5 Productivity Analytics
+- [x] Productivity KPI cards:
+  - YTD Billable Percentage
+  - Last Year Billable Percentage
+  - YTD Average Rate
+  - Last Year Average Rate
+- [x] Monthly productivity chart (billable percentage)
+- [x] Total hours chart
+- [x] Standard hours chart
+- [x] Capacity reducing chart
+- [x] Productivity by Client Groups table
+- [x] Productivity by Staff table
+- [x] Filter by Partner, Client Manager, Client Group, Staff
+- [x] Date range selection
+- [x] CSV export
+
+#### 3.5.6 Recoverability Report
+- [x] Recoverability KPI cards:
+  - Current Year Amount
+  - Last Year Amount
+  - Percentage Change
+  - Current Year Percentage
+  - Last Year Percentage
+- [x] Monthly recoverability chart
+- [x] Recoverability by Client Groups table
+- [x] Filter by Partner, Client Manager, Client Group
+- [x] Saved filters functionality
+- [x] Date range selection
+- [x] CSV export
+
+### 3.6 Staff Management
+- [x] Staff list with settings
+- [x] Target billable rate configuration
+- [x] Staff job title and team assignment
+- [x] Staff email and report configuration
+- [x] Staff visibility control (is_hidden flag)
+- [x] Effective date ranges for staff settings
+
+### 3.7 Data Export
+- [x] Export reports as CSV
 - [ ] Export reports as PDF (optional)
-- [ ] Custom date range export
+- [x] Custom date range export
+- [x] Filtered data export
 
-### 3.6 Settings and Configuration
-- [ ] Organization settings (name, timezone, etc.)
+### 3.8 Settings and Configuration
+- [x] Organization settings (name, etc.)
+- [x] Member management
+- [x] Staff settings management
+- [x] Xero connection management
 - [ ] Sync frequency configuration
 - [ ] Report preference settings
 - [ ] Notification settings (optional)
@@ -100,19 +179,25 @@ Build a multi-tenant SaaS platform that provides accounting firms with analytics
 ## 4. Technical Architecture
 
 ### 4.1 Frontend Tech Stack
-- **Framework**: Next.js 14+ (App Router)
+- **Framework**: Next.js 15+ (App Router)
 - **Language**: TypeScript
 - **UI Library**: React 18+
 - **Charting Library**: Recharts
 - **Styling**: Tailwind CSS
-- **State Management**: React Context / Zustand (if needed)
+- **Component Library**: shadcn/ui
+- **State Management**: React Context / Server Components
+- **Data Fetching**: SWR (stale-while-revalidate)
 - **Form Handling**: React Hook Form + Zod
+- **Date Handling**: date-fns
+- **CSV Export**: papaparse
+- **PDF Export**: jspdf + html2canvas
 
 ### 4.2 Backend Tech Stack
 - **Runtime**: Node.js
 - **Framework**: Next.js API Routes
 - **SDK**: xero-node (Official Xero SDK)
-- **Database Client**: @supabase/supabase-js
+- **Database Client**: @supabase/supabase-js, @supabase/ssr
+- **HTTP Client**: axios
 
 ### 4.3 Database and Infrastructure
 - **Database**: Supabase PostgreSQL
@@ -145,6 +230,7 @@ create table organization_members (
   user_id uuid references auth.users(id) on delete cascade,
   role text not null default 'viewer', -- 'admin', 'member', 'viewer'
   created_at timestamptz default now(),
+  updated_at timestamptz default now(),
   unique(organization_id, user_id)
 );
 
@@ -163,15 +249,27 @@ create table xero_connections (
 );
 ```
 
-### 5.2 XPM Data Tables
-Refer to table structures in `XPM_SYNC_ARCHITECTURE.md`. All tables need:
+### 5.2 Data Upload Tables
+- `timesheet_uploads` - Timesheet CSV uploads
+- `wip_timesheet_uploads` - WIP timesheet CSV uploads
+- `recoverability_timesheet_uploads` - Recoverability timesheet CSV uploads
+- `invoice_uploads` - Invoice CSV uploads
+
+### 5.3 Staff Settings Table
+- `staff_settings` - Staff configuration including target billable rates, job titles, teams, email, report settings, and effective date ranges
+
+### 5.4 Saved Filters Tables
+- `saved_filters` - User-saved filter configurations for reports (billable, recoverability)
+
+### 5.5 XPM Data Tables
+Refer to table structures in migration files. All tables need:
 - `organization_id` field (linked to organizations)
-- `xpm_id` field (XPM original ID)
+- `xpm_id` field (XPM original ID, if synced from XPM)
 - `tenant_id` field (Xero tenant ID, for sync)
-- `raw_data jsonb` field (store complete JSON)
+- `raw_data jsonb` field (store complete JSON, if applicable)
 - `created_at`, `updated_at` timestamps
 
-Main tables:
+Main tables (if XPM sync is implemented):
 - `xpm_clients`
 - `xpm_client_groups`
 - `xpm_jobs`
@@ -186,30 +284,11 @@ Main tables:
 - `xpm_custom_fields`
 - `xpm_templates`
 
-### 5.3 Sync Metadata Table
-```sql
-create table xpm_sync_metadata (
-  id uuid primary key default gen_random_uuid(),
-  organization_id uuid references organizations(id) on delete cascade,
-  tenant_id text not null,
-  table_name text not null,
-  last_sync_at timestamptz not null,
-  last_sync_status text, -- 'success', 'failed', 'partial'
-  last_sync_count integer,
-  next_sync_at timestamptz,
-  sync_frequency text, -- 'hourly', 'daily', 'weekly', 'monthly'
-  error_message text,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now(),
-  unique(organization_id, tenant_id, table_name)
-);
-```
-
-### 5.4 Row Level Security (RLS) Policies
+### 5.6 Row Level Security (RLS) Policies
 All tables enable RLS. Policy example:
 ```sql
 -- Users can only access data from their own organization
-create policy "users_access_own_org" on xpm_clients
+create policy "users_access_own_org" on timesheet_uploads
   for all using (
     organization_id in (
       select organization_id from organization_members
@@ -221,46 +300,90 @@ create policy "users_access_own_org" on xpm_clients
 ## 6. API Design
 
 ### 6.1 Authentication API
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/login` - User login (Supabase Auth)
-- `POST /api/auth/logout` - User logout
-- `GET /api/auth/session` - Get current session
+- `POST /api/auth/register` - User registration (handled by Supabase Auth)
+- `POST /api/auth/login` - User login (handled by Supabase Auth)
+- `POST /api/auth/logout` - User logout (handled by Supabase Auth)
+- Session management via Supabase SSR
 
 ### 6.2 Organization Management API
 - `GET /api/organizations` - Get list of user's organizations
 - `POST /api/organizations` - Create new organization
-- `GET /api/organizations/[id]` - Get organization details
-- `PUT /api/organizations/[id]` - Update organization settings
 - `GET /api/organizations/[id]/members` - Get organization members
-- `POST /api/organizations/[id]/members` - Invite member
+- `POST /api/organizations/[id]/members` - Add member
 - `DELETE /api/organizations/[id]/members/[userId]` - Remove member
+- `POST /api/org/set-active` - Set active organization
 
 ### 6.3 Xero Connection API
 - `GET /api/xero/connect?organizationId=xxx` - Initiate OAuth connection
 - `GET /api/xero/callback` - OAuth callback handling
 - `GET /api/xero/connections?organizationId=xxx` - Get connection list
 - `DELETE /api/xero/connections/[id]` - Disconnect connection
+- `POST /api/xero/refresh` - Refresh Xero token
 
 ### 6.4 Data Sync API
 - `POST /api/xpm/sync?organizationId=xxx&table=clients` - Manually trigger sync
 - `GET /api/xpm/sync/status?organizationId=xxx` - Get sync status
-- `GET /api/xpm/sync/history?organizationId=xxx` - Get sync history
 
-### 6.5 Data Query API
-- `GET /api/xpm/clients?organizationId=xxx&dateFrom=xxx&dateTo=xxx`
-- `GET /api/xpm/jobs?organizationId=xxx`
-- `GET /api/xpm/invoices?organizationId=xxx`
-- `GET /api/xpm/time-entries?organizationId=xxx`
-- `GET /api/xpm/staff?organizationId=xxx`
-- (Similar endpoints for other tables)
+### 6.5 Data Upload API
+- `POST /api/timesheet/upload` - Upload timesheet CSV
+- `GET /api/timesheet/last-upload` - Get last upload date
+- `POST /api/wip-timesheet/upload` - Upload WIP timesheet CSV
+- `GET /api/wip/last-upload` - Get last WIP upload date
+- `POST /api/recoverability-timesheet/upload` - Upload recoverability timesheet CSV
+- `GET /api/recoverability/last-upload` - Get last recoverability upload date
+- `POST /api/invoice/upload` - Upload invoice CSV
+- `GET /api/invoice/last-upload` - Get last invoice upload date
 
-### 6.6 Reports API
-- `GET /api/reports/revenue?organizationId=xxx&dateFrom=xxx&dateTo=xxx`
-- `GET /api/reports/productivity?organizationId=xxx`
-- `GET /api/reports/projects?organizationId=xxx`
-- `GET /api/reports/clients?organizationId=xxx`
-- `GET /api/reports/costs?organizationId=xxx`
-- `GET /api/reports/dashboard?organizationId=xxx` - Dashboard overview data
+### 6.6 Staff Management API
+- `GET /api/staff/target-billable` - Get staff target billable settings
+- `POST /api/staff/target-billable` - Update staff target billable settings
+
+### 6.7 Dashboard API
+- `GET /api/dashboard/kpi` - Get dashboard KPI data
+- `GET /api/dashboard/revenue-by-client-group` - Get revenue by client group
+- `GET /api/dashboard/revenue-by-partner` - Get revenue by partner
+- `GET /api/dashboard/billable-by-client-group` - Get billable by client group
+- `GET /api/dashboard/billable-by-partner` - Get billable by partner
+- `GET /api/dashboard/staff-performance` - Get staff performance data
+
+### 6.8 Reports API
+
+#### Revenue
+- `GET /api/revenue/monthly` - Get monthly revenue data
+- `GET /api/revenue/client-groups` - Get revenue by client groups
+
+#### Billable
+- `GET /api/billable/monthly` - Get monthly billable data
+- `GET /api/billable/client-groups` - Get billable by client groups
+- `GET /api/billable/partners` - Get billable by partners
+- `GET /api/billable/client-managers` - Get billable by client managers
+- `GET /api/billable/staff` - Get billable by staff
+- `GET /api/billable/filter-options` - Get filter options
+- `GET /api/billable/saved-filters` - Get saved filters
+- `POST /api/billable/saved-filters` - Save filter
+
+#### Work In Progress
+- `GET /api/wip/client-groups` - Get WIP by client groups
+- `GET /api/wip/by-partner` - Get WIP by partners
+- `GET /api/wip/by-client-manager` - Get WIP by client managers
+- `GET /api/wip/aging-summary` - Get WIP aging summary
+- `GET /api/wip/last-upload` - Get last WIP upload date
+
+#### Productivity
+- `GET /api/productivity/kpi` - Get productivity KPI data
+- `GET /api/productivity/monthly` - Get monthly productivity data
+- `GET /api/productivity/client-groups` - Get productivity by client groups
+- `GET /api/productivity/staff` - Get productivity by staff
+- `GET /api/productivity/standard-hours/monthly` - Get standard hours monthly data
+- `GET /api/productivity/capacity-reducing/monthly` - Get capacity reducing monthly data
+
+#### Recoverability
+- `GET /api/recoverability/kpi` - Get recoverability KPI data
+- `GET /api/recoverability/monthly` - Get monthly recoverability data
+- `GET /api/recoverability/client-groups` - Get recoverability by client groups
+- `GET /api/recoverability/filter-options` - Get filter options
+- `GET /api/recoverability/saved-filters` - Get saved filters
+- `POST /api/recoverability/saved-filters` - Save filter
 
 ## 7. UI/UX Requirements
 
@@ -269,33 +392,44 @@ create policy "users_access_own_org" on xpm_clients
 / (Home/Login)
 ├── /dashboard (Dashboard Overview)
 ├── /reports
-│   ├── /revenue
-│   ├── /billable
-│   ├── /workinprogress
-│   ├── /productivity
+│   ├── /revenue (Revenue/Invoice Report)
+│   ├── /billable (Billable Report)
+│   ├── /workinprogress (Work In Progress Report)
+│   ├── /productivity (Productivity Analytics)
+│   └── /recoverability (Recoverability Report)
 ├── /settings
 │   ├── /organisation (Organisation Settings)
+│   ├── /members (Member Management)
+│   ├── /staff (Staff Settings)
 │   ├── /xero (Xero Connection Management)
 │   ├── /sync (Sync Settings)
-│   └── /members (Member Management)
+│   ├── /timesheet (Timesheet Upload)
+│   ├── /wip-timesheet (WIP Timesheet Upload)
+│   ├── /recoverability-timesheet (Recoverability Timesheet Upload)
+│   └── /invoice (Invoice Upload)
 └── /profile (User Profile)
 ```
 
 ### 7.2 Design Principles
 - **Responsive Design**: Support desktop, tablet, mobile devices
-- **Modern UI**: Clean, professional, user-friendly
+- **Modern UI**: Clean, professional, user-friendly using shadcn/ui components
 - **Data Visualization**: Use Recharts to create clear, meaningful charts
 - **Loading States**: Show loading states for all async operations
 - **Error Handling**: Friendly error messages and handling
+- **Consistent Navigation**: Sidebar navigation with clear sections
 
 ### 7.3 Key UI Components
-- Navigation bar (sidebar)
+- Navigation sidebar with sections (Dashboard, Reports, Settings, Upload)
 - Data tables (with sorting, filtering, pagination)
 - Chart components (using Recharts)
-- KPI cards
-- Date picker
-- Export buttons
+- KPI cards with percentage changes
+- Date picker and date range selector
+- Filter components (Partner, Client Manager, Client Group, Staff)
+- Export buttons (CSV)
+- Upload forms with file validation
 - Sync status indicator
+- Organization selector
+- User menu
 
 ## 8. Security Requirements
 
@@ -304,18 +438,21 @@ create policy "users_access_own_org" on xpm_clients
 - Use Supabase Auth JWT tokens
 - RLS policies ensure data isolation
 - Users can only access data from their own organization
+- Role-based access control for admin/member/viewer
 
 ### 8.2 Data Security
 - Xero tokens encrypted storage (AES-256-GCM)
 - Service Role key used only on server-side
 - All API calls use HTTPS
 - Sensitive data not logged
+- File upload validation and sanitization
 
 ### 8.3 API Security
-- Rate limiting
+- Rate limiting (to be implemented)
 - Input validation and sanitization
 - SQL injection protection (use parameterized queries)
 - XSS protection
+- CSV file validation for uploads
 
 ## 9. Performance Requirements
 
@@ -331,80 +468,86 @@ create policy "users_access_own_org" on xpm_clients
 ### 9.3 Scalability
 - Support at least 100 organizations (initial target)
 - Each organization supports at least 10,000 records
-- Database query optimization (indexes, materialized views)
+- Database query optimization (indexes, materialized views, aggregation functions)
 
-## 10. Implementation Plan
+## 10. Implementation Status
 
-### Phase 1: Foundation (Week 1-2)
-- [ ] Set up Supabase project and database
-- [ ] Create database table structures (users, organizations, XPM tables)
-- [ ] Implement Supabase Auth integration
-- [ ] Implement basic RLS policies
-- [ ] Set up development environment
+### Phase 1: Foundation ✅
+- [x] Set up Supabase project and database
+- [x] Create database table structures (users, organizations, upload tables)
+- [x] Implement Supabase Auth integration
+- [x] Implement basic RLS policies
+- [x] Set up development environment
 
-### Phase 2: Xero Connection (Week 3)
-- [ ] Implement Xero OAuth 2.0 flow
-- [ ] Token encryption storage and automatic refresh
-- [ ] Connection management UI
-- [ ] Multi-organization connection support
+### Phase 2: Xero Connection ✅
+- [x] Implement Xero OAuth 2.0 flow
+- [x] Token encryption storage and automatic refresh
+- [x] Connection management UI
+- [x] Multi-organization connection support
 
-### Phase 3: Data Synchronization (Week 4-5)
-- [ ] Implement incremental sync logic
-- [ ] Implement sync for all 13 tables
-- [ ] Sync status monitoring and logging
-- [ ] Error handling and retry mechanism
-- [ ] Scheduled task setup (Vercel Cron or similar)
+### Phase 3: Data Upload ✅
+- [x] Implement CSV upload for timesheets
+- [x] Implement CSV upload for WIP timesheets
+- [x] Implement CSV upload for recoverability timesheets
+- [x] Implement CSV upload for invoices
+- [x] Upload history tracking
 
-### Phase 4: Dashboards and Reports (Week 6-8)
-- [ ] Overview dashboard
-- [ ] Revenue analytics reports
-- [ ] Productivity analytics reports
-- [ ] Project management reports
-- [ ] Client analytics reports
-- [ ] Cost analytics reports
-- [ ] Implement all charts using Recharts
+### Phase 4: Dashboards and Reports ✅
+- [x] Overview dashboard with KPIs
+- [x] Revenue analytics reports
+- [x] Billable analytics reports
+- [x] Productivity analytics reports
+- [x] Work In Progress reports
+- [x] Recoverability reports
+- [x] Implement all charts using Recharts
+- [x] CSV export functionality
 
-### Phase 5: User Management (Week 9)
-- [ ] Organization creation and management
-- [ ] Member invitation and management
-- [ ] Role and permission management
-- [ ] User settings page
+### Phase 5: User Management ✅
+- [x] Organization creation and management
+- [x] Member invitation and management
+- [x] Role and permission management
+- [x] Staff settings management
 
-### Phase 6: Optimization and Testing (Week 10-11)
-- [ ] Performance optimization
-- [ ] Error handling improvements
+### Phase 6: Data Synchronization (Partial)
+- [x] Manual sync trigger functionality
+- [x] Sync status monitoring
+- [ ] Automatic incremental sync (scheduled)
+- [ ] Sync for all 13 XPM tables
+- [ ] Sync error handling and retry mechanism
+- [ ] Sync history records
+
+### Phase 7: Optimization and Testing (Ongoing)
+- [x] Performance optimization (indexes, aggregation functions)
+- [x] Error handling improvements
 - [ ] Unit tests and integration tests
-- [ ] User experience optimization
+- [x] User experience optimization
 - [ ] Security audit
-
-### Phase 7: Beta Testing (Week 12)
-- [ ] Deploy to production environment
-- [ ] Beta user testing (developer's accounting firm)
-- [ ] Collect feedback
-- [ ] Bug fixes
 
 ## 11. Success Metrics
 
 ### 11.1 Technical Metrics
-- Data sync success rate > 99%
+- Data upload success rate > 99%
 - API availability > 99.5%
 - Average response time < 1 second
 
 ### 11.2 Business Metrics
 - Beta user satisfaction > 4/5
 - Daily active users count
-- Data sync frequency (automatic sync execution count)
+- Data upload frequency
+- Report usage statistics
 
 ## 12. Risks and Mitigation
 
 ### 12.1 Technical Risks
 - **Xero API Changes**: Regularly monitor Xero API updates and adapt promptly
-- **Data Sync Failures**: Implement retry mechanism and alerts
+- **Data Upload Failures**: Implement validation and error handling
 - **Performance Bottlenecks**: Database index optimization, query optimization, caching strategy
+- **CSV Format Variations**: Robust CSV parsing with error handling
 
 ### 12.2 Business Risks
 - **Low User Adoption**: Collect feedback through Beta testing, rapid iteration
 - **Data Privacy Issues**: Strictly comply with data protection regulations, clear privacy policy
+- **Data Quality**: Validate uploaded data and provide clear error messages
 
 ## 13. Future Expansion
 
@@ -413,11 +556,16 @@ create policy "users_access_own_org" on xpm_clients
 - Report scheduling and email delivery
 - Mobile application (React Native)
 - More data source integrations (beyond XPM)
+- Advanced filtering and search
+- Data visualization customization
 
 ### 13.2 Technical Expansion
 - Real-time data updates (WebSocket)
 - Advanced analytics (machine learning predictions)
 - Data warehouse integration (for long-term analysis)
+- Automated XPM sync scheduling
+- PDF export functionality
+- Bulk data operations
 
 ## 14. Dependencies and Assumptions
 
@@ -425,14 +573,16 @@ create policy "users_access_own_org" on xpm_clients
 - Xero Practice Manager API availability and stability
 - Supabase service availability
 - Vercel or other deployment platform
+- CSV file format compliance from users
 
 ### 14.2 Assumptions
-- Users already have Xero Practice Manager accounts
+- Users can provide data in CSV format for manual uploads
 - Users are familiar with basic accounting and project management concepts
 - Initial phase primarily serves accounting firms (expandable in the future)
+- Users have access to Xero Practice Manager (for API sync) or can export data as CSV
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: 2025-12-22  
-**Status**: Draft
+**Document Version**: 2.0  
+**Last Updated**: 2025-01-27  
+**Status**: Active Development
