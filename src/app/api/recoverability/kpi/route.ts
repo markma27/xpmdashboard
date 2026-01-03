@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireOrg } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
+import { formatDateLocal } from '@/lib/utils'
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,16 +39,16 @@ export async function GET(request: NextRequest) {
     const lastFYStartYear = currentFYStartYear - 1
     const lastFYEndYear = currentFYStartYear
     
-    // Format dates as YYYY-MM-DD
+    // Format dates as YYYY-MM-DD (using local timezone)
     // For "same time" comparison, use selected date for current year
     const currentYearStart = `${currentFYStartYear}-07-01`
-    const currentYearEnd = asOfDate.toISOString().split('T')[0] // Selected date
+    const currentYearEnd = formatDateLocal(asOfDate) // Selected date
     
     // For last year "same time", calculate the same day last year
     // But ensure it doesn't exceed last year's financial year end (June 30)
     const lastYearSameDate = new Date(asOfDate)
     lastYearSameDate.setFullYear(lastYearSameDate.getFullYear() - 1)
-    const lastYearEndDate = lastYearSameDate.toISOString().split('T')[0]
+    const lastYearEndDate = formatDateLocal(lastYearSameDate)
     const lastYearFYEnd = `${lastFYEndYear}-06-30`
     // Use the earlier of last year same date or last year FY end
     const lastYearEnd = lastYearEndDate <= lastYearFYEnd ? lastYearEndDate : lastYearFYEnd

@@ -85,8 +85,8 @@ export function WIPAgingCharts({
   if (error) {
     return (
       <Card className="shadow-sm border-slate-200">
-        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
-          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">WIP Aging Charts</CardTitle>
+        <CardHeader className="py-1.5 px-3 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <CardTitle className="text-base font-bold text-slate-800 tracking-tight">WIP Aging Charts</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[400px]">
@@ -101,8 +101,8 @@ export function WIPAgingCharts({
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="shadow-sm border-slate-200">
-          <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
-            <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">WIP Aging by Percentage</CardTitle>
+          <CardHeader className="py-1.5 px-3 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+            <CardTitle className="text-base font-bold text-slate-800 tracking-tight">WIP Aging by Percentage</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center h-[400px]">
@@ -111,8 +111,8 @@ export function WIPAgingCharts({
           </CardContent>
         </Card>
         <Card className="shadow-sm border-slate-200">
-          <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
-            <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">WIP Aging by Amount</CardTitle>
+          <CardHeader className="py-1.5 px-3 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+            <CardTitle className="text-base font-bold text-slate-800 tracking-tight">WIP Aging by Amount</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center h-[400px]">
@@ -127,16 +127,16 @@ export function WIPAgingCharts({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
-        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
-          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">WIP Aging by Percentage</CardTitle>
+        <CardHeader className="py-1.5 px-3 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <CardTitle className="text-base font-bold text-slate-800 tracking-tight">WIP Aging by Percentage</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
           <WIPAgingPieChart data={data} />
         </CardContent>
       </Card>
       <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
-        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
-          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">WIP Aging by Amount</CardTitle>
+        <CardHeader className="py-1.5 px-3 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <CardTitle className="text-base font-bold text-slate-800 tracking-tight">WIP Aging by Amount</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
           <WIPAgingBarChart data={data} />

@@ -90,8 +90,8 @@ export function WIPChartsClient({
   if (error) {
     return (
       <Card className="shadow-sm border-slate-200">
-        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
-          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">WIP Charts</CardTitle>
+        <CardHeader className="py-1.5 px-3 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <CardTitle className="text-base font-bold text-slate-800 tracking-tight">WIP Charts</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[400px]">
@@ -105,8 +105,8 @@ export function WIPChartsClient({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
-        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
-          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">WIP by Partner</CardTitle>
+        <CardHeader className="py-1.5 px-3 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <CardTitle className="text-base font-bold text-slate-800 tracking-tight">WIP by Partner</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
           {partnerData.length === 0 ? (
@@ -119,8 +119,8 @@ export function WIPChartsClient({
         </CardContent>
       </Card>
       <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
-        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
-          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">WIP by Client Manager</CardTitle>
+        <CardHeader className="py-1.5 px-3 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <CardTitle className="text-base font-bold text-slate-800 tracking-tight">WIP by Client Manager</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
           {clientManagerData.length === 0 ? (

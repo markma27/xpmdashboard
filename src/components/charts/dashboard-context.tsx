@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, ReactNode } from 'react'
+import { getTodayLocal } from '@/lib/utils'
 
 interface DashboardContextValue {
   displayDate: string
@@ -12,7 +13,7 @@ interface DashboardContextValue {
 const DashboardContext = createContext<DashboardContextValue | undefined>(undefined)
 
 export function DashboardProvider({ children }: { children: ReactNode }) {
-  const today = new Date().toISOString().split('T')[0]
+  const today = getTodayLocal()
   const [displayDate, setDisplayDate] = useState(today)
   const [activeDate, setActiveDate] = useState(today)
 

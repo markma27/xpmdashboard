@@ -79,47 +79,47 @@ function KPICard({
     <Card className="overflow-hidden shadow-sm border-slate-200 bg-white transition-all duration-200 hover:shadow-md hover:border-slate-300">
       <CardContent className="p-0">
         {/* Title */}
-        <div className="py-2 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
-          <span className="text-lg font-bold text-slate-900">
+        <div className="py-1.5 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <span className="text-base font-bold text-slate-900">
             {title}
           </span>
         </div>
 
         {/* Current Year Value */}
-        <div className="py-5 text-center">
+        <div className="py-3 text-center">
           <span className={cn(
-            "text-3xl font-bold tracking-tight",
+            "text-xl font-bold tracking-tight",
             isNegative ? "text-red-600" : "text-slate-900"
           )}>
             {currentValue}
           </span>
         </div>
 
-        <div className="px-4 pb-4">
-          <div className="border-t border-slate-100 pt-3 flex flex-col md:flex-row md:items-center gap-1 md:gap-0">
+        <div className="px-2.5 pb-2.5">
+          <div className="border-t border-slate-100 pt-2 flex flex-col md:flex-row md:items-center gap-1 md:gap-0">
             {/* Last Year Text - Stack date below on tablet */}
-            <div className="text-sm font-medium text-slate-500 flex flex-col md:flex-row md:items-center flex-1">
+            <div className="text-xs font-medium text-slate-500 flex flex-col md:flex-row md:items-center flex-1 min-w-0">
               <span className="whitespace-nowrap">Last Year</span>
               {lastYearDate && (
-                <span className="text-[9px] md:text-[10px] text-slate-400 md:ml-1 whitespace-nowrap">(YTD to {lastYearDate})</span>
+                <span className="text-[8px] md:text-[9px] text-slate-400 md:ml-1 whitespace-nowrap">(YTD to {lastYearDate})</span>
               )}
             </div>
 
             {/* Last Year Value */}
-            <div className="flex items-center justify-start md:justify-center md:border-l md:border-slate-100 md:pl-4 md:pr-4 md:min-w-[120px] md:self-stretch">
-              <span className="text-sm font-medium text-slate-500">{lastYearValue}</span>
+            <div className="flex items-center justify-start md:justify-center md:border-l md:border-slate-100 md:pl-2.5 md:pr-2.5 md:min-w-[90px] md:self-stretch">
+              <span className="text-xs font-medium text-slate-500">{lastYearValue}</span>
             </div>
 
             {/* Percentage Change */}
             {percentageChange !== null && (
-              <div className="flex items-center justify-start md:justify-center gap-1.5 md:border-l md:border-slate-100 md:pl-4 md:self-stretch">
+              <div className="flex items-center justify-start md:justify-center gap-1 md:border-l md:border-slate-100 md:pl-2.5 md:pr-2 md:self-stretch min-w-0">
                 {isPositiveChange ? (
-                  <ArrowUp className="h-4 w-4 text-emerald-500 fill-emerald-500" />
+                  <ArrowUp className="h-3 w-3 text-emerald-500 fill-emerald-500 flex-shrink-0" />
                 ) : (
-                  <ArrowDown className="h-4 w-4 text-red-500 fill-red-500" />
+                  <ArrowDown className="h-3 w-3 text-red-500 fill-red-500 flex-shrink-0" />
                 )}
                 <span className={cn(
-                  "text-base font-bold",
+                  "text-sm font-bold whitespace-nowrap",
                   isPositiveChange ? "text-emerald-500" : "text-red-500"
                 )}>
                   {isPositiveChange ? '+' : ''}{percentageChange.toFixed(1)}%
@@ -135,18 +135,18 @@ function KPICard({
 
 function KPICardSkeleton() {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+    <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
       {[1, 2, 3, 4, 5, 6].map((i) => (
         <Card key={i} className="overflow-hidden border-slate-200 shadow-sm">
           <CardContent className="p-0">
             {/* Title Skeleton */}
-            <div className="py-2 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
-              <div className="h-5 w-24 bg-muted animate-pulse rounded" />
+            <div className="py-1.5 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+              <div className="h-4 w-20 bg-muted animate-pulse rounded" />
             </div>
-            <div className="py-5 text-center">
-              <div className="h-9 w-40 bg-muted animate-pulse rounded mx-auto" />
+            <div className="py-3 text-center">
+              <div className="h-6 w-24 bg-muted animate-pulse rounded mx-auto" />
             </div>
-            <div className="px-4 pb-4">
+            <div className="px-2.5 pb-2.5">
               <div className="border-t border-slate-100 pt-3 flex items-center justify-between">
                 <div className="h-4 w-32 bg-muted animate-pulse rounded" />
                 <div className="h-5 w-16 bg-muted animate-pulse rounded" />
@@ -261,7 +261,7 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
 
   if (hasError || !dashboardData || !productivityData || !recoverabilityData) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-2.5 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Error</CardTitle>
@@ -294,7 +294,7 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
     : null
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+    <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
       {/* Total Invoice $ Card */}
       <KPICard 
         title="Invoice $"

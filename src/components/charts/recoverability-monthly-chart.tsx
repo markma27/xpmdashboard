@@ -107,7 +107,7 @@ export function RecoverabilityMonthlyChart({ data, selectedMonth, onMonthClick }
   }
 
   return (
-    <ResponsiveContainer width="100%" height={320}>
+    <ResponsiveContainer width="100%" height={260}>
       <RechartsBarChart
         data={data}
         margin={{ top: 30, right: 30, left: 5, bottom: 10 }}

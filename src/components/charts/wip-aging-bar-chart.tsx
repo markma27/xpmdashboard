@@ -55,7 +55,7 @@ export function WIPAgingBarChart({ data }: WIPAgingBarChartProps) {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={320}>
+    <ResponsiveContainer width="100%" height={260}>
       <RechartsBarChart
         data={chartData}
         margin={{ top: 30, right: 30, left: 5, bottom: 10 }}

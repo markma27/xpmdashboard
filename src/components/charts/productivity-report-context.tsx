@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { getTodayLocal } from '@/lib/utils'
 
 interface ProductivityReportContextValue {
   displayDate: string
@@ -25,7 +26,7 @@ export function ProductivityReportProvider({
   organizationId: string
   children: ReactNode 
 }) {
-  const today = new Date().toISOString().split('T')[0]
+  const today = getTodayLocal()
   const [displayDate, setDisplayDate] = useState(today)
   const [activeDate, setActiveDate] = useState(today)
   const [displayStaff, setDisplayStaff] = useState<string | null>(null)

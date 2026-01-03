@@ -13,7 +13,7 @@ export function DashboardContainer({ organizationId }: DashboardContainerProps) 
   const { activeDate } = useDashboard()
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <DashboardKPICards organizationId={organizationId} asOfDate={activeDate} />
 
       <DashboardPartnerChartsClient organizationId={organizationId} asOfDate={activeDate} />

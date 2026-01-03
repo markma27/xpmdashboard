@@ -106,11 +106,11 @@ export function DashboardBillableByClientGroupChart({ data, loading }: Dashboard
 
   return (
     <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
-      <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
-        <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Top 10 Billable by Client Group</CardTitle>
+      <CardHeader className="py-1.5 px-3 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+        <CardTitle className="text-base font-bold text-slate-800 tracking-tight">Top 10 Billable by Client Group</CardTitle>
       </CardHeader>
       <CardContent className="px-2 pb-2">
-        <ResponsiveContainer width="100%" height={400}>
+        <ResponsiveContainer width="100%" height={320}>
           <RechartsBarChart
             data={data}
             layout="vertical"

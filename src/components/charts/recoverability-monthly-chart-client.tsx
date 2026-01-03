@@ -73,8 +73,8 @@ export function RecoverabilityMonthlyChartClient({
   if (error) {
     return (
       <Card className="shadow-sm border-slate-200">
-        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
-          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Monthly Write On / (Off) $</CardTitle>
+        <CardHeader className="py-1.5 px-3 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <CardTitle className="text-base font-bold text-slate-800 tracking-tight">Monthly Write On / (Off) $</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[400px]">
@@ -88,8 +88,8 @@ export function RecoverabilityMonthlyChartClient({
   if (data.length === 0) {
     return (
       <Card className="shadow-sm border-slate-200">
-        <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
-          <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Monthly Write On / (Off) $</CardTitle>
+        <CardHeader className="py-1.5 px-3 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+          <CardTitle className="text-base font-bold text-slate-800 tracking-tight">Monthly Write On / (Off) $</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[400px]">
@@ -104,8 +104,8 @@ export function RecoverabilityMonthlyChartClient({
 
   return (
     <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
-      <CardHeader className="py-2 px-6 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
-        <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Monthly Write On / (Off) $</CardTitle>
+      <CardHeader className="py-1.5 px-3 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+        <CardTitle className="text-base font-bold text-slate-800 tracking-tight">Monthly Write On / (Off) $</CardTitle>
       </CardHeader>
       <CardContent className="pt-4">
         <RecoverabilityMonthlyChart 

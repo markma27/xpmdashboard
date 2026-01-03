@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireOrg } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
+import { formatDateLocal } from '@/lib/utils'
 
 /**
  * Convert time value from timesheet format to hours
@@ -85,10 +86,10 @@ export async function GET(request: NextRequest) {
     const lastFYStartYear = currentFYStartYear - 1
     const lastFYEndYear = currentFYStartYear
     
-    // Format dates as YYYY-MM-DD
+    // Format dates as YYYY-MM-DD (using local timezone)
     // For "same time" comparison, use selected date for current year
     const currentYearStart = `${currentFYStartYear}-07-01`
-    const currentYearEnd = asOfDate.toISOString().split('T')[0] // Selected date
+    const currentYearEnd = formatDateLocal(asOfDate) // Selected date
     
     // For last year, always use full financial year (July to June)
     const lastYearStart = `${lastFYStartYear}-07-01`

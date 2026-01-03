@@ -116,19 +116,19 @@ export function DashboardPartnerChartsClient({ organizationId, asOfDate }: Dashb
 
   if (error) {
     return (
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-2.5 md:grid-cols-2">
         <div className="text-sm text-destructive">{error}</div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2">
+    <div className="space-y-2.5">
+      <div className="grid gap-2.5 md:grid-cols-2">
         <DashboardRevenueByPartnerChart data={revenueData} loading={loading} />
         <DashboardBillableByPartnerChart data={billableData} loading={loading} />
       </div>
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-2.5 md:grid-cols-2">
         <DashboardRevenueByClientGroupChart data={clientGroupRevenueData} loading={loading} />
         <DashboardBillableByClientGroupChart data={clientGroupBillableData} loading={loading} />
       </div>
