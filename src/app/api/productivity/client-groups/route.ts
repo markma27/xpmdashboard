@@ -138,7 +138,9 @@ export async function GET(request: NextRequest) {
           }
         })
         if (staffFilterValue) {
-          query = query.eq('staff', staffFilterValue)
+          // Use ilike for case-insensitive matching and handle potential whitespace issues
+          const trimmedStaffFilter = staffFilterValue.trim()
+          query = query.ilike('staff', trimmedStaffFilter)
         }
         
         // Apply additional filters (same logic as Billable page)

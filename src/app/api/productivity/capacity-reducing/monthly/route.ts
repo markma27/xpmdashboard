@@ -80,8 +80,10 @@ export async function GET(request: NextRequest) {
           .lte('date', endDate)
         
         // Apply staff filter if provided
+        // Use ilike for case-insensitive matching and handle potential whitespace issues
         if (staffFilter) {
-          query = query.eq('staff', staffFilter)
+          const trimmedStaffFilter = staffFilter.trim()
+          query = query.ilike('staff', trimmedStaffFilter)
         }
         
         const { data: pageData, error: pageError } = await query

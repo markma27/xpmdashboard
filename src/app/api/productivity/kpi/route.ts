@@ -133,7 +133,9 @@ export async function GET(request: NextRequest) {
           }
         })
         if (staffFilterValue) {
-          query = query.eq('staff', staffFilterValue)
+          // Use ilike for case-insensitive matching and handle potential whitespace issues
+          const trimmedStaffFilter = staffFilterValue.trim()
+          query = query.ilike('staff', trimmedStaffFilter)
         }
         
         // Apply additional filters (same logic as Billable page)
@@ -427,7 +429,9 @@ export async function GET(request: NextRequest) {
           .lte('date', endDate)
         
         if (staffFilter) {
-          query = query.eq('staff', staffFilter)
+          // Use ilike for case-insensitive matching and handle potential whitespace issues
+          const trimmedStaffFilter = staffFilter.trim()
+          query = query.ilike('staff', trimmedStaffFilter)
         }
         
         const { data: pageData, error: pageError } = await query
@@ -508,7 +512,9 @@ export async function GET(request: NextRequest) {
         .eq('organization_id', organizationId)
       
       if (staffFilter) {
-        query = query.eq('staff_name', staffFilter)
+        // Use ilike for case-insensitive matching and handle potential whitespace issues
+        const trimmedStaffFilter = staffFilter.trim()
+        query = query.ilike('staff_name', trimmedStaffFilter)
       }
       
       const { data: pageData, error: pageError } = await query
