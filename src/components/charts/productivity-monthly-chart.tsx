@@ -115,7 +115,7 @@ export function ProductivityMonthlyChart({ data, selectedMonth, onMonthClick }: 
       >
         <XAxis 
           dataKey="month" 
-          tick={{ fontSize: 10, fill: '#64748b', fontWeight: 500 }}
+          tick={{ fontSize: 10, fill: '#64748b', fontWeight: 500, fontFamily: 'Inter, sans-serif' }}
           tickLine={false}
           axisLine={{ stroke: '#e2e8f0' }}
         />
@@ -150,7 +150,7 @@ export function ProductivityMonthlyChart({ data, selectedMonth, onMonthClick }: 
               // Show full hours without decimal places, with comma separator
               return Math.round(value).toLocaleString('en-US')
             }}
-            style={{ fontSize: '9px', fill: '#475569', fontWeight: 600 }}
+            style={{ fontSize: '9px', fill: '#475569', fontWeight: 600, fontFamily: 'Inter, sans-serif' }}
           />
         </Bar>
         <Bar 
@@ -178,7 +178,7 @@ export function ProductivityMonthlyChart({ data, selectedMonth, onMonthClick }: 
               // Show full hours without decimal places, with comma separator
               return Math.round(value).toLocaleString('en-US')
             }}
-            style={{ fontSize: '9px', fill: '#64748b', fontWeight: 600 }}
+            style={{ fontSize: '9px', fill: '#64748b', fontWeight: 600, fontFamily: 'Inter, sans-serif' }}
           />
         </Bar>
       </RechartsBarChart>

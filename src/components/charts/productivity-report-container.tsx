@@ -8,30 +8,44 @@ import { useProductivityReport } from './productivity-report-context'
 
 interface ProductivityReportContainerProps {
   organizationId: string
+  kpiCardsRef?: React.RefObject<HTMLDivElement>
+  monthlyHoursChartRef?: React.RefObject<HTMLDivElement>
+  monthlyPercentageChartRef?: React.RefObject<HTMLDivElement>
 }
 
-export function ProductivityReportContainer({ organizationId }: ProductivityReportContainerProps) {
+export function ProductivityReportContainer({ 
+  organizationId, 
+  kpiCardsRef,
+  monthlyHoursChartRef,
+  monthlyPercentageChartRef
+}: ProductivityReportContainerProps) {
   const { activeStaff, activeDate, selectedMonth, setSelectedMonth, setDisplayStaff } = useProductivityReport()
 
   return (
     <>
-      <ProductivityKPICards
-        organizationId={organizationId}
-        selectedStaff={activeStaff}
-        asOfDate={activeDate}
-      />
-      <ProductivityMonthlyChartClient 
-        organizationId={organizationId} 
-        selectedStaff={activeStaff}
-        selectedMonth={selectedMonth}
-        onMonthClick={setSelectedMonth}
-        asOfDate={activeDate}
-      />
-      <ProductivityPercentageChartClient 
-        organizationId={organizationId} 
-        selectedStaff={activeStaff}
-        asOfDate={activeDate}
-      />
+      <div ref={kpiCardsRef}>
+        <ProductivityKPICards
+          organizationId={organizationId}
+          selectedStaff={activeStaff}
+          asOfDate={activeDate}
+        />
+      </div>
+      <div ref={monthlyHoursChartRef}>
+        <ProductivityMonthlyChartClient 
+          organizationId={organizationId} 
+          selectedStaff={activeStaff}
+          selectedMonth={selectedMonth}
+          onMonthClick={setSelectedMonth}
+          asOfDate={activeDate}
+        />
+      </div>
+      <div ref={monthlyPercentageChartRef}>
+        <ProductivityPercentageChartClient 
+          organizationId={organizationId} 
+          selectedStaff={activeStaff}
+          asOfDate={activeDate}
+        />
+      </div>
       <ProductivityClientGroupsTable 
         organizationId={organizationId} 
         selectedStaff={activeStaff}

@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -11,12 +12,15 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useProductivityReport } from './productivity-report-context'
+import { useProductivityPDF } from './productivity-pdf-context'
 
 interface ProductivityReportHeaderProps {
   organizationName?: string
+  onDownloadPDF?: () => void
+  isGeneratingPDF?: boolean
 }
 
-export function ProductivityReportHeader({ organizationName }: ProductivityReportHeaderProps) {
+export function ProductivityReportHeader({ organizationName, onDownloadPDF, isGeneratingPDF }: ProductivityReportHeaderProps) {
   const {
     displayDate,
     setDisplayDate,
@@ -38,6 +42,52 @@ export function ProductivityReportHeader({ organizationName }: ProductivityRepor
   }
 
   const formattedDate = formatDate(lastUpdated || null)
+  const { kpiCardsRef } = useProductivityPDF()
+  const [buttonRightOffset, setButtonRightOffset] = useState<number | null>(null)
+  const headerRightRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const updateAlignment = () => {
+      if (kpiCardsRef.current && headerRightRef.current) {
+        const kpiContainer = kpiCardsRef.current
+        
+        // Get the third card (Average Hourly Rate $) - it's the last child in the grid
+        const gridElement = kpiContainer.querySelector('[class*="grid"]')
+        if (gridElement) {
+          const cards = gridElement.children
+          if (cards.length >= 3) {
+            const thirdCard = cards[2] as HTMLElement
+            const thirdCardRect = thirdCard.getBoundingClientRect()
+            const thirdCardRight = thirdCardRect.right
+            
+            // Get header right container position
+            const headerRightRect = headerRightRef.current.getBoundingClientRect()
+            const headerRight = headerRightRect.right
+            
+            // Calculate offset needed to align PDF button right edge with third card right edge
+            // If header right is to the right of card right, we need negative margin to move button left
+            // If header right is to the left of card right, we need positive margin to move button right
+            const offset = headerRight - thirdCardRight
+            setButtonRightOffset(-offset) // Negative because we want to move button in opposite direction
+          }
+        }
+      }
+    }
+
+    // Update on mount and resize
+    updateAlignment()
+    window.addEventListener('resize', updateAlignment)
+    
+    // Also update after a short delay to ensure KPI cards are rendered
+    const timeout = setTimeout(updateAlignment, 100)
+    const timeout2 = setTimeout(updateAlignment, 500) // Additional delay for slower renders
+
+    return () => {
+      window.removeEventListener('resize', updateAlignment)
+      clearTimeout(timeout)
+      clearTimeout(timeout2)
+    }
+  }, [kpiCardsRef])
 
   return (
     <div className="flex items-center justify-between">
@@ -57,7 +107,7 @@ export function ProductivityReportHeader({ organizationName }: ProductivityRepor
           </p>
         )}
       </div>
-      <div className="flex items-center gap-3">
+      <div ref={headerRightRef} className="flex items-center gap-3">
         <div className="flex items-center gap-2">
           <Label htmlFor="productivity-date" className="text-xs font-medium whitespace-nowrap text-slate-600 uppercase tracking-wider">
             Date:
@@ -100,6 +150,17 @@ export function ProductivityReportHeader({ organizationName }: ProductivityRepor
         >
           Update
         </Button>
+        {onDownloadPDF && (
+          <Button
+            onClick={onDownloadPDF}
+            size="sm"
+            disabled={isGeneratingPDF}
+            style={buttonRightOffset !== null ? { marginRight: `${buttonRightOffset}px` } : undefined}
+            className="bg-red-100 text-red-700 hover:bg-red-200 active:bg-red-300 active:scale-[0.98] transition-all duration-150 h-9 px-3 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isGeneratingPDF ? 'Generating PDF...' : 'Download PDF'}
+          </Button>
+        )}
       </div>
     </div>
   )

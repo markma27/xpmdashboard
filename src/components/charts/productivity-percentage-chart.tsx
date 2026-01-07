@@ -95,7 +95,7 @@ export function ProductivityPercentageChart({ data }: ProductivityPercentageChar
       >
         <XAxis 
           dataKey="month" 
-          tick={{ fontSize: 10, fill: '#64748b', fontWeight: 500 }}
+          tick={{ fontSize: 10, fill: '#64748b', fontWeight: 500, fontFamily: 'Inter, sans-serif' }}
           tickLine={false}
           axisLine={{ stroke: '#e2e8f0' }}
         />
@@ -120,7 +120,7 @@ export function ProductivityPercentageChart({ data }: ProductivityPercentageChar
               // Show percentage with 1 decimal place
               return `${value.toFixed(1)}%`
             }}
-            style={{ fontSize: '9px', fill: '#475569', fontWeight: 600 }}
+            style={{ fontSize: '9px', fill: '#475569', fontWeight: 600, fontFamily: 'Inter, sans-serif' }}
           />
         </Bar>
         <Bar 
@@ -138,7 +138,7 @@ export function ProductivityPercentageChart({ data }: ProductivityPercentageChar
               // Show percentage with 1 decimal place
               return `${value.toFixed(1)}%`
             }}
-            style={{ fontSize: '9px', fill: '#64748b', fontWeight: 600 }}
+            style={{ fontSize: '9px', fill: '#64748b', fontWeight: 600, fontFamily: 'Inter, sans-serif' }}
           />
         </Bar>
       </RechartsBarChart>
