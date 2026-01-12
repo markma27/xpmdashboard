@@ -40,17 +40,17 @@ export async function generateProductivityPDF({
   try {
     // Add header with title, date, and staff
     // Title on left - improved spacing
-    pdf.setFontSize(24)
+    pdf.setFontSize(18)
     pdf.setFont('helvetica', 'bold')
     const titleY = margin + 7
-    pdf.text('Productivity', margin, titleY)
+    pdf.text('Productivity Report', margin, titleY)
 
-    // Organization name (if provided) - on a new line below title with better spacing
+    // Organization name (if provided) - on a new line below title with reduced spacing
     if (organizationName) {
       pdf.setFontSize(12)
       pdf.setFont('helvetica', 'normal')
       pdf.setTextColor(100, 100, 100)
-      pdf.text(organizationName, margin, margin + 18)
+      pdf.text(organizationName, margin, margin + 12)
     }
 
     // Format date
@@ -88,7 +88,7 @@ export async function generateProductivityPDF({
     
     // Position date and staff on the right, aligned to the same right edge
     pdf.text(dateLabel, rightMargin - maxLabelWidth, margin + 7)
-    pdf.text(staffLabel, rightMargin - maxLabelWidth, margin + 18)
+    pdf.text(staffLabel, rightMargin - maxLabelWidth, margin + 12)
 
     // Reset text color
     pdf.setTextColor(0, 0, 0)
@@ -100,7 +100,7 @@ export async function generateProductivityPDF({
       logging: false,
       useCORS: true,
     })
-    const kpiImgData = kpiCanvas.toDataURL('image/png')
+    const kpiImgData = kpiCanvas.toDataURL('image/jpeg', 0.92)
     const kpiAspectRatio = kpiCanvas.width / kpiCanvas.height
     const kpiDisplayHeight = Math.min(contentWidth / kpiAspectRatio, 45)
     const kpiDisplayWidth = kpiDisplayHeight * kpiAspectRatio
@@ -108,7 +108,7 @@ export async function generateProductivityPDF({
     // Add KPI cards to PDF (centered)
     const kpiX = margin + (contentWidth - kpiDisplayWidth) / 2
     const kpiY = margin + headerHeight + 2
-    pdf.addImage(kpiImgData, 'PNG', kpiX, kpiY, kpiDisplayWidth, kpiDisplayHeight)
+    pdf.addImage(kpiImgData, 'JPEG', kpiX, kpiY, kpiDisplayWidth, kpiDisplayHeight)
 
     // Calculate remaining space for charts
     const remainingHeight = pdfHeight - margin - headerHeight - kpiDisplayHeight - spacing - margin
@@ -121,7 +121,7 @@ export async function generateProductivityPDF({
       logging: false,
       useCORS: true,
     })
-    const hoursImgData = hoursCanvas.toDataURL('image/png')
+    const hoursImgData = hoursCanvas.toDataURL('image/jpeg', 0.92)
     const hoursAspectRatio = hoursCanvas.width / hoursCanvas.height
     
     // Align chart width with KPI cards: use same width and X position
@@ -131,7 +131,7 @@ export async function generateProductivityPDF({
     // Add Monthly Billable Hours chart - aligned with KPI cards
     const hoursX = kpiX // Same X position as KPI cards
     const hoursY = kpiY + kpiDisplayHeight + spacing
-    pdf.addImage(hoursImgData, 'PNG', hoursX, hoursY, hoursDisplayWidth, hoursDisplayHeight)
+    pdf.addImage(hoursImgData, 'JPEG', hoursX, hoursY, hoursDisplayWidth, hoursDisplayHeight)
 
     // Capture Monthly Billable % chart
     const percentageCanvas = await html2canvas(monthlyPercentageChartElement, {
@@ -140,7 +140,7 @@ export async function generateProductivityPDF({
       logging: false,
       useCORS: true,
     })
-    const percentageImgData = percentageCanvas.toDataURL('image/png')
+    const percentageImgData = percentageCanvas.toDataURL('image/jpeg', 0.92)
     const percentageAspectRatio = percentageCanvas.width / percentageCanvas.height
     
     // Align chart width with KPI cards: use same width and X position
@@ -150,7 +150,7 @@ export async function generateProductivityPDF({
     // Add Monthly Billable % chart - aligned with KPI cards
     const percentageX = kpiX // Same X position as KPI cards
     const percentageY = hoursY + hoursDisplayHeight + spacing
-    pdf.addImage(percentageImgData, 'PNG', percentageX, percentageY, percentageDisplayWidth, percentageDisplayHeight)
+    pdf.addImage(percentageImgData, 'JPEG', percentageX, percentageY, percentageDisplayWidth, percentageDisplayHeight)
 
     // Generate filename
     const dateStr = date ? date : new Date().toISOString().split('T')[0]
