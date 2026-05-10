@@ -126,3 +126,44 @@ export function dashboardFiltersToBillableRpcParams(filters: DashboardKpiFilter[
   }
   return out
 }
+
+/** Non-staff dimensions only (for staff-performance timesheet aggregations that group by staff). */
+export type TimesheetSliceRpcParams = {
+  clientGroup: string | null
+  accountManager: string | null
+  jobManager: string | null
+  jobName: string | null
+  jobNameOperator: string | null
+}
+
+export function filtersToTimesheetSliceRpcParams(
+  filters: Array<{ type: string; value: string; operator?: string }>
+): TimesheetSliceRpcParams {
+  const out: TimesheetSliceRpcParams = {
+    clientGroup: null,
+    accountManager: null,
+    jobManager: null,
+    jobName: null,
+    jobNameOperator: null,
+  }
+  for (const f of filters) {
+    if (!f.value || f.value === 'all') continue
+    if (f.type === 'staff') continue
+    switch (f.type) {
+      case 'client_group':
+        out.clientGroup = f.value
+        break
+      case 'account_manager':
+        out.accountManager = f.value
+        break
+      case 'job_manager':
+        out.jobManager = f.value
+        break
+      case 'job_name':
+        out.jobName = f.value
+        out.jobNameOperator = f.operator ?? null
+        break
+    }
+  }
+  return out
+}

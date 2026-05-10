@@ -3,17 +3,7 @@ import { requireOrg } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import { formatDateLocal } from '@/lib/utils'
 import { CACHE_CONTROL_READONLY_JSON } from '@/lib/http-cache'
-
-function convertTimeToHours(timeValue: number | string | null): number {
-  if (timeValue === null || timeValue === undefined) return 0
-  const numValue = typeof timeValue === 'string' ? parseFloat(timeValue) : timeValue
-  if (isNaN(numValue) || numValue <= 0) return 0
-  const roundedValue = Math.round(numValue)
-  if (roundedValue < 100) return roundedValue / 60
-  const hours = Math.floor(roundedValue / 100)
-  const minutes = roundedValue % 100
-  return hours + minutes / 60
-}
+import { filtersToTimesheetSliceRpcParams } from '@/lib/billable-rpc-params'
 
 function getWeekdaysInDateRange(startDate: Date, endDate: Date): number {
   let weekdays = 0
@@ -31,6 +21,12 @@ function getWeekdaysInDateRange(startDate: Date, endDate: Date): number {
 
 type StaffFilter = { type: string; value: string; operator?: string }
 
+type RowST = { staff: string; total_amount: unknown; total_hours: unknown }
+type RowBH = { staff: string; billable_hours: unknown }
+type RowRec = { staff: string; write_on: unknown; invoiced: unknown }
+type RowCap = { staff: string; capacity_hours: unknown }
+type FyRow = { staff: string; cy_hours: unknown; ly_hours: unknown }
+
 async function computeStaffPerformance(
   organizationId: string,
   currentFYStartYear: number,
@@ -41,181 +37,138 @@ async function computeStaffPerformance(
   filtersKey: string
 ) {
   const supabase = await createClient()
-  const filters: StaffFilter[] = filtersKey ? JSON.parse(filtersKey) : []
+  const filters: StaffFilter[] = filtersKey
+    ? (() => {
+        try {
+          const parsed = JSON.parse(filtersKey)
+          if (!Array.isArray(parsed)) return []
+          return parsed
+            .filter((f: { type?: string; value?: unknown }) => f.type && f.value)
+            .map((f: { type: string; value: string; operator?: string }) => ({
+              type: f.type,
+              value: typeof f.value === 'string' ? decodeURIComponent(f.value) : String(f.value),
+              operator: f.operator,
+            }))
+        } catch {
+          return []
+        }
+      })()
+    : []
+
   const staffFilter = filters.find((f) => f.type === 'staff' && f.value && f.value !== 'all')?.value ?? null
-
-  const applyFilters = (query: any, excludeStaff = false) => {
-    filters.forEach((filter) => {
-      if (!filter.value || filter.value === 'all') return
-      if (excludeStaff && filter.type === 'staff') return
-      switch (filter.type) {
-        case 'client_group': query = query.eq('client_group', filter.value); break
-        case 'account_manager': query = query.eq('account_manager', filter.value); break
-        case 'job_manager': query = query.eq('job_manager', filter.value); break
-        case 'job_name':
-          if (filter.operator === 'not_contains') {
-            query = query.or(`job_name.not.ilike.%${filter.value}%,job_name.is.null`)
-          } else {
-            query = query.ilike('job_name', `%${filter.value}%`)
-          }
-          break
-      }
-    })
-    return query
-  }
-
-  const paginateAll = async <T>(buildQuery: (range: [number, number]) => any): Promise<T[]> => {
-    let allData: T[] = []
-    let page = 0
-    const pageSize = 1000
-    let hasMore = true
-    while (hasMore) {
-      const { data: pageData, error } = await buildQuery([page * pageSize, (page + 1) * pageSize - 1])
-      if (error) throw new Error(error.message)
-      if (pageData && pageData.length > 0) {
-        allData = allData.concat(pageData)
-        page++
-        hasMore = pageData.length === pageSize
-      } else {
-        hasMore = false
-      }
-    }
-    return allData
-  }
-
-  const fetchBillableData = () =>
-    paginateAll<any>(([from, to]) => {
-      let q = supabase
-        .from('timesheet_uploads')
-        .select('staff, time, billable_amount, client_group, account_manager, job_manager, job_name')
-        .eq('organization_id', organizationId)
-        .gte('date', currentYearStart)
-        .lte('date', currentYearEnd)
-      q = applyFilters(q, true) // exclude staff filter — we group by staff
-      return q.range(from, to)
-    })
-
-  const fetchBillableHoursOnly = () =>
-    paginateAll<any>(([from, to]) => {
-      let q = supabase
-        .from('timesheet_uploads')
-        .select('staff, time, client_group, account_manager, job_manager, job_name')
-        .eq('organization_id', organizationId)
-        .eq('billable', true)
-        .gte('date', currentYearStart)
-        .lte('date', currentYearEnd)
-      q = applyFilters(q, true)
-      return q.range(from, to)
-    })
-
-  const fetchFullYearBillableStaff = (startDate: string, endDate: string) =>
-    paginateAll<any>(([from, to]) =>
-      supabase
-        .from('timesheet_uploads')
-        .select('staff, time')
-        .eq('organization_id', organizationId)
-        .eq('billable', true)
-        .gte('date', startDate)
-        .lte('date', endDate)
-        .range(from, to)
-    )
-
-  const fetchCapacityReducing = () =>
-    paginateAll<any>(([from, to]) =>
-      supabase
-        .from('timesheet_uploads')
-        .select('staff, time, capacity_reducing')
-        .eq('organization_id', organizationId)
-        .eq('capacity_reducing', true)
-        .gte('date', currentYearStart)
-        .lte('date', currentYearEnd)
-        .range(from, to)
-    )
-
-  const fetchRecoverabilityData = () =>
-    paginateAll<any>(([from, to]) =>
-      supabase
-        .from('recoverability_timesheet_uploads')
-        .select('staff, write_on_amount, invoiced_amount')
-        .eq('organization_id', organizationId)
-        .gte('date', currentYearStart)
-        .lte('date', currentYearEnd)
-        .range(from, to)
-    )
-
-  const fetchAllStaffSettings = () =>
-    paginateAll<any>(([from, to]) =>
-      supabase
-        .from('staff_settings')
-        .select('staff_name, default_daily_hours, fte, start_date, end_date, is_hidden, report, target_billable_percentage')
-        .eq('organization_id', organizationId)
-        .range(from, to)
-    )
+  const slice = filtersToTimesheetSliceRpcParams(filters)
 
   const fullCurrentYearEnd = `${currentFYEndYear}-06-30`
   const fullLastYearStart = `${lastFYStartYear}-07-01`
   const fullLastYearEnd = `${currentFYStartYear}-06-30`
 
-  // Batch 1: all independent fetches in parallel
+  const rpcSlice = {
+    p_client_group: slice.clientGroup,
+    p_account_manager: slice.accountManager,
+    p_job_manager: slice.jobManager,
+    p_job_name: slice.jobName,
+    p_job_name_operator: slice.jobNameOperator,
+  }
+
   const [
-    allStaffSettings,
-    billableRaw,
-    billableHoursRaw,
-    capacityReducingRaw,
-    recoverabilityRaw,
-    fullCurrentYearRaw,
-    fullLastYearRaw,
+    settingsRes,
+    tsRes,
+    bhRes,
+    recRes,
+    capRes,
+    fyRes,
   ] = await Promise.all([
-    fetchAllStaffSettings(),
-    fetchBillableData(),
-    fetchBillableHoursOnly(),
-    fetchCapacityReducing(),
-    fetchRecoverabilityData(),
-    staffFilter ? Promise.resolve<any[]>([]) : fetchFullYearBillableStaff(`${currentFYStartYear}-07-01`, fullCurrentYearEnd),
-    staffFilter ? Promise.resolve<any[]>([]) : fetchFullYearBillableStaff(fullLastYearStart, fullLastYearEnd),
+    supabase
+      .from('staff_settings')
+      .select(
+        'staff_name, default_daily_hours, fte, start_date, end_date, is_hidden, report, target_billable_percentage'
+      )
+      .eq('organization_id', organizationId),
+    supabase.rpc('get_staff_performance_timesheet_by_staff', {
+      p_organization_id: organizationId,
+      p_start: currentYearStart,
+      p_end: currentYearEnd,
+      ...rpcSlice,
+    }),
+    supabase.rpc('get_staff_performance_billable_hours_by_staff', {
+      p_organization_id: organizationId,
+      p_start: currentYearStart,
+      p_end: currentYearEnd,
+      ...rpcSlice,
+    }),
+    supabase.rpc('get_staff_performance_recoverability_by_staff', {
+      p_organization_id: organizationId,
+      p_start: currentYearStart,
+      p_end: currentYearEnd,
+    }),
+    supabase.rpc('get_staff_performance_capacity_by_staff', {
+      p_organization_id: organizationId,
+      p_start: currentYearStart,
+      p_end: currentYearEnd,
+    }),
+    staffFilter
+      ? Promise.resolve({ data: [] as FyRow[], error: null })
+      : supabase.rpc('get_productivity_staff_fy_hours', {
+          p_organization_id: organizationId,
+          p_current_fy_start: `${currentFYStartYear}-07-01`,
+          p_current_fy_end: fullCurrentYearEnd,
+          p_last_fy_start: fullLastYearStart,
+          p_last_fy_end: fullLastYearEnd,
+        }),
   ])
 
-  // Build settings maps from single fetch
-  const staffSettingsMap = new Map<string, any>()
-  allStaffSettings.forEach((s) => { if (s.staff_name) staffSettingsMap.set(s.staff_name.trim(), s) })
+  if (settingsRes.error) throw new Error(settingsRes.error.message)
+  if (tsRes.error) throw new Error(tsRes.error.message)
+  if (bhRes.error) throw new Error(bhRes.error.message)
+  if (recRes.error) throw new Error(recRes.error.message)
+  if (capRes.error) throw new Error(capRes.error.message)
+  if (fyRes.error) throw new Error(fyRes.error.message)
+
+  const allStaffSettings = settingsRes.data ?? []
+
+  const staffSettingsMap = new Map<string, (typeof allStaffSettings)[number]>()
+  allStaffSettings.forEach((s) => {
+    if (s.staff_name) staffSettingsMap.set(s.staff_name.trim(), s)
+  })
 
   const excludedStaffSet = new Set<string>()
   allStaffSettings.forEach((s) => {
     if (s.staff_name && (s.is_hidden || s.report === false)) excludedStaffSet.add(s.staff_name.trim())
   })
 
-  // Determine which staff to include in standard hours calculation
   const filteredStaffSet = new Set<string>()
   if (staffFilter) {
     filteredStaffSet.add(staffFilter)
   } else {
-    const billableHoursMap = new Map<string, number>()
-    const addHours = (raw: any[]) => {
-      raw.forEach((r) => {
-        if (!r.staff) return
-        const name = r.staff.trim()
-        if (!name || name.toLowerCase() === 'disbursement') return
-        billableHoursMap.set(name, (billableHoursMap.get(name) ?? 0) + convertTimeToHours(r.time))
-      })
-    }
-    addHours(fullCurrentYearRaw)
-    addHours(fullLastYearRaw)
-
-    billableHoursMap.forEach((hours, name) => {
-      if (hours > 0 && !excludedStaffSet.has(name)) filteredStaffSet.add(name)
+    const fyRows = (fyRes.data ?? []) as FyRow[]
+    fyRows.forEach((r) => {
+      if (!r.staff) return
+      const name = r.staff.trim()
+      if (!name || name.toLowerCase() === 'disbursement') return
+      if (excludedStaffSet.has(name)) return
+      const cy = Number(r.cy_hours ?? 0)
+      const ly = Number(r.ly_hours ?? 0)
+      const rounded = { cy: Math.round(cy * 100) / 100, ly: Math.round(ly * 100) / 100 }
+      if (rounded.cy > 0 || rounded.ly > 0) filteredStaffSet.add(name)
     })
   }
 
-  // Standard hours calculation using pre-fetched settings (synchronous)
-  const settingsMap = new Map<string, any>()
+  const settingsMap = new Map<string, (typeof allStaffSettings)[number]>()
   filteredStaffSet.forEach((name) => {
     const s = staffSettingsMap.get(name)
     if (s) settingsMap.set(name, s)
   })
 
+  const capacityByStaff = new Map<string, number>()
+  ;(capRes.data as RowCap[] | null)?.forEach((r) => {
+    if (!r.staff) return
+    const name = r.staff.trim()
+    capacityByStaff.set(name, Number(r.capacity_hours ?? 0))
+  })
+
   const calculateStandardHoursByStaff = (): Map<string, { standardHours: number; capacityReducing: number }> => {
     const staffMap = new Map<string, { standardHours: number; capacityReducing: number }>()
-    settingsMap.forEach((_, name) => staffMap.set(name, { standardHours: 0, capacityReducing: 0 }))
+    settingsMap.forEach((_, name) => staffMap.set(name, { standardHours: 0, capacityReducing: capacityByStaff.get(name) ?? 0 }))
 
     const start = new Date(currentYearStart)
     const end = new Date(currentYearEnd)
@@ -245,66 +198,55 @@ async function computeStaffPerformance(
       current.setDate(1)
     }
 
-    // Add capacity reducing hours (from already-fetched data)
-    capacityReducingRaw.forEach((r) => {
-      if (!r.staff) return
-      const name = r.staff.trim()
-      if (name.toLowerCase() === 'disbursement') return
-      const entry = staffMap.get(name)
-      if (entry) entry.capacityReducing += convertTimeToHours(r.time)
-    })
-
     return staffMap
   }
 
   const standardHoursData = calculateStandardHoursByStaff()
 
-  // Aggregate billable data by staff
   const billableByStaff = new Map<string, { amount: number; hours: number }>()
-  billableRaw.forEach((r) => {
+  ;(tsRes.data as RowST[] | null)?.forEach((r) => {
     if (!r.staff || r.staff.trim().toLowerCase() === 'disbursement') return
     const name = r.staff.trim()
     if (staffFilter && name !== staffFilter) return
-    const entry = billableByStaff.get(name) ?? { amount: 0, hours: 0 }
-    entry.amount += typeof r.billable_amount === 'number' ? r.billable_amount : parseFloat(r.billable_amount || '0') || 0
-    entry.hours += convertTimeToHours(r.time)
-    billableByStaff.set(name, entry)
+    billableByStaff.set(name, {
+      amount: Number(r.total_amount ?? 0),
+      hours: Number(r.total_hours ?? 0),
+    })
   })
 
   const billableHoursByStaff = new Map<string, number>()
-  billableHoursRaw.forEach((r) => {
-    if (!r.staff || r.staff.trim().toLowerCase() === 'disbursement') return
-    const name = r.staff.trim()
-    billableHoursByStaff.set(name, (billableHoursByStaff.get(name) ?? 0) + convertTimeToHours(r.time))
+  ;(bhRes.data as RowBH[] | null)?.forEach((r) => {
+    if (!r.staff) return
+    billableHoursByStaff.set(r.staff.trim(), Number(r.billable_hours ?? 0))
   })
 
   const recoverabilityByStaff = new Map<string, { writeOnAmount: number; invoicedAmount: number }>()
-  recoverabilityRaw.forEach((r) => {
-    if (!r.staff || r.staff.trim().toLowerCase() === 'disbursement') return
+  ;(recRes.data as RowRec[] | null)?.forEach((r) => {
+    if (!r.staff) return
     const name = r.staff.trim()
-    const entry = recoverabilityByStaff.get(name) ?? { writeOnAmount: 0, invoicedAmount: 0 }
-    entry.writeOnAmount += Number(r.write_on_amount || 0)
-    entry.invoicedAmount += Number(r.invoiced_amount || 0)
-    recoverabilityByStaff.set(name, entry)
+    recoverabilityByStaff.set(name, {
+      writeOnAmount: Number(r.write_on ?? 0),
+      invoicedAmount: Number(r.invoiced ?? 0),
+    })
   })
 
   const targetsMap = new Map<string, number | null>()
   allStaffSettings.forEach((s) => {
     if (s.staff_name) {
-      const target = s.target_billable_percentage !== null && s.target_billable_percentage !== undefined
-        ? Number(s.target_billable_percentage)
-        : null
+      const target =
+        s.target_billable_percentage !== null && s.target_billable_percentage !== undefined
+          ? Number(s.target_billable_percentage)
+          : null
       targetsMap.set(s.staff_name.trim(), target)
     }
   })
 
-  // Combine and calculate metrics
   const allStaffNames = new Set<string>()
   billableByStaff.forEach((_, name) => allStaffNames.add(name))
   standardHoursData.forEach((_, name) => allStaffNames.add(name))
   recoverabilityByStaff.forEach((_, name) => allStaffNames.add(name))
 
-  const staffPerformanceData: any[] = []
+  const staffPerformanceData: Array<Record<string, unknown>> = []
 
   allStaffNames.forEach((staffName) => {
     if (staffFilter && staffName !== staffFilter) return
@@ -321,9 +263,8 @@ async function computeStaffPerformance(
     const averageRate = billableHours > 0 ? billable.amount / billableHours : 0
 
     const recoverabilityDenominator = recoverability.invoicedAmount - recoverability.writeOnAmount
-    const recoverabilityPercentage = recoverabilityDenominator > 0
-      ? (1 + recoverability.writeOnAmount / recoverabilityDenominator) * 100
-      : 0
+    const recoverabilityPercentage =
+      recoverabilityDenominator > 0 ? (1 + recoverability.writeOnAmount / recoverabilityDenominator) * 100 : 0
 
     const targetBillablePercentage = targetsMap.get(staffName) ?? null
     const billableVariance = targetBillablePercentage !== null ? billablePercentage - targetBillablePercentage : null
@@ -335,7 +276,8 @@ async function computeStaffPerformance(
       currentYear: {
         billableAmount: Math.round(billable.amount * 100) / 100,
         billablePercentage: Math.round(billablePercentage * 10) / 10,
-        targetBillablePercentage: targetBillablePercentage !== null ? Math.round(targetBillablePercentage * 10) / 10 : null,
+        targetBillablePercentage:
+          targetBillablePercentage !== null ? Math.round(targetBillablePercentage * 10) / 10 : null,
         billableVariance: billableVariance !== null ? Math.round(billableVariance * 10) / 10 : null,
         recoverabilityAmount: Math.round(recoverability.writeOnAmount * 100) / 100,
         recoverabilityPercentage: Math.round(recoverabilityPercentage * 10) / 10,
@@ -347,9 +289,8 @@ async function computeStaffPerformance(
     })
   })
 
-  staffPerformanceData.sort((a, b) => a.staff.localeCompare(b.staff))
+  staffPerformanceData.sort((a, b) => String(a.staff).localeCompare(String(b.staff)))
 
-  // Totals (aggregated over all staff in standard hours data, consistent with KPI card)
   let totalBillableHours = 0
   let totalStandardHours = 0
   let totalCapacityReducing = 0
@@ -373,9 +314,8 @@ async function computeStaffPerformance(
   const totalBillablePercentage = totalHours > 0 ? (totalBillableHours / totalHours) * 100 : 0
   const totalAverageRate = totalBillableHours > 0 ? totalBillableAmount / totalBillableHours : 0
   const totalRecoverabilityDenominator = totalInvoicedAmount - totalWriteOnAmount
-  const totalRecoverabilityPercentage = totalRecoverabilityDenominator > 0
-    ? (1 + totalWriteOnAmount / totalRecoverabilityDenominator) * 100
-    : 0
+  const totalRecoverabilityPercentage =
+    totalRecoverabilityDenominator > 0 ? (1 + totalWriteOnAmount / totalRecoverabilityDenominator) * 100 : 0
   const totalRecoverabilityVariance = totalRecoverabilityPercentage - 95
 
   const totals = {
@@ -415,7 +355,6 @@ export async function GET(request: NextRequest) {
     const currentYearStart = `${currentFYStartYear}-07-01`
     const currentYearEnd = formatDateLocal(asOfDate)
 
-    // Normalize filters to stable cache key (strip ephemeral id field)
     let filtersKey = ''
     if (filtersParam) {
       try {
@@ -423,11 +362,17 @@ export async function GET(request: NextRequest) {
         if (Array.isArray(parsed)) {
           filtersKey = JSON.stringify(
             parsed
-              .filter((f: any) => f.type && f.value)
-              .map((f: any) => ({ type: f.type, value: f.value, operator: f.operator }))
+              .filter((f: { type?: string; value?: unknown }) => f.type && f.value)
+              .map((f: { type: string; value: string; operator?: string }) => ({
+                type: f.type,
+                value: f.value,
+                operator: f.operator,
+              }))
           )
         }
-      } catch {}
+      } catch {
+        /* ignore */
+      }
     }
 
     const result = await computeStaffPerformance(
@@ -441,7 +386,8 @@ export async function GET(request: NextRequest) {
     )
 
     return NextResponse.json(result, { headers: { 'Cache-Control': CACHE_CONTROL_READONLY_JSON } })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Server error' }, { status: 500 })
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Server error'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
