@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { CheckCircle2, XCircle, RefreshCw, Trash2, ExternalLink } from 'lucide-react'
@@ -21,7 +21,6 @@ interface XeroConnectionListProps {
 }
 
 export function XeroConnectionList({ organizationId }: XeroConnectionListProps) {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const [connections, setConnections] = useState<XeroConnection[]>([])
   const [loading, setLoading] = useState(true)
@@ -48,27 +47,13 @@ export function XeroConnectionList({ organizationId }: XeroConnectionListProps) 
     }
   }
 
-  const handleConnect = async () => {
+  const handleConnect = () => {
     setConnecting(true)
-    try {
-      const response = await fetch(`/api/xero/connect?organizationId=${organizationId}`)
-      const data = await response.json()
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to initiate connection')
-      }
-      
-      if (data.authUrl) {
-        // Redirect to Xero authorization
-        window.location.href = data.authUrl
-      } else {
-        throw new Error('No authorization URL received')
-      }
-    } catch (error: any) {
-      console.error('Connection error:', error)
-      alert(error.message || 'Failed to connect to Xero. Please check your Xero configuration in .env.local')
-      setConnecting(false)
-    }
+    const params = new URLSearchParams({
+      organizationId,
+      redirect: '1',
+    })
+    window.location.href = `/api/xero/connect?${params.toString()}`
   }
 
   const handleDisconnect = async (connectionId: string) => {

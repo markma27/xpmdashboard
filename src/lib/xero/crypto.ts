@@ -2,17 +2,18 @@ import crypto from 'crypto'
 
 const ALGORITHM = 'aes-256-gcm'
 const IV_LENGTH = 16
-const SALT_LENGTH = 64
-const TAG_LENGTH = 16
-const KEY_LENGTH = 32
 
 /**
- * Get encryption key from environment variable
- * Falls back to a default key for development (NOT for production!)
+ * AES key material from XERO_ENCRYPTION_KEY (required — never commit keys).
  */
 function getEncryptionKey(): Buffer {
-  const key = process.env.XERO_ENCRYPTION_KEY || 'default-dev-key-change-in-production-32chars!!'
-  
+  const key = process.env.XERO_ENCRYPTION_KEY
+  if (!key || key.trim().length === 0) {
+    throw new Error(
+      'XERO_ENCRYPTION_KEY must be set (min 32 characters). Generate one for local dev in .env.local.'
+    )
+  }
+
   if (key.length < 32) {
     throw new Error('XERO_ENCRYPTION_KEY must be at least 32 characters long')
   }

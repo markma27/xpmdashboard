@@ -10,7 +10,7 @@ export function organizationAnalyticsCacheTag(organizationId: string) {
 }
 
 export function revalidateOrganizationAnalytics(organizationId: string) {
-  revalidateTag(organizationAnalyticsCacheTag(organizationId))
+  revalidateTag(organizationAnalyticsCacheTag(organizationId), 'max')
 }
 
 /**
