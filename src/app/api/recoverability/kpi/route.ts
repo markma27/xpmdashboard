@@ -3,8 +3,6 @@ import { requireOrg } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import { formatDateLocal } from '@/lib/utils'
 import { CACHE_CONTROL_READONLY_JSON } from '@/lib/http-cache'
-import { unstable_cache } from 'next/cache'
-import { organizationAnalyticsCacheTag } from '@/lib/org-analytics-cache'
 
 type RecoverabilityFilter = { type: string; value: string; operator?: string }
 
@@ -100,23 +98,6 @@ async function computeRecoverabilityKpi(
   }
 }
 
-type RecoverabilityKpiRunner = (a: string, b: string, c: string, d: string, e: string) => ReturnType<typeof computeRecoverabilityKpi>
-const recoverabilityKpiRunners = new Map<string, RecoverabilityKpiRunner>()
-
-function getRecoverabilityKpiRunner(organizationId: string): RecoverabilityKpiRunner {
-  let runner = recoverabilityKpiRunners.get(organizationId)
-  if (!runner) {
-    runner = unstable_cache(
-      (currentYearStart: string, currentYearEnd: string, lastYearStart: string, lastYearEnd: string, filtersKey: string) =>
-        computeRecoverabilityKpi(organizationId, currentYearStart, currentYearEnd, lastYearStart, lastYearEnd, filtersKey),
-      ['recoverability-kpi-v1', organizationId],
-      { revalidate: 60, tags: [organizationAnalyticsCacheTag(organizationId)] }
-    ) as RecoverabilityKpiRunner
-    recoverabilityKpiRunners.set(organizationId, runner)
-  }
-  return runner
-}
-
 export async function GET(request: NextRequest) {
   try {
     const org = await requireOrg()
@@ -158,8 +139,14 @@ export async function GET(request: NextRequest) {
       } catch {}
     }
 
-    const runner = getRecoverabilityKpiRunner(organizationId)
-    const result = await runner(currentYearStart, currentYearEnd, lastYearStart, lastYearEnd, filtersKey)
+    const result = await computeRecoverabilityKpi(
+      organizationId,
+      currentYearStart,
+      currentYearEnd,
+      lastYearStart,
+      lastYearEnd,
+      filtersKey
+    )
 
     return NextResponse.json(result, { headers: { 'Cache-Control': CACHE_CONTROL_READONLY_JSON } })
   } catch (error: any) {

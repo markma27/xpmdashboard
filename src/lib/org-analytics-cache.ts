@@ -1,4 +1,4 @@
-import { unstable_cache, revalidateTag } from 'next/cache'
+import { revalidateTag } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import {
   computeDashboardKpiPayload,
@@ -13,29 +13,19 @@ export function revalidateOrganizationAnalytics(organizationId: string) {
   revalidateTag(organizationAnalyticsCacheTag(organizationId))
 }
 
-const allCachedRunners = new Map<string, Function>()
-
 /**
- * Returns a per-org unstable_cache wrapper for a module-level compute function.
- * The fn must be defined at module level (stable reference) so the cached
- * runner created on first call remains valid for subsequent requests.
- * Cache is invalidated via revalidateOrganizationAnalytics(organizationId).
+ * Server-side unstable_cache cannot wrap functions that read request cookies.
+ * These analytics queries use the Supabase SSR client, so keep them uncached
+ * server-side and rely on response Cache-Control + SWR dedupe instead.
  */
 export function getCachedOrgRunner<TArgs extends unknown[], TResult>(
   routeKey: string,
   organizationId: string,
   fn: (...args: TArgs) => Promise<TResult>
 ): (...args: TArgs) => Promise<TResult> {
-  const mapKey = `${routeKey}:${organizationId}`
-  let runner = allCachedRunners.get(mapKey)
-  if (!runner) {
-    runner = unstable_cache(fn, [routeKey, organizationId], {
-      revalidate: 60,
-      tags: [organizationAnalyticsCacheTag(organizationId)],
-    })
-    allCachedRunners.set(mapKey, runner)
-  }
-  return runner as (...args: TArgs) => Promise<TResult>
+  void routeKey
+  void organizationId
+  return fn
 }
 
 function parseFiltersKey(filtersKey: string): DashboardKpiFilter[] {
@@ -67,37 +57,26 @@ type CachedKpiFn = (
   filtersKey: string
 ) => ReturnType<typeof computeDashboardKpiPayload>
 
-const dashboardKpiRunnerByOrg = new Map<string, CachedKpiFn>()
-
 /**
- * Per-organization cached KPI compute (60s) with tag invalidation on uploads.
+ * Request-cookie Supabase clients cannot run inside unstable_cache.
  */
 export function getCachedDashboardKpiRunner(organizationId: string): CachedKpiFn {
-  let runner = dashboardKpiRunnerByOrg.get(organizationId)
-  if (!runner) {
-    runner = unstable_cache(
-      async (
-        currentYearEnd: string,
-        currentYearStart: string,
-        lastYearStart: string,
-        lastYearEnd: string,
-        filtersKey: string
-      ) => {
-        const supabase = await createClient()
-        const filters = parseFiltersKey(filtersKey)
-        return computeDashboardKpiPayload(supabase, {
-          organizationId,
-          filters,
-          currentYearEnd,
-          currentYearStart,
-          lastYearStart,
-          lastYearEnd,
-        })
-      },
-      ['dashboard-kpi-v1', organizationId],
-      { revalidate: 60, tags: [organizationAnalyticsCacheTag(organizationId)] }
-    ) as CachedKpiFn
-    dashboardKpiRunnerByOrg.set(organizationId, runner)
+  return async (
+    currentYearEnd: string,
+    currentYearStart: string,
+    lastYearStart: string,
+    lastYearEnd: string,
+    filtersKey: string
+  ) => {
+    const supabase = await createClient()
+    const filters = parseFiltersKey(filtersKey)
+    return computeDashboardKpiPayload(supabase, {
+      organizationId,
+      filters,
+      currentYearEnd,
+      currentYearStart,
+      lastYearStart,
+      lastYearEnd,
+    })
   }
-  return runner
 }
