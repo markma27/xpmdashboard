@@ -3,82 +3,7 @@ import { requireOrg } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import { formatDateLocal } from '@/lib/utils'
 import { CACHE_CONTROL_READONLY_JSON } from '@/lib/http-cache'
-import { getCachedOrgRunner } from '@/lib/org-analytics-cache'
-
-async function computeBillableByClientGroup(
-  organizationId: string,
-  currentYearStart: string,
-  currentYearEnd: string,
-  lastYearStart: string,
-  lastYearEnd: string
-) {
-  const supabase = await createClient()
-
-  const fetchData = async (startDate: string, endDate: string): Promise<any[]> => {
-    let allData: any[] = []
-    let page = 0
-    const pageSize = 1000
-    let hasMore = true
-
-    while (hasMore) {
-      const { data: pageData, error: pageError } = await supabase
-        .from('timesheet_uploads')
-        .select('billable_amount, client_group')
-        .eq('organization_id', organizationId)
-        .gte('date', startDate)
-        .lte('date', endDate)
-        .range(page * pageSize, (page + 1) * pageSize - 1)
-
-      if (pageError) throw new Error(`Failed to fetch billable data: ${pageError.message}`)
-
-      if (pageData && pageData.length > 0) {
-        allData = allData.concat(pageData)
-        page++
-        hasMore = pageData.length === pageSize
-      } else {
-        hasMore = false
-      }
-    }
-
-    return allData
-  }
-
-  const [currentYearData, lastYearData] = await Promise.all([
-    fetchData(currentYearStart, currentYearEnd),
-    fetchData(lastYearStart, lastYearEnd),
-  ])
-
-  const clientGroupMap = new Map<string, { currentYear: number; lastYear: number }>()
-
-  currentYearData.forEach((record) => {
-    const clientGroup = record.client_group || 'Uncategorized'
-    const amount = typeof record.billable_amount === 'number'
-      ? record.billable_amount
-      : parseFloat(record.billable_amount || '0') || 0
-    const entry = clientGroupMap.get(clientGroup) ?? { currentYear: 0, lastYear: 0 }
-    entry.currentYear += amount
-    clientGroupMap.set(clientGroup, entry)
-  })
-
-  lastYearData.forEach((record) => {
-    const clientGroup = record.client_group || 'Uncategorized'
-    const amount = typeof record.billable_amount === 'number'
-      ? record.billable_amount
-      : parseFloat(record.billable_amount || '0') || 0
-    const entry = clientGroupMap.get(clientGroup) ?? { currentYear: 0, lastYear: 0 }
-    entry.lastYear += amount
-    clientGroupMap.set(clientGroup, entry)
-  })
-
-  return Array.from(clientGroupMap.entries())
-    .map(([clientGroup, data]) => ({
-      clientGroup,
-      'Current Year': Math.round(data.currentYear * 100) / 100,
-      'Last Year': Math.round(data.lastYear * 100) / 100,
-    }))
-    .sort((a, b) => b['Current Year'] - a['Current Year'])
-    .slice(0, 10)
-}
+import { fetchDashboardBillableByClientGroup } from '@/lib/queries/dashboard-rollups'
 
 export async function GET(request: NextRequest) {
   try {
@@ -105,8 +30,14 @@ export async function GET(request: NextRequest) {
     const lastYearEnd = lastYearEndDate <= lastYearFYEnd ? lastYearEndDate : lastYearFYEnd
     const lastYearStart = `${lastFYStartYear}-07-01`
 
-    const cached = getCachedOrgRunner('dashboard-billable-by-client-group-v1', organizationId, computeBillableByClientGroup)
-    const result = await cached(organizationId, currentYearStart, currentYearEnd, lastYearStart, lastYearEnd)
+    const supabase = await createClient()
+    const result = await fetchDashboardBillableByClientGroup(supabase, {
+      organizationId,
+      currentYearStart,
+      currentYearEnd,
+      lastYearStart,
+      lastYearEnd,
+    })
 
     return NextResponse.json(result, { headers: { 'Cache-Control': CACHE_CONTROL_READONLY_JSON } })
   } catch (error: any) {
