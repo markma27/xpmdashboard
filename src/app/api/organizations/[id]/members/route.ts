@@ -28,20 +28,10 @@ export async function GET(
       )
     }
 
-    // Get all members
-    const { data: members, error } = await supabase
+    // member rows (no PostgREST embed to auth.users — that relationship is not exposed as "users")
+    const { data: rows, error } = await supabase
       .from('organization_members')
-      .select(
-        `
-        id,
-        role,
-        created_at,
-        users (
-          id,
-          email
-        )
-      `
-      )
+      .select('id, role, created_at, user_id')
       .eq('organization_id', organizationId)
       .order('created_at', { ascending: false })
 
@@ -52,7 +42,27 @@ export async function GET(
       )
     }
 
-    return NextResponse.json(members || [])
+    const serviceClient = createServiceRoleClient()
+    const uniqueUserIds = [...new Set((rows ?? []).map((r) => r.user_id))]
+    const emailByUserId = new Map<string, string>()
+    await Promise.all(
+      uniqueUserIds.map(async (uid) => {
+        const { data } = await serviceClient.auth.admin.getUserById(uid)
+        if (data.user?.email) emailByUserId.set(uid, data.user.email)
+      })
+    )
+
+    const members = (rows ?? []).map((r) => ({
+      id: r.id,
+      role: r.role,
+      created_at: r.created_at,
+      users: {
+        id: r.user_id,
+        email: emailByUserId.get(r.user_id) ?? '',
+      },
+    }))
+
+    return NextResponse.json(members)
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || 'Server error' },

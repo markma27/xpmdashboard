@@ -2,62 +2,47 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireOrg } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 
+function staffNamesFromFilterOptsRaw(raw: unknown): string[] {
+  let opts: { staff?: unknown } = {}
+  if (typeof raw === 'string') {
+    try {
+      opts = JSON.parse(raw) as { staff?: unknown }
+    } catch {
+      opts = {}
+    }
+  } else if (raw && typeof raw === 'object') {
+    opts = raw as { staff?: unknown }
+  }
+  const names = new Set<string>()
+  if (Array.isArray(opts.staff)) {
+    for (const s of opts.staff) {
+      if (typeof s !== 'string') continue
+      const t = s.trim()
+      if (t && t.toLowerCase() !== 'disbursement') names.add(t)
+    }
+  }
+  return Array.from(names).sort()
+}
+
 export async function GET(request: NextRequest) {
   try {
     const org = await requireOrg()
     const supabase = await createClient()
 
-    // Get unique staff names from timesheet_uploads table
-    // Use pagination to ensure we get all records
-    let allTimesheetData: any[] = []
-    let page = 0
-    const pageSize = 1000
-    let hasMore = true
-    
-    while (hasMore) {
-      const { data: pageData, error: pageError } = await supabase
-        .from('timesheet_uploads')
-        .select('staff')
-        .eq('organization_id', org.id)
-        .not('staff', 'is', null)
-        .neq('staff', '')
-        .range(page * pageSize, (page + 1) * pageSize - 1)
-      
-      if (pageError) {
-        throw new Error(`Failed to fetch staff from timesheets: ${pageError.message}`)
-      }
-      
-      if (pageData && pageData.length > 0) {
-        allTimesheetData = allTimesheetData.concat(pageData)
-        page++
-        hasMore = pageData.length === pageSize
-      } else {
-        hasMore = false
-      }
+    const { data: filterOptsRaw, error: filterOptsError } = await supabase.rpc('get_billable_filter_options', {
+      p_organization_id: org.id,
+    })
+    if (filterOptsError) {
+      throw new Error(`Failed to fetch staff list: ${filterOptsError.message}`)
     }
-
-    // Extract unique staff names
-    const uniqueStaffNames = new Set<string>()
-    if (allTimesheetData) {
-      allTimesheetData.forEach((record) => {
-        if (record.staff && record.staff.trim()) {
-          const trimmedName = record.staff.trim()
-          // Exclude 'disbursement' (case-insensitive)
-          if (trimmedName.toLowerCase() !== 'disbursement') {
-            uniqueStaffNames.add(trimmedName)
-          }
-        }
-      })
-    }
-
-    // Convert to sorted array
-    const staffNames = Array.from(uniqueStaffNames).sort()
+    const staffNames = staffNamesFromFilterOptsRaw(filterOptsRaw)
 
     // Get staff settings from staff_settings table (with pagination)
     let allSettings: any[] = []
-    page = 0
-    hasMore = true
-    
+    let page = 0
+    const pageSize = 1000
+    let hasMore = true
+
     while (hasMore) {
       const { data: pageData, error: pageError } = await supabase
         .from('staff_settings')
