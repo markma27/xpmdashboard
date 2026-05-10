@@ -2,528 +2,65 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireOrg } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import { formatDateLocal } from '@/lib/utils'
+import { CACHE_CONTROL_READONLY_JSON } from '@/lib/http-cache'
+import { getCachedOrgRunner } from '@/lib/org-analytics-cache'
 
-/**
- * Convert time value from timesheet format to hours
- */
 function convertTimeToHours(timeValue: number | string | null): number {
   if (timeValue === null || timeValue === undefined) return 0
-  
   const numValue = typeof timeValue === 'string' ? parseFloat(timeValue) : timeValue
   if (isNaN(numValue) || numValue <= 0) return 0
-  
   const roundedValue = Math.round(numValue)
-  
-  if (roundedValue < 100) {
-    return roundedValue / 60
-  } else {
-    const hours = Math.floor(roundedValue / 100)
-    const minutes = roundedValue % 100
-    return hours + (minutes / 60)
-  }
+  if (roundedValue < 100) return roundedValue / 60
+  const hours = Math.floor(roundedValue / 100)
+  const minutes = roundedValue % 100
+  return hours + minutes / 60
 }
 
-/**
- * Calculate the number of weekdays (Monday-Friday) in a date range
- */
 function getWeekdaysInDateRange(startDate: Date, endDate: Date): number {
   let weekdays = 0
   const current = new Date(startDate)
-  
   current.setHours(0, 0, 0, 0)
   const end = new Date(endDate)
   end.setHours(23, 59, 59, 999)
-  
   while (current <= end) {
-    const dayOfWeek = current.getDay()
-    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-      weekdays++
-    }
+    const day = current.getDay()
+    if (day >= 1 && day <= 5) weekdays++
     current.setDate(current.getDate() + 1)
   }
-  
   return weekdays
 }
 
-export async function GET(request: NextRequest) {
-  try {
-    const org = await requireOrg()
-    const searchParams = request.nextUrl.searchParams
-    const organizationId = searchParams.get('organizationId') || org.id
-    const staffFilter = searchParams.get('staff') // Optional staff filter
-    const asOfDateParam = searchParams.get('asOfDate')
-    
-    // Parse filters from query params (same format as Billable page)
-    const filtersParam = searchParams.get('filters')
-    const filters: Array<{ type: string; value: string; operator?: string }> = []
-    if (filtersParam) {
-      try {
-        const parsedFilters = JSON.parse(filtersParam)
-        if (Array.isArray(parsedFilters)) {
-          parsedFilters.forEach((filter: any) => {
-            if (filter.type && filter.value) {
-              filters.push({
-                type: filter.type,
-                value: typeof filter.value === 'string' ? decodeURIComponent(filter.value) : filter.value,
-                operator: filter.operator,
-              })
-            }
-          })
-        }
-      } catch (e) {
-        // Ignore parse errors
-      }
-    }
+async function computeProductivityKpi(
+  organizationId: string,
+  currentFYStartYear: number,
+  currentFYEndYear: number,
+  lastFYStartYear: number,
+  currentYearStart: string,
+  currentYearEnd: string,
+  lastYearStart: string,
+  lastYearEnd: string,
+  filtersKey: string,
+  staffFilterKey: string
+) {
+  const supabase = await createClient()
 
-    const supabase = await createClient()
+  type Filter = { type: string; value: string; operator?: string }
+  const filters: Filter[] = filtersKey ? JSON.parse(filtersKey) : []
+  const staffFilter = staffFilterKey || null
 
-    // Use provided date or default to today
-    const asOfDate = asOfDateParam ? new Date(asOfDateParam) : new Date()
-    const currentMonth = asOfDate.getMonth() // 0-11
-    const currentYear = asOfDate.getFullYear()
-    
-    // Determine current financial year
-    let currentFYStartYear: number
-    if (currentMonth >= 6) {
-      currentFYStartYear = currentYear
-    } else {
-      currentFYStartYear = currentYear - 1
-    }
-    
-    const currentFYEndYear = currentFYStartYear + 1
-    const lastFYStartYear = currentFYStartYear - 1
-    const lastFYEndYear = currentFYStartYear
-    
-    // Format dates as YYYY-MM-DD (using local timezone)
-    // For "same time" comparison, use selected date for current year
-    const currentYearStart = `${currentFYStartYear}-07-01`
-    const currentYearEnd = formatDateLocal(asOfDate) // Selected date
-    
-    // For last year "same time", calculate the same day last year
-    // But ensure it doesn't exceed last year's financial year end (June 30)
-    const lastYearSameDate = new Date(asOfDate)
-    lastYearSameDate.setFullYear(lastYearSameDate.getFullYear() - 1)
-    const lastYearEndDate = formatDateLocal(lastYearSameDate)
-    const lastYearFYEnd = `${lastFYEndYear}-06-30`
-    // Use the earlier of last year same date or last year FY end
-    const lastYearEnd = lastYearEndDate <= lastYearFYEnd ? lastYearEndDate : lastYearFYEnd
-    const lastYearStart = `${lastFYStartYear}-07-01`
-
-    // Helper function to fetch all billable data for a date range
-    const fetchBillableData = async (startDate: string, endDate: string): Promise<{ hours: number, amount: number }> => {
-      let allData: any[] = []
-      let page = 0
-      const pageSize = 1000
-      let hasMore = true
-      
-      while (hasMore) {
-        let query = supabase
-          .from('timesheet_uploads')
-          .select('time, billable_amount, client_group, account_manager, job_manager, job_name, staff')
-          .eq('organization_id', organizationId)
-          .eq('billable', true)
-          .gte('date', startDate)
-          .lte('date', endDate)
-        
-        // Apply staff filter if provided (from URL param or filter)
-        let staffFilterValue = staffFilter
-        filters.forEach((filter) => {
-          if (filter.type === 'staff' && filter.value && filter.value !== 'all') {
-            staffFilterValue = filter.value
-          }
-        })
-        if (staffFilterValue) {
-          // Use ilike for case-insensitive matching and handle potential whitespace issues
-          const trimmedStaffFilter = staffFilterValue.trim()
-          query = query.ilike('staff', trimmedStaffFilter)
-        }
-        
-        // Apply additional filters (same logic as Billable page)
-        filters.forEach((filter) => {
-          if (filter.value && filter.value !== 'all' && filter.type !== 'staff') {
-            switch (filter.type) {
-              case 'client_group':
-                query = query.eq('client_group', filter.value)
-                break
-              case 'account_manager':
-                query = query.eq('account_manager', filter.value)
-                break
-              case 'job_manager':
-                query = query.eq('job_manager', filter.value)
-                break
-              case 'job_name':
-                if (filter.operator === 'not_contains') {
-                  query = query.or(`job_name.not.ilike.%${filter.value}%,job_name.is.null`)
-                } else {
-                  query = query.ilike('job_name', `%${filter.value}%`)
-                }
-                break
-            }
-          }
-        })
-        
-        const { data: pageData, error: pageError } = await query
-          .range(page * pageSize, (page + 1) * pageSize - 1)
-        
-        if (pageError) {
-          throw new Error(`Failed to fetch billable data: ${pageError.message}`)
-        }
-        
-        if (pageData && pageData.length > 0) {
-          allData = allData.concat(pageData)
-          page++
-          hasMore = pageData.length === pageSize
-        } else {
-          hasMore = false
-        }
-      }
-      
-      let totalHours = 0
-      let totalAmount = 0
-      
-      allData.forEach((record) => {
-        totalHours += convertTimeToHours(record.time)
-        totalAmount += Number(record.billable_amount || 0)
-      })
-      
-      return { hours: totalHours, amount: totalAmount }
-    }
-
-    // Helper function to calculate standard hours for a date range
-    const calculateStandardHours = async (startDate: string, endDate: string): Promise<number> => {
-      // Get staff settings
-      let allSettings: any[] = []
-      let page = 0
-      const pageSize = 1000
-      let hasMore = true
-      
-      while (hasMore) {
-        let query = supabase
-          .from('staff_settings')
-          .select('staff_name, default_daily_hours, fte, start_date, end_date, is_hidden, report')
-          .eq('organization_id', organizationId)
-        
-        const { data: pageData, error: pageError } = await query
-          .range(page * pageSize, (page + 1) * pageSize - 1)
-        
-        if (pageError) {
-          throw new Error(`Failed to fetch staff settings: ${pageError.message}`)
-        }
-        
-        if (pageData && pageData.length > 0) {
-          allSettings = allSettings.concat(pageData)
-          page++
-          hasMore = pageData.length === pageSize
-        } else {
-          hasMore = false
-        }
-      }
-
-      // Create staff settings map
-      const staffSettingsMap = new Map<string, any>()
-      allSettings.forEach((setting) => {
-        if (setting.staff_name) {
-          staffSettingsMap.set(setting.staff_name, setting)
-        }
-      })
-
-      // If "All Staff" is selected, we need to filter to only include staff that appear in the dropdown list
-      // The dropdown list includes staff with billable hours in current or last financial year
-      let eligibleStaffForAllStaff: Set<string> | null = null
-      if (!staffFilter) {
-        // Fetch billable hours data to determine which staff should be included
-        const currentYearStart = `${currentFYStartYear}-07-01`
-        const currentYearEnd = `${currentFYEndYear}-06-30`
-        const lastYearStart = `${lastFYStartYear}-07-01`
-        const lastYearEnd = `${lastFYEndYear}-06-30`
-
-        // Helper function to fetch all billable data for a date range
-        const fetchAllBillableData = async (startDate: string, endDate: string): Promise<any[]> => {
-          let allData: any[] = []
-          let page = 0
-          const pageSize = 1000
-          let hasMore = true
-          
-          while (hasMore) {
-            const { data: pageData, error: pageError } = await supabase
-              .from('timesheet_uploads')
-              .select('staff, time')
-              .eq('organization_id', organizationId)
-              .eq('billable', true)
-              .gte('date', startDate)
-              .lte('date', endDate)
-              .range(page * pageSize, (page + 1) * pageSize - 1)
-            
-            if (pageError) {
-              throw new Error(`Failed to fetch billable data: ${pageError.message}`)
-            }
-            
-            if (pageData && pageData.length > 0) {
-              allData = allData.concat(pageData)
-              page++
-              hasMore = pageData.length === pageSize
-            } else {
-              hasMore = false
-            }
-          }
-          
-          return allData
-        }
-
-        // Fetch current year and last year billable data in parallel
-        const [currentYearBillableData, lastYearBillableData] = await Promise.all([
-          fetchAllBillableData(currentYearStart, currentYearEnd),
-          fetchAllBillableData(lastYearStart, lastYearEnd),
-        ])
-
-        // Aggregate billable hours by staff for both years
-        const staffBillableHours = new Map<string, { currentYear: number; lastYear: number }>()
-
-        // Process current year billable data
-        if (currentYearBillableData) {
-          currentYearBillableData.forEach((record) => {
-            if (record.staff) {
-              const staffName = record.staff.trim()
-              if (staffName && staffName.toLowerCase() !== 'disbursement') {
-                if (!staffBillableHours.has(staffName)) {
-                  staffBillableHours.set(staffName, { currentYear: 0, lastYear: 0 })
-                }
-                const staff = staffBillableHours.get(staffName)!
-                const hours = convertTimeToHours(record.time)
-                staff.currentYear += hours
-              }
-            }
-          })
-        }
-
-        // Process last year billable data
-        if (lastYearBillableData) {
-          lastYearBillableData.forEach((record) => {
-            if (record.staff) {
-              const staffName = record.staff.trim()
-              if (staffName && staffName.toLowerCase() !== 'disbursement') {
-                if (!staffBillableHours.has(staffName)) {
-                  staffBillableHours.set(staffName, { currentYear: 0, lastYear: 0 })
-                }
-                const staff = staffBillableHours.get(staffName)!
-                const hours = convertTimeToHours(record.time)
-                staff.lastYear += hours
-              }
-            }
-          })
-        }
-
-        // Get excluded staff set (hidden or report = false)
-        const excludedStaffSet = new Set<string>()
-        allSettings.forEach((setting) => {
-          if (setting.staff_name && (setting.is_hidden || setting.report === false)) {
-            excludedStaffSet.add(setting.staff_name)
-          }
-        })
-
-        // Filter to only include staff with billable hours, not hidden, and report = true
-        eligibleStaffForAllStaff = new Set<string>()
-        staffBillableHours.forEach((hours, staffName) => {
-          // Exclude hidden staff or staff with report = false
-          if (excludedStaffSet.has(staffName)) {
-            return
-          }
-          const roundedCurrentYear = Math.round(hours.currentYear * 100) / 100
-          const roundedLastYear = Math.round(hours.lastYear * 100) / 100
-          // Only include if has billable hours in current or last year
-          if (roundedCurrentYear > 0 || roundedLastYear > 0) {
-            eligibleStaffForAllStaff!.add(staffName)
-          }
-        })
-      }
-
-      // Filter staff if staffFilter is provided
-      let selectedStaffNames: string[] = []
-      if (staffFilter) {
-        // Single staff selected - check if not hidden and report = true
-        const settings = staffSettingsMap.get(staffFilter)
-        if (settings && !settings.is_hidden && settings.report !== false) {
-          selectedStaffNames = [staffFilter]
-        }
-      } else {
-        // All staff selected - only include staff that appear in the dropdown list
-        if (eligibleStaffForAllStaff) {
-          selectedStaffNames = Array.from(eligibleStaffForAllStaff)
-            .filter((staffName) => {
-              const settings = staffSettingsMap.get(staffName)
-              return settings && !settings.is_hidden && settings.report !== false
-            })
-            .sort()
-        } else {
-          // Fallback: exclude hidden staff and staff with report = false
-          selectedStaffNames = Array.from(staffSettingsMap.entries())
-            .filter(([_, settings]) => !settings.is_hidden && settings.report !== false)
-            .map(([staffName, _]) => staffName)
-        }
-      }
-
-      // Create filtered settings map
-      const settingsMap = new Map<string, any>()
-      selectedStaffNames.forEach((staffName) => {
-        const setting = staffSettingsMap.get(staffName)
-        if (setting) {
-          settingsMap.set(staffName, setting)
-        }
-      })
-
-      const start = new Date(startDate)
-      const end = new Date(endDate)
-      let totalStandardHours = 0
-
-      // Group by month and calculate
-      const current = new Date(start)
-      while (current <= end) {
-        const year = current.getFullYear()
-        const month = current.getMonth()
-        const monthStart = new Date(year, month, 1)
-        const monthEnd = new Date(year, month + 1, 0)
-        
-        const rangeStart = current > monthStart ? current : monthStart
-        const rangeEnd = end < monthEnd ? end : monthEnd
-        
-        const weekdays = getWeekdaysInDateRange(rangeStart, rangeEnd)
-        
-        settingsMap.forEach((setting) => {
-          const effectiveStart = setting.start_date ? new Date(setting.start_date) : null
-          const effectiveEnd = setting.end_date ? new Date(setting.end_date) : null
-          
-          // Check if staff was active during this month
-          if (effectiveEnd && effectiveEnd < rangeStart) return
-          if (effectiveStart && effectiveStart > rangeEnd) return
-          
-          // Calculate effective date range for this staff member in this month
-          const staffStart = effectiveStart && effectiveStart > rangeStart ? effectiveStart : rangeStart
-          const staffEnd = effectiveEnd && effectiveEnd < rangeEnd ? effectiveEnd : rangeEnd
-          
-          const staffWeekdays = getWeekdaysInDateRange(staffStart, staffEnd)
-          const dailyHours = (Number(setting.default_daily_hours) || 8) * (Number(setting.fte) || 1.0)
-          totalStandardHours += staffWeekdays * dailyHours
-        })
-        
-        current.setMonth(month + 1)
-        current.setDate(1)
-      }
-
-      return totalStandardHours
-    }
-
-    // Helper function to calculate capacity reducing hours for a date range
-    const calculateCapacityReducingHours = async (startDate: string, endDate: string): Promise<number> => {
-      let allData: any[] = []
-      let page = 0
-      const pageSize = 1000
-      let hasMore = true
-      
-      while (hasMore) {
-        let query = supabase
-          .from('timesheet_uploads')
-          .select('time, capacity_reducing')
-          .eq('organization_id', organizationId)
-          .eq('capacity_reducing', true)
-          .gte('date', startDate)
-          .lte('date', endDate)
-        
-        if (staffFilter) {
-          // Use ilike for case-insensitive matching and handle potential whitespace issues
-          const trimmedStaffFilter = staffFilter.trim()
-          query = query.ilike('staff', trimmedStaffFilter)
-        }
-        
-        const { data: pageData, error: pageError } = await query
-          .range(page * pageSize, (page + 1) * pageSize - 1)
-        
-        if (pageError) {
-          throw new Error(`Failed to fetch capacity reducing data: ${pageError.message}`)
-        }
-        
-        if (pageData && pageData.length > 0) {
-          allData = allData.concat(pageData)
-          page++
-          hasMore = pageData.length === pageSize
-        } else {
-          hasMore = false
-        }
-      }
-      
-      let totalHours = 0
-      allData.forEach((record) => {
-        totalHours += convertTimeToHours(record.time)
-      })
-      
-      return totalHours
-    }
-
-    // Fetch all data in parallel
-    const [
-      currentYearBillable,
-      lastYearBillable,
-      currentYearStandardHours,
-      lastYearStandardHours,
-      currentYearCapacityReducing,
-      lastYearCapacityReducing,
-    ] = await Promise.all([
-      fetchBillableData(currentYearStart, currentYearEnd),
-      fetchBillableData(lastYearStart, lastYearEnd),
-      calculateStandardHours(currentYearStart, currentYearEnd),
-      calculateStandardHours(lastYearStart, lastYearEnd),
-      calculateCapacityReducingHours(currentYearStart, currentYearEnd),
-      calculateCapacityReducingHours(lastYearStart, lastYearEnd),
-    ])
-
-    // Calculate total hours (standard - capacity reducing)
-    const currentYearTotalHours = Math.max(0, currentYearStandardHours - currentYearCapacityReducing)
-    const lastYearTotalHours = Math.max(0, lastYearStandardHours - lastYearCapacityReducing)
-
-    // Calculate percentages
-    const ytdBillablePercentage = currentYearTotalHours > 0
-      ? (currentYearBillable.hours / currentYearTotalHours) * 100
-      : 0
-    const lastYearBillablePercentage = lastYearTotalHours > 0
-      ? (lastYearBillable.hours / lastYearTotalHours) * 100
-      : 0
-
-    // Calculate average rates
-    const ytdAverageRate = currentYearBillable.hours > 0
-      ? currentYearBillable.amount / currentYearBillable.hours
-      : 0
-    const lastYearAverageRate = lastYearBillable.hours > 0
-      ? lastYearBillable.amount / lastYearBillable.hours
-      : 0
-
-    // Calculate target billable percentage (weighted average from staff_settings)
-    let targetBillablePercentage = 0
-    let totalWeight = 0
-    
-    // Get staff settings
+  // Fetch staff settings once — used for standard hours, eligibility, and targets
+  const fetchAllStaffSettings = async () => {
     let allSettings: any[] = []
     let page = 0
     const pageSize = 1000
     let hasMore = true
-    
     while (hasMore) {
-      let query = supabase
+      const { data: pageData, error: pageError } = await supabase
         .from('staff_settings')
-        .select('staff_name, target_billable_percentage, is_hidden, report')
+        .select('staff_name, default_daily_hours, fte, start_date, end_date, is_hidden, report, target_billable_percentage')
         .eq('organization_id', organizationId)
-      
-      if (staffFilter) {
-        // Use ilike for case-insensitive matching and handle potential whitespace issues
-        const trimmedStaffFilter = staffFilter.trim()
-        query = query.ilike('staff_name', trimmedStaffFilter)
-      }
-      
-      const { data: pageData, error: pageError } = await query
         .range(page * pageSize, (page + 1) * pageSize - 1)
-      
-      if (pageError) {
-        throw new Error(`Failed to fetch target billable: ${pageError.message}`)
-      }
-      
+      if (pageError) throw new Error(`Failed to fetch staff settings: ${pageError.message}`)
       if (pageData && pageData.length > 0) {
         allSettings = allSettings.concat(pageData)
         page++
@@ -532,45 +69,337 @@ export async function GET(request: NextRequest) {
         hasMore = false
       }
     }
+    return allSettings
+  }
 
-    // Filter to only include staff with report = true and not hidden
-    const validSettings = allSettings.filter(
-      (setting) => !setting.is_hidden && setting.report !== false && setting.target_billable_percentage !== null
-    )
+  const fetchBillableData = async (startDate: string, endDate: string) => {
+    let allData: any[] = []
+    let page = 0
+    const pageSize = 1000
+    let hasMore = true
 
-    if (validSettings.length > 0) {
-      validSettings.forEach((setting) => {
-        const target = Number(setting.target_billable_percentage)
-        if (!isNaN(target) && target >= 0 && target <= 100) {
-          // Use standard hours as weight (simplified - use 1 for equal weight)
-          const weight = 1
-          targetBillablePercentage += target * weight
-          totalWeight += weight
+    while (hasMore) {
+      let query = supabase
+        .from('timesheet_uploads')
+        .select('time, billable_amount, client_group, account_manager, job_manager, job_name, staff')
+        .eq('organization_id', organizationId)
+        .eq('billable', true)
+        .gte('date', startDate)
+        .lte('date', endDate)
+
+      let staffFilterValue = staffFilter
+      filters.forEach((filter) => {
+        if (filter.type === 'staff' && filter.value && filter.value !== 'all') {
+          staffFilterValue = filter.value
         }
       })
-      
-      if (totalWeight > 0) {
-        targetBillablePercentage = targetBillablePercentage / totalWeight
+      if (staffFilterValue) {
+        query = query.ilike('staff', staffFilterValue.trim())
+      }
+
+      filters.forEach((filter) => {
+        if (filter.value && filter.value !== 'all' && filter.type !== 'staff') {
+          switch (filter.type) {
+            case 'client_group': query = query.eq('client_group', filter.value); break
+            case 'account_manager': query = query.eq('account_manager', filter.value); break
+            case 'job_manager': query = query.eq('job_manager', filter.value); break
+            case 'job_name':
+              if (filter.operator === 'not_contains') {
+                query = query.or(`job_name.not.ilike.%${filter.value}%,job_name.is.null`)
+              } else {
+                query = query.ilike('job_name', `%${filter.value}%`)
+              }
+              break
+          }
+        }
+      })
+
+      const { data: pageData, error: pageError } = await query.range(page * pageSize, (page + 1) * pageSize - 1)
+      if (pageError) throw new Error(`Failed to fetch billable data: ${pageError.message}`)
+
+      if (pageData && pageData.length > 0) {
+        allData = allData.concat(pageData)
+        page++
+        hasMore = pageData.length === pageSize
+      } else {
+        hasMore = false
       }
     }
 
-    return NextResponse.json({
-      ytdBillablePercentage: Math.round(ytdBillablePercentage * 10) / 10,
-      lastYearBillablePercentage: Math.round(lastYearBillablePercentage * 10) / 10,
-      targetBillablePercentage: Math.round(targetBillablePercentage * 10) / 10,
-      ytdAverageRate: Math.round(ytdAverageRate * 100) / 100,
-      lastYearAverageRate: Math.round(lastYearAverageRate * 100) / 100,
-    }, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-      },
+    let totalHours = 0
+    let totalAmount = 0
+    allData.forEach((record) => {
+      totalHours += convertTimeToHours(record.time)
+      totalAmount += Number(record.billable_amount || 0)
     })
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Server error' },
-      { status: 500 }
+    return { hours: totalHours, amount: totalAmount }
+  }
+
+  const fetchFullYearBillableStaff = async (startDate: string, endDate: string) => {
+    let allData: any[] = []
+    let page = 0
+    const pageSize = 1000
+    let hasMore = true
+    while (hasMore) {
+      const { data: pageData, error: pageError } = await supabase
+        .from('timesheet_uploads')
+        .select('staff, time')
+        .eq('organization_id', organizationId)
+        .eq('billable', true)
+        .gte('date', startDate)
+        .lte('date', endDate)
+        .range(page * pageSize, (page + 1) * pageSize - 1)
+      if (pageError) throw new Error(`Failed to fetch billable data: ${pageError.message}`)
+      if (pageData && pageData.length > 0) {
+        allData = allData.concat(pageData)
+        page++
+        hasMore = pageData.length === pageSize
+      } else {
+        hasMore = false
+      }
+    }
+    return allData
+  }
+
+  const fetchCapacityReducingHours = async (startDate: string, endDate: string) => {
+    let allData: any[] = []
+    let page = 0
+    const pageSize = 1000
+    let hasMore = true
+    while (hasMore) {
+      let query = supabase
+        .from('timesheet_uploads')
+        .select('time, capacity_reducing')
+        .eq('organization_id', organizationId)
+        .eq('capacity_reducing', true)
+        .gte('date', startDate)
+        .lte('date', endDate)
+      if (staffFilter) {
+        query = query.ilike('staff', staffFilter.trim())
+      }
+      const { data: pageData, error: pageError } = await query.range(page * pageSize, (page + 1) * pageSize - 1)
+      if (pageError) throw new Error(`Failed to fetch capacity reducing data: ${pageError.message}`)
+      if (pageData && pageData.length > 0) {
+        allData = allData.concat(pageData)
+        page++
+        hasMore = pageData.length === pageSize
+      } else {
+        hasMore = false
+      }
+    }
+    let totalHours = 0
+    allData.forEach((record) => { totalHours += convertTimeToHours(record.time) })
+    return totalHours
+  }
+
+  // Fetch staff settings once + all data in parallel
+  const fullCurrentYearStart = `${currentFYStartYear}-07-01`
+  const fullCurrentYearEnd = `${currentFYEndYear}-06-30`
+  const fullLastYearStart = `${lastFYStartYear}-07-01`
+  const fullLastYearEnd = `${currentFYStartYear}-06-30`
+
+  const [
+    allStaffSettings,
+    currentYearBillable,
+    lastYearBillable,
+    currentYearCapacityReducing,
+    lastYearCapacityReducing,
+    fullCurrentYearData,
+    fullLastYearData,
+  ] = await Promise.all([
+    fetchAllStaffSettings(),
+    fetchBillableData(currentYearStart, currentYearEnd),
+    fetchBillableData(lastYearStart, lastYearEnd),
+    fetchCapacityReducingHours(currentYearStart, currentYearEnd),
+    fetchCapacityReducingHours(lastYearStart, lastYearEnd),
+    staffFilter ? Promise.resolve<any[]>([]) : fetchFullYearBillableStaff(fullCurrentYearStart, fullCurrentYearEnd),
+    staffFilter ? Promise.resolve<any[]>([]) : fetchFullYearBillableStaff(fullLastYearStart, fullLastYearEnd),
+  ])
+
+  // Build settings maps
+  const staffSettingsMap = new Map<string, any>()
+  allStaffSettings.forEach((s) => { if (s.staff_name) staffSettingsMap.set(s.staff_name, s) })
+
+  const excludedStaffSet = new Set<string>()
+  allStaffSettings.forEach((s) => {
+    if (s.staff_name && (s.is_hidden || s.report === false)) excludedStaffSet.add(s.staff_name)
+  })
+
+  // Determine eligible staff (same logic as before, but reusing already-fetched data)
+  let selectedStaffNames: string[] = []
+  if (staffFilter) {
+    const settings = staffSettingsMap.get(staffFilter)
+    if (settings && !settings.is_hidden && settings.report !== false) {
+      selectedStaffNames = [staffFilter]
+    }
+  } else {
+    const staffBillableHours = new Map<string, { currentYear: number; lastYear: number }>()
+    const addHours = (data: any[], key: 'currentYear' | 'lastYear') => {
+      data.forEach((record) => {
+        if (!record.staff) return
+        const name = record.staff.trim()
+        if (!name || name.toLowerCase() === 'disbursement') return
+        const entry = staffBillableHours.get(name) ?? { currentYear: 0, lastYear: 0 }
+        entry[key] += convertTimeToHours(record.time)
+        staffBillableHours.set(name, entry)
+      })
+    }
+    addHours(fullCurrentYearData, 'currentYear')
+    addHours(fullLastYearData, 'lastYear')
+
+    selectedStaffNames = Array.from(staffBillableHours.entries())
+      .filter(([name, hours]) => {
+        if (excludedStaffSet.has(name)) return false
+        const rounded = { cy: Math.round(hours.currentYear * 100) / 100, ly: Math.round(hours.lastYear * 100) / 100 }
+        return rounded.cy > 0 || rounded.ly > 0
+      })
+      .filter(([name]) => {
+        const s = staffSettingsMap.get(name)
+        return s && !s.is_hidden && s.report !== false
+      })
+      .map(([name]) => name)
+      .sort()
+  }
+
+  // Build filtered settings map for standard hours calculation
+  const settingsMap = new Map<string, any>()
+  selectedStaffNames.forEach((name) => {
+    const s = staffSettingsMap.get(name)
+    if (s) settingsMap.set(name, s)
+  })
+
+  const calculateStandardHours = (startDate: string, endDate: string): number => {
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    let totalStandardHours = 0
+    const current = new Date(start)
+
+    while (current <= end) {
+      const year = current.getFullYear()
+      const month = current.getMonth()
+      const monthStart = new Date(year, month, 1)
+      const monthEnd = new Date(year, month + 1, 0)
+      const rangeStart = current > monthStart ? current : monthStart
+      const rangeEnd = end < monthEnd ? end : monthEnd
+
+      settingsMap.forEach((setting) => {
+        const effectiveStart = setting.start_date ? new Date(setting.start_date) : null
+        const effectiveEnd = setting.end_date ? new Date(setting.end_date) : null
+        if (effectiveEnd && effectiveEnd < rangeStart) return
+        if (effectiveStart && effectiveStart > rangeEnd) return
+        const staffStart = effectiveStart && effectiveStart > rangeStart ? effectiveStart : rangeStart
+        const staffEnd = effectiveEnd && effectiveEnd < rangeEnd ? effectiveEnd : rangeEnd
+        const staffWeekdays = getWeekdaysInDateRange(staffStart, staffEnd)
+        const dailyHours = (Number(setting.default_daily_hours) || 8) * (Number(setting.fte) || 1.0)
+        totalStandardHours += staffWeekdays * dailyHours
+      })
+
+      current.setMonth(month + 1)
+      current.setDate(1)
+    }
+
+    return totalStandardHours
+  }
+
+  const currentYearStandardHours = calculateStandardHours(currentYearStart, currentYearEnd)
+  const lastYearStandardHours = calculateStandardHours(lastYearStart, lastYearEnd)
+
+  const currentYearTotalHours = Math.max(0, currentYearStandardHours - currentYearCapacityReducing)
+  const lastYearTotalHours = Math.max(0, lastYearStandardHours - lastYearCapacityReducing)
+
+  const ytdBillablePercentage = currentYearTotalHours > 0
+    ? (currentYearBillable.hours / currentYearTotalHours) * 100
+    : 0
+  const lastYearBillablePercentage = lastYearTotalHours > 0
+    ? (lastYearBillable.hours / lastYearTotalHours) * 100
+    : 0
+
+  const ytdAverageRate = currentYearBillable.hours > 0 ? currentYearBillable.amount / currentYearBillable.hours : 0
+  const lastYearAverageRate = lastYearBillable.hours > 0 ? lastYearBillable.amount / lastYearBillable.hours : 0
+
+  // Target billable % — derived from already-fetched settings
+  let targetBillablePercentage = 0
+  let totalWeight = 0
+  const validSettings = allStaffSettings.filter(
+    (s) => !s.is_hidden && s.report !== false && s.target_billable_percentage !== null
+  )
+  validSettings.forEach((s) => {
+    const target = Number(s.target_billable_percentage)
+    if (!isNaN(target) && target >= 0 && target <= 100) {
+      targetBillablePercentage += target
+      totalWeight++
+    }
+  })
+  if (totalWeight > 0) targetBillablePercentage = targetBillablePercentage / totalWeight
+
+  return {
+    ytdBillablePercentage: Math.round(ytdBillablePercentage * 10) / 10,
+    lastYearBillablePercentage: Math.round(lastYearBillablePercentage * 10) / 10,
+    targetBillablePercentage: Math.round(targetBillablePercentage * 10) / 10,
+    ytdAverageRate: Math.round(ytdAverageRate * 100) / 100,
+    lastYearAverageRate: Math.round(lastYearAverageRate * 100) / 100,
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const org = await requireOrg()
+    const searchParams = request.nextUrl.searchParams
+    const organizationId = searchParams.get('organizationId') || org.id
+    const staffFilter = searchParams.get('staff') ?? ''
+    const asOfDateParam = searchParams.get('asOfDate')
+    const filtersParam = searchParams.get('filters') ?? ''
+
+    const asOfDate = asOfDateParam ? new Date(asOfDateParam) : new Date()
+    const currentMonth = asOfDate.getMonth()
+    const currentYear = asOfDate.getFullYear()
+
+    const currentFYStartYear = currentMonth >= 6 ? currentYear : currentYear - 1
+    const currentFYEndYear = currentFYStartYear + 1
+    const lastFYStartYear = currentFYStartYear - 1
+    const lastFYEndYear = currentFYStartYear
+
+    const currentYearStart = `${currentFYStartYear}-07-01`
+    const currentYearEnd = formatDateLocal(asOfDate)
+
+    const lastYearSameDate = new Date(asOfDate)
+    lastYearSameDate.setFullYear(lastYearSameDate.getFullYear() - 1)
+    const lastYearEndDate = formatDateLocal(lastYearSameDate)
+    const lastYearFYEnd = `${lastFYEndYear}-06-30`
+    const lastYearEnd = lastYearEndDate <= lastYearFYEnd ? lastYearEndDate : lastYearFYEnd
+    const lastYearStart = `${lastFYStartYear}-07-01`
+
+    // Normalize filters to a stable cache key (strip ephemeral id fields)
+    let filtersKey = ''
+    if (filtersParam) {
+      try {
+        const parsed = JSON.parse(filtersParam)
+        if (Array.isArray(parsed)) {
+          filtersKey = JSON.stringify(
+            parsed
+              .filter((f: any) => f.type && f.value)
+              .map((f: any) => ({ type: f.type, value: f.value, operator: f.operator }))
+          )
+        }
+      } catch {}
+    }
+
+    const cached = getCachedOrgRunner('productivity-kpi-v1', organizationId, computeProductivityKpi)
+    const result = await cached(
+      organizationId,
+      currentFYStartYear,
+      currentFYEndYear,
+      lastFYStartYear,
+      currentYearStart,
+      currentYearEnd,
+      lastYearStart,
+      lastYearEnd,
+      filtersKey,
+      staffFilter
     )
+
+    return NextResponse.json(result, { headers: { 'Cache-Control': CACHE_CONTROL_READONLY_JSON } })
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Server error' }, { status: 500 })
   }
 }

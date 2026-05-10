@@ -13,6 +13,31 @@ export function revalidateOrganizationAnalytics(organizationId: string) {
   revalidateTag(organizationAnalyticsCacheTag(organizationId))
 }
 
+const allCachedRunners = new Map<string, Function>()
+
+/**
+ * Returns a per-org unstable_cache wrapper for a module-level compute function.
+ * The fn must be defined at module level (stable reference) so the cached
+ * runner created on first call remains valid for subsequent requests.
+ * Cache is invalidated via revalidateOrganizationAnalytics(organizationId).
+ */
+export function getCachedOrgRunner<TArgs extends unknown[], TResult>(
+  routeKey: string,
+  organizationId: string,
+  fn: (...args: TArgs) => Promise<TResult>
+): (...args: TArgs) => Promise<TResult> {
+  const mapKey = `${routeKey}:${organizationId}`
+  let runner = allCachedRunners.get(mapKey)
+  if (!runner) {
+    runner = unstable_cache(fn, [routeKey, organizationId], {
+      revalidate: 60,
+      tags: [organizationAnalyticsCacheTag(organizationId)],
+    })
+    allCachedRunners.set(mapKey, runner)
+  }
+  return runner as (...args: TArgs) => Promise<TResult>
+}
+
 function parseFiltersKey(filtersKey: string): DashboardKpiFilter[] {
   if (!filtersKey) return []
   try {
