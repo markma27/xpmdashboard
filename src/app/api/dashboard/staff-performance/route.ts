@@ -3,7 +3,8 @@ import { requireOrg } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import { formatDateLocal } from '@/lib/utils'
 import { CACHE_CONTROL_READONLY_JSON } from '@/lib/http-cache'
-import { getCachedOrgRunner } from '@/lib/org-analytics-cache'
+import { unstable_cache } from 'next/cache'
+import { organizationAnalyticsCacheTag } from '@/lib/org-analytics-cache'
 
 function convertTimeToHours(timeValue: number | string | null): number {
   if (timeValue === null || timeValue === undefined) return 0
@@ -397,6 +398,23 @@ async function computeStaffPerformance(
   return { data: staffPerformanceData, totals }
 }
 
+type StaffPerformanceRunner = (a: number, b: number, c: number, d: string, e: string, f: string) => ReturnType<typeof computeStaffPerformance>
+const staffPerformanceRunners = new Map<string, StaffPerformanceRunner>()
+
+function getStaffPerformanceRunner(organizationId: string): StaffPerformanceRunner {
+  let runner = staffPerformanceRunners.get(organizationId)
+  if (!runner) {
+    runner = unstable_cache(
+      (currentFYStartYear: number, currentFYEndYear: number, lastFYStartYear: number, currentYearStart: string, currentYearEnd: string, filtersKey: string) =>
+        computeStaffPerformance(organizationId, currentFYStartYear, currentFYEndYear, lastFYStartYear, currentYearStart, currentYearEnd, filtersKey),
+      ['dashboard-staff-performance-v1', organizationId],
+      { revalidate: 60, tags: [organizationAnalyticsCacheTag(organizationId)] }
+    ) as StaffPerformanceRunner
+    staffPerformanceRunners.set(organizationId, runner)
+  }
+  return runner
+}
+
 export async function GET(request: NextRequest) {
   try {
     const org = await requireOrg()
@@ -431,9 +449,8 @@ export async function GET(request: NextRequest) {
       } catch {}
     }
 
-    const cached = getCachedOrgRunner('dashboard-staff-performance-v1', organizationId, computeStaffPerformance)
-    const result = await cached(
-      organizationId,
+    const runner = getStaffPerformanceRunner(organizationId)
+    const result = await runner(
       currentFYStartYear,
       currentFYEndYear,
       lastFYStartYear,

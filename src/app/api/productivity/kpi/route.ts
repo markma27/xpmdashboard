@@ -3,7 +3,8 @@ import { requireOrg } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import { formatDateLocal } from '@/lib/utils'
 import { CACHE_CONTROL_READONLY_JSON } from '@/lib/http-cache'
-import { getCachedOrgRunner } from '@/lib/org-analytics-cache'
+import { unstable_cache } from 'next/cache'
+import { organizationAnalyticsCacheTag } from '@/lib/org-analytics-cache'
 
 function convertTimeToHours(timeValue: number | string | null): number {
   if (timeValue === null || timeValue === undefined) return 0
@@ -341,6 +342,23 @@ async function computeProductivityKpi(
   }
 }
 
+type ProductivityKpiRunner = (a: number, b: number, c: number, d: string, e: string, f: string, g: string, h: string, i: string) => ReturnType<typeof computeProductivityKpi>
+const productivityKpiRunners = new Map<string, ProductivityKpiRunner>()
+
+function getProductivityKpiRunner(organizationId: string): ProductivityKpiRunner {
+  let runner = productivityKpiRunners.get(organizationId)
+  if (!runner) {
+    runner = unstable_cache(
+      (currentFYStartYear: number, currentFYEndYear: number, lastFYStartYear: number, currentYearStart: string, currentYearEnd: string, lastYearStart: string, lastYearEnd: string, filtersKey: string, staffFilter: string) =>
+        computeProductivityKpi(organizationId, currentFYStartYear, currentFYEndYear, lastFYStartYear, currentYearStart, currentYearEnd, lastYearStart, lastYearEnd, filtersKey, staffFilter),
+      ['productivity-kpi-v1', organizationId],
+      { revalidate: 60, tags: [organizationAnalyticsCacheTag(organizationId)] }
+    ) as ProductivityKpiRunner
+    productivityKpiRunners.set(organizationId, runner)
+  }
+  return runner
+}
+
 export async function GET(request: NextRequest) {
   try {
     const org = await requireOrg()
@@ -384,9 +402,8 @@ export async function GET(request: NextRequest) {
       } catch {}
     }
 
-    const cached = getCachedOrgRunner('productivity-kpi-v1', organizationId, computeProductivityKpi)
-    const result = await cached(
-      organizationId,
+    const runner = getProductivityKpiRunner(organizationId)
+    const result = await runner(
       currentFYStartYear,
       currentFYEndYear,
       lastFYStartYear,
