@@ -44,7 +44,7 @@ export function WIPAgingCharts({
         setError(null)
         
         // Build query with optional filters
-        let queryParams = `organizationId=${organizationId}&t=${Date.now()}`
+        let queryParams = `organizationId=${organizationId}`
         if (selectedPartner) {
           queryParams += `&partner=${encodeURIComponent(selectedPartner)}`
         }
@@ -52,10 +52,7 @@ export function WIPAgingCharts({
           queryParams += `&clientManager=${encodeURIComponent(selectedClientManager)}`
         }
         
-        const response = await fetch(`/api/wip/aging-summary?${queryParams}`, {
-          cache: 'no-store',
-          headers: { 'Cache-Control': 'no-cache' },
-        })
+        const response = await fetch(`/api/wip/aging-summary?${queryParams}`)
         
         if (!response.ok) {
           throw new Error('Failed to fetch WIP aging data')

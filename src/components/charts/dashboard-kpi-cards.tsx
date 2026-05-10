@@ -4,6 +4,7 @@ import useSWR from 'swr'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowUp, ArrowDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { dashboardDataFetcher, dashboardSwrConfig, useSavedFilters } from '@/lib/hooks/use-dashboard-data'
 
 interface DashboardKPICardsProps {
   organizationId: string
@@ -48,23 +49,7 @@ interface KPICardProps {
   lastYearDate?: string | null
 }
 
-// SWR fetcher
-const fetcher = async (url: string) => {
-  const res = await fetch(url)
-  if (!res.ok) throw new Error('Failed to fetch')
-  return res.json()
-}
-
-// SWR config for KPI data
-const swrConfig = {
-  revalidateOnFocus: false,
-  revalidateOnReconnect: true,
-  dedupingInterval: 60000,        // 60 seconds deduping
-  refreshInterval: 5 * 60 * 1000, // Refresh every 5 minutes
-  errorRetryCount: 3,
-}
-
-function KPICard({ 
+function KPICard({
   title, 
   currentValue, 
   lastYearValue, 
@@ -160,18 +145,11 @@ function KPICardSkeleton() {
 }
 
 export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICardsProps) {
-  // First, fetch saved filters
-  const { data: filtersData } = useSWR<{ filters: any[] }>(
-    `/api/billable/saved-filters?organizationId=${organizationId}`,
-    fetcher,
-    { ...swrConfig, refreshInterval: 0 }
-  )
-  
-  const billableFilters = filtersData?.filters || []
-  const filtersParam = billableFilters.length > 0 
-    ? `&filters=${encodeURIComponent(JSON.stringify(billableFilters))}`
-    : ''
-  
+  const { filters: billableFilters, isLoading: savedFiltersBusy } = useSavedFilters(organizationId)
+
+  const filtersParam =
+    billableFilters.length > 0 ? `&filters=${encodeURIComponent(JSON.stringify(billableFilters))}` : ''
+
   // Build base params
   const baseParams = `organizationId=${organizationId}${asOfDate ? `&asOfDate=${asOfDate}` : ''}`
 
@@ -222,24 +200,22 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
 
   const formattedLastYearDate = calculateLastYearDate()
   
-  // Fetch all KPI data using SWR (these run in parallel automatically)
-  const { data: dashboardData, error: dashboardError, isLoading: dashboardLoading } = useSWR<DashboardKPIData>(
-    `/api/dashboard/kpi?${baseParams}${filtersParam}`,
-    fetcher,
-    swrConfig
-  )
-  
-  const { data: productivityData, error: productivityError, isLoading: productivityLoading } = useSWR<ProductivityKPIData>(
-    `/api/productivity/kpi?${baseParams}${filtersParam}`,
-    fetcher,
-    swrConfig
-  )
-  
-  const { data: recoverabilityData, error: recoverabilityError, isLoading: recoverabilityLoading } = useSWR<RecoverabilityKPIData>(
-    `/api/recoverability/kpi?${baseParams}${filtersParam}`,
-    fetcher,
-    swrConfig
-  )
+  const { data: dashboardData, error: dashboardError, isLoading: dashboardLoading } =
+    useSWR<DashboardKPIData>(`/api/dashboard/kpi?${baseParams}${filtersParam}`, dashboardDataFetcher, dashboardSwrConfig)
+
+  const { data: productivityData, error: productivityError, isLoading: productivityLoading } =
+    useSWR<ProductivityKPIData>(
+      `/api/productivity/kpi?${baseParams}${filtersParam}`,
+      dashboardDataFetcher,
+      dashboardSwrConfig
+    )
+
+  const { data: recoverabilityData, error: recoverabilityError, isLoading: recoverabilityLoading } =
+    useSWR<RecoverabilityKPIData>(
+      `/api/recoverability/kpi?${baseParams}${filtersParam}`,
+      dashboardDataFetcher,
+      dashboardSwrConfig
+    )
 
   // Format currency with parentheses for negative values and red color
   const formatCurrency = (amount: number) => {
@@ -251,8 +227,8 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
     return `$${formatted}`
   }
 
-  // Check loading state
-  const isLoading = dashboardLoading || productivityLoading || recoverabilityLoading
+  const isLoading =
+    savedFiltersBusy || dashboardLoading || productivityLoading || recoverabilityLoading
   const hasError = dashboardError || productivityError || recoverabilityError
 
   if (isLoading) {

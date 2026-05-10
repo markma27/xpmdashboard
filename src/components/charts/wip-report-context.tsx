@@ -40,24 +40,8 @@ export function WIPReportProvider({
       try {
         setLoading(true)
         const [dataResponse, lastUploadResponse] = await Promise.all([
-          fetch(
-            `/api/wip/client-groups?organizationId=${organizationId}&t=${Date.now()}`,
-            {
-              cache: 'no-store',
-              headers: {
-                'Cache-Control': 'no-cache',
-              },
-            }
-          ),
-          fetch(
-            `/api/wip/last-upload?organizationId=${organizationId}&t=${Date.now()}`,
-            {
-              cache: 'no-store',
-              headers: {
-                'Cache-Control': 'no-cache',
-              },
-            }
-          ),
+          fetch(`/api/wip/client-groups?organizationId=${organizationId}`),
+          fetch(`/api/wip/last-upload?organizationId=${organizationId}`),
         ])
         
         if (dataResponse.ok) {

@@ -59,7 +59,7 @@ export function WIPClientGroupsTable({
         setLoading(true)
         setError(null)
         // Build query with optional filters
-        let url = `/api/wip/client-groups?organizationId=${organizationId}&t=${Date.now()}`
+        let url = `/api/wip/client-groups?organizationId=${organizationId}`
         if (externalSelectedPartner) {
           url += `&partner=${encodeURIComponent(externalSelectedPartner)}`
         }
@@ -67,12 +67,7 @@ export function WIPClientGroupsTable({
           url += `&clientManager=${encodeURIComponent(externalSelectedClientManager)}`
         }
         
-        const response = await fetch(url, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache',
-          },
-        })
+        const response = await fetch(url)
         
         if (!response.ok) {
           throw new Error('Failed to fetch client group data')

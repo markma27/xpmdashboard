@@ -205,17 +205,12 @@ export function RecoverabilityKPICards({ organizationId, filters = [] }: Recover
           return
         }
         
-        const baseParams = `organizationId=${organizationId}&t=${Date.now()}`
+        const baseParams = `organizationId=${organizationId}`
         const filtersParam = filters.length > 0 
           ? `&filters=${encodeURIComponent(filtersString)}`
           : ''
         
-        const response = await fetch(`/api/recoverability/kpi?${baseParams}${filtersParam}`, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache',
-          },
-        })
+        const response = await fetch(`/api/recoverability/kpi?${baseParams}${filtersParam}`)
         
         if (!response.ok) {
           throw new Error('Failed to fetch KPI data')

@@ -33,29 +33,14 @@ export function ProductivityPercentageChartClient({
         setError(null)
         
         // Build query URLs with optional staff filter and date
-        const baseParams = `organizationId=${organizationId}&t=${Date.now()}${asOfDate ? `&asOfDate=${asOfDate}` : ''}`
+        const baseParams = `organizationId=${organizationId}${asOfDate ? `&asOfDate=${asOfDate}` : ''}`
         const staffParam = selectedStaff ? `&staff=${encodeURIComponent(selectedStaff)}` : ''
         
         // Fetch billable hours, standard hours, and capacity reducing hours
         const [billableHoursResponse, standardHoursResponse, capacityReducingResponse] = await Promise.all([
-          fetch(`/api/productivity/monthly?${baseParams}${staffParam}`, {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache',
-            },
-          }),
-          fetch(`/api/productivity/standard-hours/monthly?${baseParams}${staffParam}`, {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache',
-            },
-          }),
-          fetch(`/api/productivity/capacity-reducing/monthly?${baseParams}${staffParam}`, {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache',
-            },
-          }),
+          fetch(`/api/productivity/monthly?${baseParams}${staffParam}`),
+          fetch(`/api/productivity/standard-hours/monthly?${baseParams}${staffParam}`),
+          fetch(`/api/productivity/capacity-reducing/monthly?${baseParams}${staffParam}`),
         ])
         
         if (!billableHoursResponse.ok) {

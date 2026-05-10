@@ -39,7 +39,7 @@ export function WIPChartsClient({
         setError(null)
         
         // Build query with optional filters
-        let queryParams = `organizationId=${organizationId}&t=${Date.now()}`
+        let queryParams = `organizationId=${organizationId}`
         if (selectedPartner) {
           queryParams += `&partner=${encodeURIComponent(selectedPartner)}`
         }
@@ -49,14 +49,8 @@ export function WIPChartsClient({
         
         // Fetch both datasets in parallel
         const [partnerResponse, managerResponse] = await Promise.all([
-          fetch(`/api/wip/by-partner?${queryParams}`, {
-            cache: 'no-store',
-            headers: { 'Cache-Control': 'no-cache' },
-          }),
-          fetch(`/api/wip/by-client-manager?${queryParams}`, {
-            cache: 'no-store',
-            headers: { 'Cache-Control': 'no-cache' },
-          }),
+          fetch(`/api/wip/by-partner?${queryParams}`),
+          fetch(`/api/wip/by-client-manager?${queryParams}`),
         ])
         
         if (!partnerResponse.ok || !managerResponse.ok) {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, requireOrg } from '@/lib/auth'
+import { revalidateOrganizationAnalytics } from '@/lib/org-analytics-cache'
 import { isAdmin } from '@/lib/rbac'
 import { createClient } from '@/lib/supabase/server'
 import Papa from 'papaparse'
@@ -241,6 +242,7 @@ export async function POST(request: NextRequest) {
               insertedCount += batch.length
             }
 
+            revalidateOrganizationAnalytics(org.id)
             resolve(NextResponse.json({
               success: true,
               message: `Successfully uploaded ${insertedCount} WIP timesheet records`,

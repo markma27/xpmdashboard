@@ -1,8 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import useSWR from 'swr'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { TableSkeleton } from './chart-skeleton'
+import { dashboardSwrConfig, useSavedFilters } from '@/lib/hooks/use-dashboard-data'
 
 interface StaffPerformanceData {
   staff: string
@@ -47,10 +49,68 @@ interface DashboardStaffPerformanceTableProps {
 }
 
 export function DashboardStaffPerformanceTable({ organizationId, asOfDate }: DashboardStaffPerformanceTableProps) {
-  const [data, setData] = useState<StaffPerformanceData[]>([])
-  const [totals, setTotals] = useState<StaffPerformanceResponse['totals'] | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { filters: billableFilters, isLoading: savedFiltersBusy } = useSavedFilters(organizationId)
+
+  const bundleKey =
+    organizationId && !savedFiltersBusy
+      ? ([
+          'dashboard-staff-performance',
+          organizationId,
+          asOfDate ?? '',
+          JSON.stringify(billableFilters),
+        ] as const)
+      : null
+
+  const {
+    data: bundle,
+    error: swrError,
+    isLoading,
+  } = useSWR<{ data: StaffPerformanceData[]; totals: StaffPerformanceResponse['totals'] | null }>(
+    bundleKey,
+    async () => {
+      const baseParams = `organizationId=${organizationId}${asOfDate ? `&asOfDate=${asOfDate}` : ''}`
+      const filtersParam =
+        billableFilters.length > 0 ? `&filters=${encodeURIComponent(JSON.stringify(billableFilters))}` : ''
+
+      const [staffResponse, kpiResponse] = await Promise.all([
+        fetch(`/api/dashboard/staff-performance?${baseParams}${filtersParam}`),
+        fetch(`/api/productivity/kpi?${baseParams}${filtersParam}`),
+      ])
+
+      if (!staffResponse.ok) {
+        throw new Error('Failed to fetch staff performance data')
+      }
+
+      const result: StaffPerformanceResponse = await staffResponse.json()
+      const rows = result.data
+      let finalTotals = result.totals || null
+
+      if (kpiResponse.ok && finalTotals) {
+        try {
+          const kpiData = await kpiResponse.json()
+          if (kpiData.ytdBillablePercentage !== undefined) {
+            finalTotals = {
+              ...finalTotals,
+              currentYear: {
+                ...finalTotals.currentYear,
+                billablePercentage: kpiData.ytdBillablePercentage,
+              },
+            }
+          }
+        } catch {
+          /* keep original totals */
+        }
+      }
+
+      return { data: rows, totals: finalTotals }
+    },
+    dashboardSwrConfig
+  )
+
+  const data = bundle?.data ?? []
+  const totals = bundle?.totals ?? null
+  const error = swrError ? (swrError instanceof Error ? swrError.message : 'Failed to load') : null
+
   const [sortColumn, setSortColumn] = useState<SortColumn>('currentYearBillableAmount')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
 
@@ -66,98 +126,6 @@ export function DashboardStaffPerformanceTable({ organizationId, asOfDate }: Das
   }
 
   const formattedAsOfDate = formatDateForHeader(asOfDate)
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true)
-        setError(null)
-        
-        // First, fetch saved filters from Billable page (same as KPI cards)
-        let billableFilters: any[] = []
-        try {
-          const filtersResponse = await fetch(
-            `/api/billable/saved-filters?organizationId=${organizationId}&t=${Date.now()}`,
-            {
-              cache: 'no-store',
-              headers: {
-                'Cache-Control': 'no-cache',
-              },
-            }
-          )
-          
-          if (filtersResponse.ok) {
-            const result = await filtersResponse.json()
-            if (result.filters && Array.isArray(result.filters)) {
-              billableFilters = result.filters
-            }
-          }
-        } catch (err) {
-          // Silently fail - filters are optional
-          console.error('Failed to fetch saved filters:', err)
-        }
-        
-        const baseParams = `organizationId=${organizationId}&t=${Date.now()}${asOfDate ? `&asOfDate=${asOfDate}` : ''}`
-        
-        // Add filters parameter if filters exist
-        const filtersParam = billableFilters.length > 0 
-          ? `&filters=${encodeURIComponent(JSON.stringify(billableFilters))}`
-          : ''
-        
-        // Fetch both staff performance data and KPI data in parallel
-        const [staffResponse, kpiResponse] = await Promise.all([
-          fetch(`/api/dashboard/staff-performance?${baseParams}${filtersParam}`, {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache',
-            },
-          }),
-          fetch(`/api/productivity/kpi?${baseParams}${filtersParam}`, {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache',
-            },
-          }),
-        ])
-        
-        if (!staffResponse.ok) {
-          throw new Error('Failed to fetch staff performance data')
-        }
-        
-        const result: StaffPerformanceResponse = await staffResponse.json()
-        setData(result.data || result) // Support both old format (array) and new format (object with data and totals)
-        
-        // Use KPI API's billable percentage for totals to ensure consistency with KPI card
-        let finalTotals = result.totals || null
-        if (kpiResponse.ok && finalTotals) {
-          try {
-            const kpiData = await kpiResponse.json()
-            if (kpiData.ytdBillablePercentage !== undefined) {
-              // Override the billable percentage with the exact value from KPI API
-              finalTotals = {
-                ...finalTotals,
-                currentYear: {
-                  ...finalTotals.currentYear,
-                  billablePercentage: kpiData.ytdBillablePercentage,
-                },
-              }
-            }
-          } catch (err) {
-            // Silently fail - use the original totals
-            console.error('Failed to parse KPI data:', err)
-          }
-        }
-        
-        setTotals(finalTotals)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [organizationId, asOfDate])
 
   const formatCurrency = (amount: number) => {
     if (amount === 0) return '-'
@@ -255,7 +223,7 @@ export function DashboardStaffPerformanceTable({ organizationId, asOfDate }: Das
     }
   })
 
-  if (loading) {
+  if (savedFiltersBusy || isLoading) {
     return <TableSkeleton />
   }
 

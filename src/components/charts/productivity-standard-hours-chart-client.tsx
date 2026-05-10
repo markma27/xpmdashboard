@@ -30,17 +30,12 @@ export function ProductivityStandardHoursChartClient({
         setLoading(true)
         setError(null)
         // Build query with optional staff filter
-        let url = `/api/productivity/standard-hours/monthly?organizationId=${organizationId}&t=${Date.now()}`
+        let url = `/api/productivity/standard-hours/monthly?organizationId=${organizationId}`
         if (selectedStaff) {
           url += `&staff=${encodeURIComponent(selectedStaff)}`
         }
         
-        const response = await fetch(url, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache',
-          },
-        })
+        const response = await fetch(url)
         
         if (!response.ok) {
           throw new Error('Failed to fetch standard hours data')

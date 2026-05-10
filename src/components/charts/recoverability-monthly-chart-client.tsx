@@ -38,17 +38,12 @@ export function RecoverabilityMonthlyChartClient({
         setLoading(true)
         setError(null)
         // Build query with filters
-        let url = `/api/recoverability/monthly?organizationId=${organizationId}&t=${Date.now()}`
+        let url = `/api/recoverability/monthly?organizationId=${organizationId}`
         if (filters.length > 0) {
           url += `&filters=${encodeURIComponent(filtersString)}`
         }
         
-        const response = await fetch(url, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache',
-          },
-        })
+        const response = await fetch(url)
         
         if (!response.ok) {
           throw new Error('Failed to fetch recoverability data')

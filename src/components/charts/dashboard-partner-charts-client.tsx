@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import useSWR from 'swr'
 import { DashboardRevenueByPartnerChart } from './dashboard-revenue-by-partner-chart'
 import { DashboardBillableByPartnerChart } from './dashboard-billable-by-partner-chart'
 import { DashboardRevenueByClientGroupChart } from './dashboard-revenue-by-client-group-chart'
 import { DashboardBillableByClientGroupChart } from './dashboard-billable-by-client-group-chart'
+import { dashboardDataFetcher, dashboardSwrConfig } from '@/lib/hooks/use-dashboard-data'
 
 interface DashboardPartnerChartsClientProps {
   organizationId: string
@@ -35,89 +36,46 @@ interface ClientGroupBillableData {
   'Last Year': number
 }
 
+type PartnerChartsBundle = {
+  revenueData: PartnerRevenueData[]
+  billableData: PartnerBillableData[]
+  clientGroupRevenueData: ClientGroupRevenueData[]
+  clientGroupBillableData: ClientGroupBillableData[]
+}
+
 export function DashboardPartnerChartsClient({ organizationId, asOfDate }: DashboardPartnerChartsClientProps) {
-  const [revenueData, setRevenueData] = useState<PartnerRevenueData[]>([])
-  const [billableData, setBillableData] = useState<PartnerBillableData[]>([])
-  const [clientGroupRevenueData, setClientGroupRevenueData] = useState<ClientGroupRevenueData[]>([])
-  const [clientGroupBillableData, setClientGroupBillableData] = useState<ClientGroupBillableData[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const baseParams = `organizationId=${organizationId}${asOfDate ? `&asOfDate=${asOfDate}` : ''}`
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true)
-        setError(null)
-        
-        const baseParams = `organizationId=${organizationId}&t=${Date.now()}${asOfDate ? `&asOfDate=${asOfDate}` : ''}`
-        
-        // Fetch all datasets in parallel
-        const [revenueResponse, billableResponse, clientGroupRevenueResponse, clientGroupBillableResponse] = await Promise.all([
-          fetch(`/api/dashboard/revenue-by-partner?${baseParams}`, {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache',
-            },
-          }),
-          fetch(`/api/dashboard/billable-by-partner?${baseParams}`, {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache',
-            },
-          }),
-          fetch(`/api/dashboard/revenue-by-client-group?${baseParams}`, {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache',
-            },
-          }),
-          fetch(`/api/dashboard/billable-by-client-group?${baseParams}`, {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache',
-            },
-          }),
-        ])
-        
-        if (!revenueResponse.ok) {
-          throw new Error('Failed to fetch invoice by partner data')
-        }
-        
-        if (!billableResponse.ok) {
-          throw new Error('Failed to fetch billable by partner data')
-        }
-        
-        if (!clientGroupRevenueResponse.ok) {
-          throw new Error('Failed to fetch invoice by client group data')
-        }
-        
-        if (!clientGroupBillableResponse.ok) {
-          throw new Error('Failed to fetch billable by client group data')
-        }
-        
-        const revenueDataResult = await revenueResponse.json()
-        const billableDataResult = await billableResponse.json()
-        const clientGroupRevenueDataResult = await clientGroupRevenueResponse.json()
-        const clientGroupBillableDataResult = await clientGroupBillableResponse.json()
-        
-        setRevenueData(revenueDataResult)
-        setBillableData(billableDataResult)
-        setClientGroupRevenueData(clientGroupRevenueDataResult)
-        setClientGroupBillableData(clientGroupBillableDataResult)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred')
-      } finally {
-        setLoading(false)
+  const { data, error, isLoading } = useSWR<PartnerChartsBundle>(
+    organizationId ? ['dashboard-partner-charts', baseParams] : null,
+    async () => {
+      const [revenueData, billableData, clientGroupRevenueData, clientGroupBillableData] = await Promise.all([
+        dashboardDataFetcher(`/api/dashboard/revenue-by-partner?${baseParams}`),
+        dashboardDataFetcher(`/api/dashboard/billable-by-partner?${baseParams}`),
+        dashboardDataFetcher(`/api/dashboard/revenue-by-client-group?${baseParams}`),
+        dashboardDataFetcher(`/api/dashboard/billable-by-client-group?${baseParams}`),
+      ])
+      return {
+        revenueData,
+        billableData,
+        clientGroupRevenueData,
+        clientGroupBillableData,
       }
-    }
+    },
+    dashboardSwrConfig
+  )
 
-    fetchData()
-  }, [organizationId, asOfDate])
+  const revenueData = data?.revenueData ?? []
+  const billableData = data?.billableData ?? []
+  const clientGroupRevenueData = data?.clientGroupRevenueData ?? []
+  const clientGroupBillableData = data?.clientGroupBillableData ?? []
 
   if (error) {
     return (
       <div className="grid gap-2.5 md:grid-cols-2">
-        <div className="text-sm text-destructive">{error}</div>
+        <div className="text-sm text-destructive">
+          {error instanceof Error ? error.message : 'Failed to load dashboard charts'}
+        </div>
       </div>
     )
   }
@@ -125,12 +83,12 @@ export function DashboardPartnerChartsClient({ organizationId, asOfDate }: Dashb
   return (
     <div className="space-y-2.5">
       <div className="grid gap-2.5 md:grid-cols-2">
-        <DashboardRevenueByPartnerChart data={revenueData} loading={loading} />
-        <DashboardBillableByPartnerChart data={billableData} loading={loading} />
+        <DashboardRevenueByPartnerChart data={revenueData} loading={isLoading} />
+        <DashboardBillableByPartnerChart data={billableData} loading={isLoading} />
       </div>
       <div className="grid gap-2.5 md:grid-cols-2">
-        <DashboardRevenueByClientGroupChart data={clientGroupRevenueData} loading={loading} />
-        <DashboardBillableByClientGroupChart data={clientGroupBillableData} loading={loading} />
+        <DashboardRevenueByClientGroupChart data={clientGroupRevenueData} loading={isLoading} />
+        <DashboardBillableByClientGroupChart data={clientGroupBillableData} loading={isLoading} />
       </div>
     </div>
   )

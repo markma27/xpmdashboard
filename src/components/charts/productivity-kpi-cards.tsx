@@ -196,13 +196,7 @@ export function ProductivityKPICards({ organizationId, selectedStaff, asOfDate }
         let billableFilters: any[] = []
         try {
           const filtersResponse = await fetch(
-            `/api/billable/saved-filters?organizationId=${organizationId}&t=${Date.now()}`,
-            {
-              cache: 'no-store',
-              headers: {
-                'Cache-Control': 'no-cache',
-              },
-            }
+            `/api/billable/saved-filters?organizationId=${organizationId}`
           )
           
           if (filtersResponse.ok) {
@@ -216,7 +210,7 @@ export function ProductivityKPICards({ organizationId, selectedStaff, asOfDate }
           console.error('Failed to fetch saved filters:', err)
         }
         
-        const baseParams = `organizationId=${organizationId}&t=${Date.now()}${asOfDate ? `&asOfDate=${asOfDate}` : ''}`
+        const baseParams = `organizationId=${organizationId}${asOfDate ? `&asOfDate=${asOfDate}` : ''}`
         const staffParam = selectedStaff ? `&staff=${encodeURIComponent(selectedStaff)}` : ''
         
         // Add staff filter to billableFilters if selectedStaff is provided
@@ -234,18 +228,8 @@ export function ProductivityKPICards({ organizationId, selectedStaff, asOfDate }
         
         // Fetch productivity and recoverability data in parallel
         const [productivityResponse, recoverabilityResponse] = await Promise.all([
-          fetch(`/api/productivity/kpi?${baseParams}${staffParam}${filtersParam}`, {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache',
-            },
-          }),
-          fetch(`/api/recoverability/kpi?${baseParams}${filtersParam}`, {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache',
-            },
-          }),
+          fetch(`/api/productivity/kpi?${baseParams}${staffParam}${filtersParam}`),
+          fetch(`/api/recoverability/kpi?${baseParams}${filtersParam}`),
         ])
         
         if (!productivityResponse.ok) {

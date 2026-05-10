@@ -108,17 +108,12 @@ export function RevenueClientGroupsTable({
         setData([])
         setError(null)
         setLoading(true)
-        // Add cache control and timestamp to ensure fresh data on every fetch
-        let url = `/api/revenue/client-groups?organizationId=${organizationId}&t=${Date.now()}`
+        // Build URL; server sets short cache (s-maxage) for repeat visits
+        let url = `/api/revenue/client-groups?organizationId=${organizationId}`
         if (selectedMonth) {
           url += `&month=${encodeURIComponent(selectedMonth)}`
         }
-        const response = await fetch(url, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache',
-          },
-        })
+        const response = await fetch(url)
         
         if (!response.ok) {
           throw new Error('Failed to fetch client group data')

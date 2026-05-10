@@ -44,13 +44,7 @@ export function RecoverabilityReportProvider({
     async function fetchData() {
       try {
         const savedFiltersResponse = await fetch(
-          `/api/recoverability/saved-filters?organizationId=${organizationId}&t=${Date.now()}`,
-          {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache',
-            },
-          }
+          `/api/recoverability/saved-filters?organizationId=${organizationId}`
         )
         
         if (savedFiltersResponse.ok) {
@@ -64,42 +58,10 @@ export function RecoverabilityReportProvider({
         setIsInitializing(false)
         
         const [staffResponse, partnersResponse, clientManagersResponse, lastUploadResponse] = await Promise.all([
-          fetch(
-            `/api/billable/staff?organizationId=${organizationId}&t=${Date.now()}`,
-            {
-              cache: 'no-store',
-              headers: {
-                'Cache-Control': 'no-cache',
-              },
-            }
-          ),
-          fetch(
-            `/api/billable/partners?organizationId=${organizationId}&t=${Date.now()}`,
-            {
-              cache: 'no-store',
-              headers: {
-                'Cache-Control': 'no-cache',
-              },
-            }
-          ),
-          fetch(
-            `/api/billable/client-managers?organizationId=${organizationId}&t=${Date.now()}`,
-            {
-              cache: 'no-store',
-              headers: {
-                'Cache-Control': 'no-cache',
-              },
-            }
-          ),
-          fetch(
-            `/api/recoverability/last-upload?organizationId=${organizationId}&t=${Date.now()}`,
-            {
-              cache: 'no-store',
-              headers: {
-                'Cache-Control': 'no-cache',
-              },
-            }
-          ),
+          fetch(`/api/billable/staff?organizationId=${organizationId}`),
+          fetch(`/api/billable/partners?organizationId=${organizationId}`),
+          fetch(`/api/billable/client-managers?organizationId=${organizationId}`),
+          fetch(`/api/recoverability/last-upload?organizationId=${organizationId}`),
         ])
         
         if (staffResponse.ok) {

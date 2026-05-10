@@ -68,7 +68,7 @@ export function BillableMonthlyChartClient({
         setLoading(true)
         setError(null)
         // Build query with filters (staff filter is now part of filters array)
-        let url = `/api/billable/monthly?organizationId=${organizationId}&t=${Date.now()}`
+        let url = `/api/billable/monthly?organizationId=${organizationId}`
         
         // Add filters to URL
         if (filtersString) {
@@ -76,10 +76,6 @@ export function BillableMonthlyChartClient({
         }
         
         const response = await fetch(url, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache',
-          },
           signal: abortController.signal,
         })
         

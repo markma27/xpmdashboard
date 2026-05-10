@@ -48,13 +48,7 @@ export function BillableReportProvider({
       try {
         // First, fetch saved filters to set initial state
         const savedFiltersResponse = await fetch(
-          `/api/billable/saved-filters?organizationId=${organizationId}&t=${Date.now()}`,
-          {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache',
-            },
-          }
+          `/api/billable/saved-filters?organizationId=${organizationId}`
         )
         
         // Set filters first
@@ -71,42 +65,10 @@ export function BillableReportProvider({
         
         // Then fetch other data in parallel
         const [staffResponse, partnersResponse, clientManagersResponse, lastUploadResponse] = await Promise.all([
-          fetch(
-            `/api/billable/staff?organizationId=${organizationId}&t=${Date.now()}`,
-            {
-              cache: 'no-store',
-              headers: {
-                'Cache-Control': 'no-cache',
-              },
-            }
-          ),
-          fetch(
-            `/api/billable/partners?organizationId=${organizationId}&t=${Date.now()}`,
-            {
-              cache: 'no-store',
-              headers: {
-                'Cache-Control': 'no-cache',
-              },
-            }
-          ),
-          fetch(
-            `/api/billable/client-managers?organizationId=${organizationId}&t=${Date.now()}`,
-            {
-              cache: 'no-store',
-              headers: {
-                'Cache-Control': 'no-cache',
-              },
-            }
-          ),
-          fetch(
-            `/api/timesheet/last-upload?organizationId=${organizationId}&t=${Date.now()}`,
-            {
-              cache: 'no-store',
-              headers: {
-                'Cache-Control': 'no-cache',
-              },
-            }
-          ),
+          fetch(`/api/billable/staff?organizationId=${organizationId}`),
+          fetch(`/api/billable/partners?organizationId=${organizationId}`),
+          fetch(`/api/billable/client-managers?organizationId=${organizationId}`),
+          fetch(`/api/timesheet/last-upload?organizationId=${organizationId}`),
         ])
         
         if (staffResponse.ok) {

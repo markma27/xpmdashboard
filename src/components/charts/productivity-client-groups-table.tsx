@@ -114,13 +114,7 @@ export function ProductivityClientGroupsTable({
         let billableFilters: any[] = []
         try {
           const filtersResponse = await fetch(
-            `/api/billable/saved-filters?organizationId=${organizationId}&t=${Date.now()}`,
-            {
-              cache: 'no-store',
-              headers: {
-                'Cache-Control': 'no-cache',
-              },
-            }
+            `/api/billable/saved-filters?organizationId=${organizationId}`
           )
           
           if (filtersResponse.ok) {
@@ -135,7 +129,7 @@ export function ProductivityClientGroupsTable({
         }
         
         // Build query with optional staff, month, date filters, and saved filters
-        let url = `/api/productivity/client-groups?organizationId=${organizationId}&t=${Date.now()}${asOfDate ? `&asOfDate=${asOfDate}` : ''}`
+        let url = `/api/productivity/client-groups?organizationId=${organizationId}${asOfDate ? `&asOfDate=${asOfDate}` : ''}`
         if (selectedStaff) {
           url += `&staff=${encodeURIComponent(selectedStaff)}`
         }
@@ -156,12 +150,7 @@ export function ProductivityClientGroupsTable({
           url += `&filters=${encodeURIComponent(JSON.stringify(filtersWithStaff))}`
         }
         
-        const response = await fetch(url, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache',
-          },
-        })
+        const response = await fetch(url)
         
         if (!response.ok) {
           throw new Error('Failed to fetch client group data')

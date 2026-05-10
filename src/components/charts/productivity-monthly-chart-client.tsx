@@ -36,17 +36,12 @@ export function ProductivityMonthlyChartClient({
         setLoading(true)
         setError(null)
         // Build query with optional staff filter and date
-        let url = `/api/productivity/monthly?organizationId=${organizationId}&t=${Date.now()}${asOfDate ? `&asOfDate=${asOfDate}` : ''}`
+        let url = `/api/productivity/monthly?organizationId=${organizationId}${asOfDate ? `&asOfDate=${asOfDate}` : ''}`
         if (selectedStaff) {
           url += `&staff=${encodeURIComponent(selectedStaff)}`
         }
         
-        const response = await fetch(url, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache',
-          },
-        })
+        const response = await fetch(url)
         
         if (!response.ok) {
           throw new Error('Failed to fetch productivity data')

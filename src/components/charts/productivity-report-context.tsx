@@ -46,24 +46,8 @@ export function ProductivityReportProvider({
     async function fetchData() {
       try {
         const [staffResponse, lastUploadResponse] = await Promise.all([
-          fetch(
-            `/api/productivity/staff?organizationId=${organizationId}&t=${Date.now()}`,
-            {
-              cache: 'no-store',
-              headers: {
-                'Cache-Control': 'no-cache',
-              },
-            }
-          ),
-          fetch(
-            `/api/timesheet/last-upload?organizationId=${organizationId}&t=${Date.now()}`,
-            {
-              cache: 'no-store',
-              headers: {
-                'Cache-Control': 'no-cache',
-              },
-            }
-          ),
+          fetch(`/api/productivity/staff?organizationId=${organizationId}`),
+          fetch(`/api/timesheet/last-upload?organizationId=${organizationId}`),
         ])
         
         if (staffResponse.ok) {

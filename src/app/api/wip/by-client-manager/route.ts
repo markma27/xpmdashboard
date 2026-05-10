@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(result, {
       headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
         'Pragma': 'no-cache',
         'Expires': '0',
       },

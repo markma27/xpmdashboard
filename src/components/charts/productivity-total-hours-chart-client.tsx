@@ -31,22 +31,12 @@ export function ProductivityTotalHoursChartClient({
         setError(null)
         
         // Build query URLs with optional staff filter
-        const baseParams = `organizationId=${organizationId}&t=${Date.now()}`
+        const baseParams = `organizationId=${organizationId}`
         const staffParam = selectedStaff ? `&staff=${encodeURIComponent(selectedStaff)}` : ''
         
         const [standardHoursResponse, capacityReducingResponse] = await Promise.all([
-          fetch(`/api/productivity/standard-hours/monthly?${baseParams}${staffParam}`, {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache',
-            },
-          }),
-          fetch(`/api/productivity/capacity-reducing/monthly?${baseParams}${staffParam}`, {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache',
-            },
-          }),
+          fetch(`/api/productivity/standard-hours/monthly?${baseParams}${staffParam}`),
+          fetch(`/api/productivity/capacity-reducing/monthly?${baseParams}${staffParam}`),
         ])
         
         if (!standardHoursResponse.ok) {

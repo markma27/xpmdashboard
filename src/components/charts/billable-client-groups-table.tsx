@@ -116,7 +116,7 @@ export function BillableClientGroupsTable({
         setLoading(true)
         setError(null)
         // Build query with optional month and filters (staff filter is now part of filters array)
-        let url = `/api/billable/client-groups?organizationId=${organizationId}&t=${Date.now()}`
+        let url = `/api/billable/client-groups?organizationId=${organizationId}`
         if (selectedMonth) {
           url += `&month=${encodeURIComponent(selectedMonth)}`
         }
@@ -126,12 +126,7 @@ export function BillableClientGroupsTable({
           url += `&filters=${encodeURIComponent(filtersString)}`
         }
         
-        const response = await fetch(url, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache',
-          },
-        })
+        const response = await fetch(url)
         
         if (!response.ok) {
           throw new Error('Failed to fetch client group data')

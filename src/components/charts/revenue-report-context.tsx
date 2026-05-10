@@ -44,24 +44,8 @@ export function RevenueReportProvider({
       try {
         setLoading(true)
         const [dataResponse, lastUploadResponse] = await Promise.all([
-          fetch(
-            `/api/revenue/client-groups?organizationId=${organizationId}&t=${Date.now()}`,
-            {
-              cache: 'no-store',
-              headers: {
-                'Cache-Control': 'no-cache',
-              },
-            }
-          ),
-          fetch(
-            `/api/invoice/last-upload?organizationId=${organizationId}&t=${Date.now()}`,
-            {
-              cache: 'no-store',
-              headers: {
-                'Cache-Control': 'no-cache',
-              },
-            }
-          ),
+          fetch(`/api/revenue/client-groups?organizationId=${organizationId}`),
+          fetch(`/api/invoice/last-upload?organizationId=${organizationId}`),
         ])
         
         if (dataResponse.ok) {

@@ -1,10 +1,48 @@
 'use client'
 
-import { ProductivityMonthlyChartClient } from './productivity-monthly-chart-client'
-import { ProductivityPercentageChartClient } from './productivity-percentage-chart-client'
-import { ProductivityClientGroupsTable } from './productivity-client-groups-table'
-import { ProductivityKPICards } from './productivity-kpi-cards'
+import dynamic from 'next/dynamic'
+import { ChartSkeleton } from './chart-skeleton'
 import { useProductivityReport } from './productivity-report-context'
+
+const ProductivityKPICards = dynamic(
+  () => import('./productivity-kpi-cards').then((m) => ({ default: m.ProductivityKPICards })),
+  {
+    loading: () => (
+      <div className="min-h-[200px] flex items-center justify-center">
+        <ChartSkeleton />
+      </div>
+    ),
+    ssr: false,
+  }
+)
+
+const ProductivityMonthlyChartClient = dynamic(
+  () => import('./productivity-monthly-chart-client').then((m) => ({ default: m.ProductivityMonthlyChartClient })),
+  {
+    loading: () => <ChartSkeleton />,
+    ssr: false,
+  }
+)
+
+const ProductivityPercentageChartClient = dynamic(
+  () => import('./productivity-percentage-chart-client').then((m) => ({ default: m.ProductivityPercentageChartClient })),
+  {
+    loading: () => <ChartSkeleton />,
+    ssr: false,
+  }
+)
+
+const ProductivityClientGroupsTable = dynamic(
+  () => import('./productivity-client-groups-table').then((m) => ({ default: m.ProductivityClientGroupsTable })),
+  {
+    loading: () => (
+      <div className="min-h-[280px] flex items-center justify-center rounded-lg border bg-card">
+        <ChartSkeleton />
+      </div>
+    ),
+    ssr: false,
+  }
+)
 
 interface ProductivityReportContainerProps {
   organizationId: string
@@ -13,26 +51,22 @@ interface ProductivityReportContainerProps {
   monthlyPercentageChartRef?: React.RefObject<HTMLDivElement>
 }
 
-export function ProductivityReportContainer({ 
-  organizationId, 
+export function ProductivityReportContainer({
+  organizationId,
   kpiCardsRef,
   monthlyHoursChartRef,
-  monthlyPercentageChartRef
+  monthlyPercentageChartRef,
 }: ProductivityReportContainerProps) {
   const { activeStaff, activeDate, selectedMonth, setSelectedMonth, setDisplayStaff } = useProductivityReport()
 
   return (
     <>
       <div ref={kpiCardsRef}>
-        <ProductivityKPICards
-          organizationId={organizationId}
-          selectedStaff={activeStaff}
-          asOfDate={activeDate}
-        />
+        <ProductivityKPICards organizationId={organizationId} selectedStaff={activeStaff} asOfDate={activeDate} />
       </div>
       <div ref={monthlyHoursChartRef}>
-        <ProductivityMonthlyChartClient 
-          organizationId={organizationId} 
+        <ProductivityMonthlyChartClient
+          organizationId={organizationId}
           selectedStaff={activeStaff}
           selectedMonth={selectedMonth}
           onMonthClick={setSelectedMonth}
@@ -40,14 +74,14 @@ export function ProductivityReportContainer({
         />
       </div>
       <div ref={monthlyPercentageChartRef}>
-        <ProductivityPercentageChartClient 
-          organizationId={organizationId} 
+        <ProductivityPercentageChartClient
+          organizationId={organizationId}
           selectedStaff={activeStaff}
           asOfDate={activeDate}
         />
       </div>
-      <ProductivityClientGroupsTable 
-        organizationId={organizationId} 
+      <ProductivityClientGroupsTable
+        organizationId={organizationId}
         selectedStaff={activeStaff}
         onStaffChange={setDisplayStaff}
         selectedMonth={selectedMonth}
@@ -56,4 +90,3 @@ export function ProductivityReportContainer({
     </>
   )
 }
-

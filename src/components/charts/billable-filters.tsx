@@ -63,13 +63,7 @@ export function BillableFilters({
     async function fetchFilterOptions() {
       try {
         const response = await fetch(
-          `/api/${filterOptionsApi}/filter-options?organizationId=${organizationId}&t=${Date.now()}`,
-          {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache',
-            },
-          }
+          `/api/${filterOptionsApi}/filter-options?organizationId=${organizationId}`
         )
         
         if (response.ok) {
