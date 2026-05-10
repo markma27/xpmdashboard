@@ -1,10 +1,12 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useMemo, useState } from 'react'
+import useSWR from 'swr'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { TableSkeleton } from './chart-skeleton'
 import { BillableFilter } from './billable-filters'
 import { useBillableReport } from './billable-report-context'
+import { dashboardDataFetcher, dashboardSwrConfig } from '@/lib/hooks/use-dashboard-data'
 
 interface ClientGroupData {
   clientGroup: string
@@ -23,19 +25,15 @@ interface BillableClientGroupsTableProps {
   filters?: BillableFilter[]
 }
 
-export function BillableClientGroupsTable({ 
-  organizationId, 
+export function BillableClientGroupsTable({
+  organizationId,
   selectedMonth,
-  filters = []
+  filters = [],
 }: BillableClientGroupsTableProps) {
-  const { lastUpdated } = useBillableReport()
-  const [data, setData] = useState<ClientGroupData[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { lastUpdated, filtersLoaded } = useBillableReport()
   const [sortColumn, setSortColumn] = useState<SortColumn>('currentYear')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
 
-  // Format date as DD MMM YYYY for column header
   const formatDateForHeader = (dateString: string | null) => {
     if (!dateString) return null
     const date = new Date(dateString)
@@ -46,59 +44,61 @@ export function BillableClientGroupsTable({
     return `${day} ${month} ${year}`
   }
 
-  // Format month label for column header when a specific month is selected
-  const formatMonthLabel = (monthString: string | null | undefined): { currentYear: string; lastYear: string } | null => {
+  const formatMonthLabel = (
+    monthString: string | null | undefined
+  ): { currentYear: string; lastYear: string } | null => {
     if (!monthString) return null
-    
+
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    const fullMonthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-    
-    // Find the month index (0-11)
-    const monthIndex = fullMonthNames.findIndex(m => m.toLowerCase() === monthString.toLowerCase())
+    const fullMonthNames = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ]
+
+    const monthIndex = fullMonthNames.findIndex((m) => m.toLowerCase() === monthString.toLowerCase())
     if (monthIndex === -1) return null
-    
-    // Determine the year based on financial year logic and lastUpdated date
-    // Financial year runs July to June
+
     const now = new Date()
     const currentCalendarYear = now.getFullYear()
-    const currentMonth = now.getMonth() // 0-11
-    
-    // Determine current financial year start year
+    const currentMonth = now.getMonth()
+
     let currentFYStartYear: number
     if (currentMonth >= 6) {
-      // July-December: FY starts this year
       currentFYStartYear = currentCalendarYear
     } else {
-      // January-June: FY started last year
       currentFYStartYear = currentCalendarYear - 1
     }
-    
-    // For the selected month, determine which financial year it belongs to
-    // Months July-Dec belong to FY starting in the same calendar year
-    // Months Jan-Jun belong to FY starting in the previous calendar year
+
     let selectedMonthYear: number
     if (monthIndex >= 6) {
-      // July-December: belongs to FY starting in the same calendar year
       selectedMonthYear = currentFYStartYear
     } else {
-      // January-June: belongs to FY starting in the previous calendar year
       selectedMonthYear = currentFYStartYear + 1
     }
-    
+
     const currentYearLabel = `${monthNames[monthIndex]} ${selectedMonthYear}`
     const lastYearLabel = `${monthNames[monthIndex]} ${selectedMonthYear - 1}`
-    
+
     return { currentYear: currentYearLabel, lastYear: lastYearLabel }
   }
 
   const formattedLastUpdated = formatDateForHeader(lastUpdated)
   const monthLabel = formatMonthLabel(selectedMonth)
 
-  // Memoize filters string to prevent unnecessary re-fetches when filters array reference changes
   const filtersString = useMemo(() => {
     if (filters.length === 0) return ''
     const filtersParam = filters
-      .filter((f) => f.value && f.value !== 'all' && f.value.trim() !== '') // Exclude 'all' values and empty strings
+      .filter((f) => f.value && f.value !== 'all' && f.value.trim() !== '')
       .map((f) => {
         if (f.operator) {
           return `${f.type}:${f.operator}:${encodeURIComponent(f.value)}`
@@ -109,40 +109,25 @@ export function BillableClientGroupsTable({
     return filtersParam
   }, [filters])
 
-  // Fetch client group data
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true)
-        setError(null)
-        // Build query with optional month and filters (staff filter is now part of filters array)
-        let url = `/api/billable/client-groups?organizationId=${organizationId}`
-        if (selectedMonth) {
-          url += `&month=${encodeURIComponent(selectedMonth)}`
-        }
-        
-        // Add filters to URL
-        if (filtersString) {
-          url += `&filters=${encodeURIComponent(filtersString)}`
-        }
-        
-        const response = await fetch(url)
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch client group data')
-        }
-        
-        const result = await response.json()
-        setData(result)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred')
-      } finally {
-        setLoading(false)
-      }
+  const swrKey = useMemo(() => {
+    if (!filtersLoaded || !organizationId) return null
+    let base = `/api/billable/client-groups?organizationId=${encodeURIComponent(organizationId)}`
+    if (selectedMonth) {
+      base += `&month=${encodeURIComponent(selectedMonth)}`
     }
+    if (filtersString) {
+      base += `&filters=${encodeURIComponent(filtersString)}`
+    }
+    return base
+  }, [filtersLoaded, organizationId, selectedMonth, filtersString])
 
-    fetchData()
-  }, [organizationId, selectedMonth, filtersString])
+  const { data, error, isLoading } = useSWR<ClientGroupData[]>(
+    swrKey,
+    dashboardDataFetcher,
+    dashboardSwrConfig
+  )
+
+  const loading = !filtersLoaded || isLoading
 
   const formatCurrency = (amount: number) => {
     if (amount === 0) return '-'
@@ -171,14 +156,16 @@ export function BillableClientGroupsTable({
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[200px]">
-            <p className="text-destructive">Error: {error}</p>
+            <p className="text-destructive">Error: {error.message || 'An error occurred'}</p>
           </div>
         </CardContent>
       </Card>
     )
   }
 
-  if (data.length === 0) {
+  const rawData = data ?? []
+
+  if (rawData.length === 0) {
     return (
       <Card className="shadow-sm border-slate-200">
         <CardHeader className="py-1.5 px-3 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
@@ -195,10 +182,8 @@ export function BillableClientGroupsTable({
     )
   }
 
-  // No client-side filtering needed - API handles staff filtering
-  const filteredData = data
+  const filteredData = rawData
 
-  // Sort data
   const sortedData = [...filteredData].sort((a, b) => {
     let aValue: string | number
     let bValue: string | number
@@ -235,18 +220,15 @@ export function BillableClientGroupsTable({
     if (typeof aValue === 'string' && typeof bValue === 'string') {
       const comparison = aValue.localeCompare(bValue)
       return sortDirection === 'asc' ? comparison : -comparison
-    } else {
-      const comparison = (aValue as number) - (bValue as number)
-      return sortDirection === 'asc' ? comparison : -comparison
     }
+    const comparison = (aValue as number) - (bValue as number)
+    return sortDirection === 'asc' ? comparison : -comparison
   })
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
-      // Toggle direction if clicking the same column
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
     } else {
-      // Set new column and default to descending
       setSortColumn(column)
       setSortDirection('desc')
     }
@@ -270,41 +252,59 @@ export function BillableClientGroupsTable({
           <table className="w-full border-collapse text-[12px]">
             <thead>
               <tr className="border-b bg-slate-50/50">
-                <th 
+                <th
                   className="text-left p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
                   onClick={() => handleSort('clientGroup')}
                 >
-                  Client Group<SortIcon column="clientGroup" />
+                  Client Group
+                  <SortIcon column="clientGroup" />
                 </th>
-                <th 
+                <th
                   className="text-left p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
                   onClick={() => handleSort('partner')}
                 >
-                  Partner<SortIcon column="partner" />
+                  Partner
+                  <SortIcon column="partner" />
                 </th>
-                <th 
+                <th
                   className="text-left p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r"
                   onClick={() => handleSort('clientManager')}
                 >
-                  Client Manager<SortIcon column="clientManager" />
+                  Client Manager
+                  <SortIcon column="clientManager" />
                 </th>
-                <th 
+                <th
                   className="text-right p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30 max-w-[140px]"
                   onClick={() => handleSort('currentYear')}
                 >
-                  Current Year{monthLabel ? <span className="font-normal text-slate-500 text-[9px]"> ({monthLabel.currentYear})</span> : formattedLastUpdated && <span className="font-normal text-slate-500 text-[9px]"> (YTD to {formattedLastUpdated})</span>}<SortIcon column="currentYear" />
+                  Current Year
+                  {monthLabel ? (
+                    <span className="font-normal text-slate-500 text-[9px]"> ({monthLabel.currentYear})</span>
+                  ) : (
+                    formattedLastUpdated && (
+                      <span className="font-normal text-slate-500 text-[9px]"> (YTD to {formattedLastUpdated})</span>
+                    )
+                  )}
+                  <SortIcon column="currentYear" />
                 </th>
-                <th 
+                <th
                   className="text-right p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none border-r bg-slate-50/30"
                   onClick={() => handleSort('lastYear')}
                 >
-                  Last Year{monthLabel ? <span className="font-normal text-slate-500 text-[9px]"> ({monthLabel.lastYear})</span> : <span className="font-normal text-slate-500 text-[9px]"> (Full Year)</span>}<SortIcon column="lastYear" />
+                  Last Year
+                  {monthLabel ? (
+                    <span className="font-normal text-slate-500 text-[9px]"> ({monthLabel.lastYear})</span>
+                  ) : (
+                    <span className="font-normal text-slate-500 text-[9px]"> (Full Year)</span>
+                  )}
+                  <SortIcon column="lastYear" />
                 </th>
-                <th 
+                <th
                   className="text-right p-2 font-bold text-slate-700 cursor-pointer hover:bg-slate-100 select-none"
                   onClick={() => handleSort('change')}
                 >
-                  Change<SortIcon column="change" />
+                  Change
+                  <SortIcon column="change" />
                 </th>
               </tr>
             </thead>
@@ -312,7 +312,7 @@ export function BillableClientGroupsTable({
               {sortedData.map((item, index) => {
                 const change = calculateChange(item.currentYear, item.lastYear)
                 const changeColor = change >= 0 ? 'text-emerald-600' : 'text-red-600'
-                
+
                 return (
                   <tr key={index} className="hover:bg-slate-50 transition-colors group">
                     <td className="p-2 border-r">{item.clientGroup}</td>
@@ -321,11 +321,10 @@ export function BillableClientGroupsTable({
                     <td className="p-2 text-right font-medium border-r max-w-[140px]">
                       {formatCurrency(item.currentYear)}
                     </td>
-                    <td className="p-2 text-right text-slate-500 border-r">
-                      {formatCurrency(item.lastYear)}
-                    </td>
+                    <td className="p-2 text-right text-slate-500 border-r">{formatCurrency(item.lastYear)}</td>
                     <td className={`p-2 text-right font-bold ${changeColor}`}>
-                      {change >= 0 ? '+' : ''}{change.toFixed(1)}%
+                      {change >= 0 ? '+' : ''}
+                      {change.toFixed(1)}%
                     </td>
                   </tr>
                 )
@@ -334,13 +333,13 @@ export function BillableClientGroupsTable({
                 <td className="p-2 border-r rounded-bl-lg">Total</td>
                 <td className="p-2 border-r"></td>
                 <td className="p-2 border-r"></td>
-                <td className="p-2 text-right border-r max-w-[140px]">
-                  {formatCurrency(totalCurrentYear)}
-                </td>
-                <td className="p-2 text-right border-r">
-                  {formatCurrency(totalLastYear)}
-                </td>
-                <td className={`p-2 text-right rounded-br-lg ${calculateChange(totalCurrentYear, totalLastYear) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                <td className="p-2 text-right border-r max-w-[140px]">{formatCurrency(totalCurrentYear)}</td>
+                <td className="p-2 text-right border-r">{formatCurrency(totalLastYear)}</td>
+                <td
+                  className={`p-2 text-right rounded-br-lg ${
+                    calculateChange(totalCurrentYear, totalLastYear) >= 0 ? 'text-emerald-600' : 'text-red-600'
+                  }`}
+                >
                   {calculateChange(totalCurrentYear, totalLastYear) >= 0 ? '+' : ''}
                   {calculateChange(totalCurrentYear, totalLastYear).toFixed(1)}%
                 </td>
@@ -352,4 +351,3 @@ export function BillableClientGroupsTable({
     </Card>
   )
 }
-

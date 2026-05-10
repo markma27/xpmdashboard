@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireOrg } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
+import { logApiPerf } from '@/lib/api-perf'
+
+function asStringArray(v: unknown): string[] {
+  if (!Array.isArray(v)) return []
+  return v.filter((x): x is string => typeof x === 'string')
+}
 
 export async function GET(request: NextRequest) {
+  const startedAt = performance.now()
+  const routeName = 'GET /api/billable/staff'
   try {
     const org = await requireOrg()
     const searchParams = request.nextUrl.searchParams
@@ -10,166 +18,51 @@ export async function GET(request: NextRequest) {
 
     const supabase = await createClient()
 
-    // Calculate financial year based on current date
-    // Financial year runs from July 1 to June 30
     const now = new Date()
-    const currentMonth = now.getMonth() // 0-11 (0=January, 11=December)
+    const currentMonth = now.getMonth()
     const currentYear = now.getFullYear()
-    
-    // Determine current financial year
-    // If current month >= 6 (July-December), FY starts in current year
-    // If current month < 6 (January-June), FY starts in previous year
+
     let currentFYStartYear: number
     if (currentMonth >= 6) {
-      // July-December: FY starts this year
       currentFYStartYear = currentYear
     } else {
-      // January-June: FY started last year
       currentFYStartYear = currentYear - 1
     }
-    
+
     const currentFYEndYear = currentFYStartYear + 1
     const lastFYStartYear = currentFYStartYear - 1
     const lastFYEndYear = currentFYStartYear
-    
-    // Format dates as YYYY-MM-DD
+
     const currentYearStart = `${currentFYStartYear}-07-01`
     const currentYearEnd = `${currentFYEndYear}-06-30`
     const lastYearStart = `${lastFYStartYear}-07-01`
     const lastYearEnd = `${lastFYEndYear}-06-30`
 
-    // Helper function to fetch all data for a date range
-    const fetchAllData = async (startDate: string, endDate: string): Promise<any[]> => {
-      let allData: any[] = []
-      let page = 0
-      const pageSize = 1000
-      let hasMore = true
-      
-      while (hasMore) {
-        const { data: pageData, error: pageError } = await supabase
-          .from('timesheet_uploads')
-          .select('staff, billable_amount')
-          .eq('organization_id', organizationId)
-          .gte('date', startDate)
-          .lte('date', endDate)
-          .range(page * pageSize, (page + 1) * pageSize - 1)
-        
-        if (pageError) {
-          throw new Error(`Failed to fetch data: ${pageError.message}`)
-        }
-        
-        if (pageData && pageData.length > 0) {
-          allData = allData.concat(pageData)
-          page++
-          hasMore = pageData.length === pageSize
-        } else {
-          hasMore = false
-        }
-      }
-      
-      return allData
+    const { data: raw, error } = await supabase.rpc('get_billable_report_staff', {
+      p_organization_id: organizationId,
+      p_current_year_start: currentYearStart,
+      p_current_year_end: currentYearEnd,
+      p_last_year_start: lastYearStart,
+      p_last_year_end: lastYearEnd,
+    })
+
+    if (error) {
+      throw new Error(`Failed to fetch staff: ${error.message}`)
     }
 
-    // Fetch current year and last year data in parallel
-    const [currentYearData, lastYearData] = await Promise.all([
-      fetchAllData(currentYearStart, currentYearEnd),
-      fetchAllData(lastYearStart, lastYearEnd),
-    ])
+    const staffList = asStringArray(raw)
 
-    // Aggregate billable amounts by staff for both years
-    const staffAmounts = new Map<string, { currentYear: number; lastYear: number }>()
-
-    // Process current year data
-    if (currentYearData) {
-      currentYearData.forEach((record) => {
-        if (record.staff) {
-          const staffName = record.staff.trim()
-          // Exclude 'disbursement' (case-insensitive)
-          if (staffName && staffName.toLowerCase() !== 'disbursement') {
-            if (!staffAmounts.has(staffName)) {
-              staffAmounts.set(staffName, { currentYear: 0, lastYear: 0 })
-            }
-            const staff = staffAmounts.get(staffName)!
-            // Handle both string and number types for billable_amount
-            let amount = 0
-            if (typeof record.billable_amount === 'number') {
-              amount = record.billable_amount
-            } else if (typeof record.billable_amount === 'string') {
-              amount = parseFloat(record.billable_amount) || 0
-            }
-            staff.currentYear += amount
-          }
-        }
-      })
-    }
-
-    // Process last year data
-    if (lastYearData) {
-      lastYearData.forEach((record) => {
-        if (record.staff) {
-          const staffName = record.staff.trim()
-          // Exclude 'disbursement' (case-insensitive)
-          if (staffName && staffName.toLowerCase() !== 'disbursement') {
-            if (!staffAmounts.has(staffName)) {
-              staffAmounts.set(staffName, { currentYear: 0, lastYear: 0 })
-            }
-            const staff = staffAmounts.get(staffName)!
-            // Handle both string and number types for billable_amount
-            let amount = 0
-            if (typeof record.billable_amount === 'number') {
-              amount = record.billable_amount
-            } else if (typeof record.billable_amount === 'string') {
-              amount = parseFloat(record.billable_amount) || 0
-            }
-            staff.lastYear += amount
-          }
-        }
-      })
-    }
-
-    // Get staff settings to filter out staff with report = false
-    const { data: staffSettings } = await supabase
-      .from('staff_settings')
-      .select('staff_name, report')
-      .eq('organization_id', organizationId)
-
-    // Create a set of excluded staff names (report = false)
-    const excludedStaffSet = new Set<string>()
-    if (staffSettings) {
-      staffSettings.forEach((setting) => {
-        if (setting.staff_name && setting.report === false) {
-          excludedStaffSet.add(setting.staff_name)
-        }
-      })
-    }
-
-    // Filter staff: only include those with at least one non-zero year and report = true
-    // Round amounts to integers first (matching frontend display) and check if > 0
-    const staffList = Array.from(staffAmounts.entries())
-      .filter(([staffName, amounts]) => {
-        // Exclude staff with report = false
-        if (excludedStaffSet.has(staffName)) {
-          return false
-        }
-        const roundedCurrentYear = Math.round(amounts.currentYear)
-        const roundedLastYear = Math.round(amounts.lastYear)
-        return roundedCurrentYear > 0 || roundedLastYear > 0
-      })
-      .map(([staffName, _]) => staffName)
-      .sort()
-
+    logApiPerf(routeName, startedAt)
     return NextResponse.json(staffList, {
       headers: {
         'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+        Pragma: 'no-cache',
+        Expires: '0',
       },
     })
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Server error' },
-      { status: 500 }
-    )
+  } catch (error: unknown) {
+    logApiPerf(routeName, startedAt)
+    const message = error instanceof Error ? error.message : 'Server error'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
-

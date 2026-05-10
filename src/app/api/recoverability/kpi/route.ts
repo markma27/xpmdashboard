@@ -3,8 +3,15 @@ import { requireOrg } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import { formatDateLocal } from '@/lib/utils'
 import { CACHE_CONTROL_READONLY_JSON } from '@/lib/http-cache'
+import { logApiPerf } from '@/lib/api-perf'
+import { recoverabilityFiltersToRpcParams, type RecoverabilityFilter } from '@/lib/recoverability-rpc-params'
 
-type RecoverabilityFilter = { type: string; value: string; operator?: string }
+type RecoverabilityTotalsRow = {
+  current_write_on: unknown
+  current_invoiced: unknown
+  last_write_on: unknown
+  last_invoiced: unknown
+}
 
 async function computeRecoverabilityKpi(
   organizationId: string,
@@ -16,81 +23,52 @@ async function computeRecoverabilityKpi(
 ) {
   const supabase = await createClient()
   const filters: RecoverabilityFilter[] = filtersKey ? JSON.parse(filtersKey) : []
+  const p = recoverabilityFiltersToRpcParams(filters)
 
-  const fetchData = async (startDate: string, endDate: string) => {
-    let allData: any[] = []
-    let page = 0
-    const pageSize = 1000
-    let hasMore = true
+  const { data, error } = await supabase.rpc('get_recoverability_kpi_totals', {
+    p_organization_id: organizationId,
+    p_current_start: currentYearStart,
+    p_current_end: currentYearEnd,
+    p_last_start: lastYearStart,
+    p_last_end: lastYearEnd,
+    p_staff: p.staff,
+    p_client_group: p.clientGroup,
+    p_account_manager: p.accountManager,
+    p_job_manager: p.jobManager,
+  })
 
-    while (hasMore) {
-      let query = supabase
-        .from('recoverability_timesheet_uploads')
-        .select('write_on_amount, invoiced_amount, account_manager, job_manager, client_group, staff')
-        .eq('organization_id', organizationId)
-        .gte('date', startDate)
-        .lte('date', endDate)
-
-      filters.forEach((filter) => {
-        if (filter.type === 'account_manager' && filter.value && filter.value !== 'all') {
-          query = query.eq('account_manager', filter.value)
-        } else if (filter.type === 'job_manager' && filter.value && filter.value !== 'all') {
-          query = query.eq('job_manager', filter.value)
-        } else if (filter.type === 'client_group' && filter.value) {
-          query = query.eq('client_group', filter.value)
-        } else if (filter.type === 'staff' && filter.value && filter.value !== 'all') {
-          query = query.eq('staff', filter.value)
-        }
-      })
-
-      const { data: pageData, error: pageError } = await query.range(page * pageSize, (page + 1) * pageSize - 1)
-
-      if (pageError) throw new Error(`Failed to fetch recoverability data: ${pageError.message}`)
-
-      if (pageData && pageData.length > 0) {
-        allData = allData.concat(pageData)
-        page++
-        hasMore = pageData.length === pageSize
-      } else {
-        hasMore = false
-      }
-    }
-
-    let totalWriteOnAmount = 0
-    let totalInvoicedAmount = 0
-    allData.forEach((record) => {
-      totalWriteOnAmount += Number(record.write_on_amount || 0)
-      totalInvoicedAmount += Number(record.invoiced_amount || 0)
-    })
-
-    return { amount: totalWriteOnAmount, writeOnAmount: totalWriteOnAmount, invoicedAmount: totalInvoicedAmount }
+  if (error) {
+    throw new Error(`Failed to fetch recoverability totals: ${error.message}`)
   }
 
-  const [currentYearData, lastYearData] = await Promise.all([
-    fetchData(currentYearStart, currentYearEnd),
-    fetchData(lastYearStart, lastYearEnd),
-  ])
+  const row = (data?.[0] ?? null) as RecoverabilityTotalsRow | null
+  if (!row) {
+    throw new Error('Recoverability totals returned no data')
+  }
+
+  const currentYearAmount = Number(row.current_write_on || 0)
+  const lastYearAmount = Number(row.last_write_on || 0)
+  const currentInvoiced = Number(row.current_invoiced || 0)
+  const lastInvoiced = Number(row.last_invoiced || 0)
 
   let percentageChange: number | null = null
-  if (Math.abs(lastYearData.amount) > 0.01) {
-    percentageChange = ((currentYearData.amount - lastYearData.amount) / Math.abs(lastYearData.amount)) * 100
-  } else if (Math.abs(currentYearData.amount) > 0.01) {
-    percentageChange = currentYearData.amount > 0 ? 100 : -100
+  if (Math.abs(lastYearAmount) > 0.01) {
+    percentageChange = ((currentYearAmount - lastYearAmount) / Math.abs(lastYearAmount)) * 100
+  } else if (Math.abs(currentYearAmount) > 0.01) {
+    percentageChange = currentYearAmount > 0 ? 100 : -100
   }
 
-  const currentYearDenominator = currentYearData.invoicedAmount - currentYearData.writeOnAmount
-  const currentYearPercentage = currentYearDenominator > 0
-    ? (1 + (currentYearData.writeOnAmount / currentYearDenominator)) * 100
-    : 0
+  const currentYearDenominator = currentInvoiced - currentYearAmount
+  const currentYearPercentage =
+    currentYearDenominator > 0 ? (1 + (currentYearAmount / currentYearDenominator)) * 100 : 0
 
-  const lastYearDenominator = lastYearData.invoicedAmount - lastYearData.writeOnAmount
-  const lastYearPercentage = lastYearDenominator > 0
-    ? (1 + (lastYearData.writeOnAmount / lastYearDenominator)) * 100
-    : 0
+  const lastYearDenominator = lastInvoiced - lastYearAmount
+  const lastYearPercentage =
+    lastYearDenominator > 0 ? (1 + (lastYearAmount / lastYearDenominator)) * 100 : 0
 
   return {
-    currentYearAmount: Math.round(currentYearData.amount * 100) / 100,
-    lastYearAmount: Math.round(lastYearData.amount * 100) / 100,
+    currentYearAmount: Math.round(currentYearAmount * 100) / 100,
+    lastYearAmount: Math.round(lastYearAmount * 100) / 100,
     percentageChange: percentageChange !== null ? Math.round(percentageChange * 10) / 10 : null,
     currentYearPercentage: Math.round(currentYearPercentage * 10) / 10,
     lastYearPercentage: Math.round(lastYearPercentage * 10) / 10,
@@ -99,6 +77,8 @@ async function computeRecoverabilityKpi(
 }
 
 export async function GET(request: NextRequest) {
+  const startedAt = performance.now()
+  const routeName = 'GET /api/recoverability/kpi'
   try {
     const org = await requireOrg()
     const searchParams = request.nextUrl.searchParams
@@ -124,7 +104,6 @@ export async function GET(request: NextRequest) {
     const lastYearEnd = lastYearEndDate <= lastYearFYEnd ? lastYearEndDate : lastYearFYEnd
     const lastYearStart = `${lastFYStartYear}-07-01`
 
-    // Normalize filters to a stable cache key (strip id/ephemeral fields)
     let filtersKey = ''
     if (filtersParam) {
       try {
@@ -136,7 +115,9 @@ export async function GET(request: NextRequest) {
               .map((f: any) => ({ type: f.type, value: f.value, operator: f.operator }))
           )
         }
-      } catch {}
+      } catch {
+        /* ignore */
+      }
     }
 
     const result = await computeRecoverabilityKpi(
@@ -148,8 +129,11 @@ export async function GET(request: NextRequest) {
       filtersKey
     )
 
+    logApiPerf(routeName, startedAt)
     return NextResponse.json(result, { headers: { 'Cache-Control': CACHE_CONTROL_READONLY_JSON } })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Server error' }, { status: 500 })
+  } catch (error: unknown) {
+    logApiPerf(routeName, startedAt)
+    const message = error instanceof Error ? error.message : 'Server error'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

@@ -3,8 +3,11 @@ import { requireOrg } from '@/lib/auth'
 import { getTodayLocal } from '@/lib/utils'
 import { CACHE_CONTROL_READONLY_JSON } from '@/lib/http-cache'
 import { getCachedDashboardKpiRunner } from '@/lib/org-analytics-cache'
+import { logApiPerf } from '@/lib/api-perf'
 
 export async function GET(request: NextRequest) {
+  const startedAt = performance.now()
+  const routeName = 'GET /api/dashboard/kpi'
   try {
     const org = await requireOrg()
     const searchParams = request.nextUrl.searchParams
@@ -47,12 +50,14 @@ export async function GET(request: NextRequest) {
       filtersParam
     )
 
+    logApiPerf(routeName, startedAt)
     return NextResponse.json(payload, {
       headers: {
         'Cache-Control': CACHE_CONTROL_READONLY_JSON,
       },
     })
   } catch (error: unknown) {
+    logApiPerf(routeName, startedAt)
     const message = error instanceof Error ? error.message : 'Server error'
     return NextResponse.json({ error: message }, { status: 500 })
   }

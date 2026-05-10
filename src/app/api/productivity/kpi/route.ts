@@ -3,17 +3,11 @@ import { requireOrg } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import { formatDateLocal } from '@/lib/utils'
 import { CACHE_CONTROL_READONLY_JSON } from '@/lib/http-cache'
-
-function convertTimeToHours(timeValue: number | string | null): number {
-  if (timeValue === null || timeValue === undefined) return 0
-  const numValue = typeof timeValue === 'string' ? parseFloat(timeValue) : timeValue
-  if (isNaN(numValue) || numValue <= 0) return 0
-  const roundedValue = Math.round(numValue)
-  if (roundedValue < 100) return roundedValue / 60
-  const hours = Math.floor(roundedValue / 100)
-  const minutes = roundedValue % 100
-  return hours + minutes / 60
-}
+import { logApiPerf } from '@/lib/api-perf'
+import {
+  dashboardFiltersToBillableRpcParams,
+  mergeBillableStaffUrlParam,
+} from '@/lib/billable-rpc-params'
 
 function getWeekdaysInDateRange(startDate: Date, endDate: Date): number {
   let weekdays = 0
@@ -29,6 +23,11 @@ function getWeekdaysInDateRange(startDate: Date, endDate: Date): number {
   return weekdays
 }
 
+type ProductivityFilter = { type: string; value: string; operator?: string }
+
+type BillableTotalsRow = { total_hours: unknown; total_amount: unknown }
+type StaffFyRow = { staff: string; cy_hours: unknown; ly_hours: unknown }
+
 async function computeProductivityKpi(
   organizationId: string,
   currentFYStartYear: number,
@@ -43,188 +42,123 @@ async function computeProductivityKpi(
 ) {
   const supabase = await createClient()
 
-  type Filter = { type: string; value: string; operator?: string }
-  const filters: Filter[] = filtersKey ? JSON.parse(filtersKey) : []
-  const staffFilter = staffFilterKey || null
+  const filters: ProductivityFilter[] = filtersKey ? JSON.parse(filtersKey) : []
+  const staffFilter = staffFilterKey?.trim() || ''
 
-  // Fetch staff settings once — used for standard hours, eligibility, and targets
-  const fetchAllStaffSettings = async () => {
-    let allSettings: any[] = []
-    let page = 0
-    const pageSize = 1000
-    let hasMore = true
-    while (hasMore) {
-      const { data: pageData, error: pageError } = await supabase
-        .from('staff_settings')
-        .select('staff_name, default_daily_hours, fte, start_date, end_date, is_hidden, report, target_billable_percentage')
-        .eq('organization_id', organizationId)
-        .range(page * pageSize, (page + 1) * pageSize - 1)
-      if (pageError) throw new Error(`Failed to fetch staff settings: ${pageError.message}`)
-      if (pageData && pageData.length > 0) {
-        allSettings = allSettings.concat(pageData)
-        page++
-        hasMore = pageData.length === pageSize
-      } else {
-        hasMore = false
-      }
-    }
-    return allSettings
-  }
+  const pivot = dashboardFiltersToBillableRpcParams(
+    filters.map((f) => ({ type: f.type, value: f.value, operator: f.operator }))
+  )
+  const merged = mergeBillableStaffUrlParam(staffFilter || null, pivot)
 
-  const fetchBillableData = async (startDate: string, endDate: string) => {
-    let allData: any[] = []
-    let page = 0
-    const pageSize = 1000
-    let hasMore = true
-
-    while (hasMore) {
-      let query = supabase
-        .from('timesheet_uploads')
-        .select('time, billable_amount, client_group, account_manager, job_manager, job_name, staff')
-        .eq('organization_id', organizationId)
-        .eq('billable', true)
-        .gte('date', startDate)
-        .lte('date', endDate)
-
-      let staffFilterValue = staffFilter
-      filters.forEach((filter) => {
-        if (filter.type === 'staff' && filter.value && filter.value !== 'all') {
-          staffFilterValue = filter.value
-        }
-      })
-      if (staffFilterValue) {
-        query = query.ilike('staff', staffFilterValue.trim())
-      }
-
-      filters.forEach((filter) => {
-        if (filter.value && filter.value !== 'all' && filter.type !== 'staff') {
-          switch (filter.type) {
-            case 'client_group': query = query.eq('client_group', filter.value); break
-            case 'account_manager': query = query.eq('account_manager', filter.value); break
-            case 'job_manager': query = query.eq('job_manager', filter.value); break
-            case 'job_name':
-              if (filter.operator === 'not_contains') {
-                query = query.or(`job_name.not.ilike.%${filter.value}%,job_name.is.null`)
-              } else {
-                query = query.ilike('job_name', `%${filter.value}%`)
-              }
-              break
-          }
-        }
-      })
-
-      const { data: pageData, error: pageError } = await query.range(page * pageSize, (page + 1) * pageSize - 1)
-      if (pageError) throw new Error(`Failed to fetch billable data: ${pageError.message}`)
-
-      if (pageData && pageData.length > 0) {
-        allData = allData.concat(pageData)
-        page++
-        hasMore = pageData.length === pageSize
-      } else {
-        hasMore = false
-      }
-    }
-
-    let totalHours = 0
-    let totalAmount = 0
-    allData.forEach((record) => {
-      totalHours += convertTimeToHours(record.time)
-      totalAmount += Number(record.billable_amount || 0)
-    })
-    return { hours: totalHours, amount: totalAmount }
-  }
-
-  const fetchFullYearBillableStaff = async (startDate: string, endDate: string) => {
-    let allData: any[] = []
-    let page = 0
-    const pageSize = 1000
-    let hasMore = true
-    while (hasMore) {
-      const { data: pageData, error: pageError } = await supabase
-        .from('timesheet_uploads')
-        .select('staff, time')
-        .eq('organization_id', organizationId)
-        .eq('billable', true)
-        .gte('date', startDate)
-        .lte('date', endDate)
-        .range(page * pageSize, (page + 1) * pageSize - 1)
-      if (pageError) throw new Error(`Failed to fetch billable data: ${pageError.message}`)
-      if (pageData && pageData.length > 0) {
-        allData = allData.concat(pageData)
-        page++
-        hasMore = pageData.length === pageSize
-      } else {
-        hasMore = false
-      }
-    }
-    return allData
-  }
-
-  const fetchCapacityReducingHours = async (startDate: string, endDate: string) => {
-    let allData: any[] = []
-    let page = 0
-    const pageSize = 1000
-    let hasMore = true
-    while (hasMore) {
-      let query = supabase
-        .from('timesheet_uploads')
-        .select('time, capacity_reducing')
-        .eq('organization_id', organizationId)
-        .eq('capacity_reducing', true)
-        .gte('date', startDate)
-        .lte('date', endDate)
-      if (staffFilter) {
-        query = query.ilike('staff', staffFilter.trim())
-      }
-      const { data: pageData, error: pageError } = await query.range(page * pageSize, (page + 1) * pageSize - 1)
-      if (pageError) throw new Error(`Failed to fetch capacity reducing data: ${pageError.message}`)
-      if (pageData && pageData.length > 0) {
-        allData = allData.concat(pageData)
-        page++
-        hasMore = pageData.length === pageSize
-      } else {
-        hasMore = false
-      }
-    }
-    let totalHours = 0
-    allData.forEach((record) => { totalHours += convertTimeToHours(record.time) })
-    return totalHours
-  }
-
-  // Fetch staff settings once + all data in parallel
   const fullCurrentYearStart = `${currentFYStartYear}-07-01`
   const fullCurrentYearEnd = `${currentFYEndYear}-06-30`
   const fullLastYearStart = `${lastFYStartYear}-07-01`
   const fullLastYearEnd = `${currentFYStartYear}-06-30`
 
-  const [
-    allStaffSettings,
-    currentYearBillable,
-    lastYearBillable,
-    currentYearCapacityReducing,
-    lastYearCapacityReducing,
-    fullCurrentYearData,
-    fullLastYearData,
-  ] = await Promise.all([
-    fetchAllStaffSettings(),
-    fetchBillableData(currentYearStart, currentYearEnd),
-    fetchBillableData(lastYearStart, lastYearEnd),
-    fetchCapacityReducingHours(currentYearStart, currentYearEnd),
-    fetchCapacityReducingHours(lastYearStart, lastYearEnd),
-    staffFilter ? Promise.resolve<any[]>([]) : fetchFullYearBillableStaff(fullCurrentYearStart, fullCurrentYearEnd),
-    staffFilter ? Promise.resolve<any[]>([]) : fetchFullYearBillableStaff(fullLastYearStart, fullLastYearEnd),
+  const rpcBillableArgs = {
+    p_organization_id: organizationId,
+    p_client_group: merged.clientGroup,
+    p_account_manager: merged.accountManager,
+    p_job_manager: merged.jobManager,
+    p_job_name: merged.jobName,
+    p_job_name_operator: merged.jobNameOperator,
+    p_staff: merged.staff,
+  }
+
+  const [settingsRes, cyBillRes, lyBillRes, cyCapRes, lyCapRes, fyRes] = await Promise.all([
+    supabase
+      .from('staff_settings')
+      .select(
+        'staff_name, default_daily_hours, fte, start_date, end_date, is_hidden, report, target_billable_percentage'
+      )
+      .eq('organization_id', organizationId),
+    supabase.rpc('get_productivity_billable_totals', {
+      ...rpcBillableArgs,
+      p_start_date: currentYearStart,
+      p_end_date: currentYearEnd,
+    }),
+    supabase.rpc('get_productivity_billable_totals', {
+      ...rpcBillableArgs,
+      p_start_date: lastYearStart,
+      p_end_date: lastYearEnd,
+    }),
+    supabase.rpc('get_productivity_capacity_reducing_hours', {
+      p_organization_id: organizationId,
+      p_start_date: currentYearStart,
+      p_end_date: currentYearEnd,
+      p_staff: staffFilter || null,
+    }),
+    supabase.rpc('get_productivity_capacity_reducing_hours', {
+      p_organization_id: organizationId,
+      p_start_date: lastYearStart,
+      p_end_date: lastYearEnd,
+      p_staff: staffFilter || null,
+    }),
+    staffFilter
+      ? Promise.resolve({ data: [] as StaffFyRow[], error: null })
+      : supabase.rpc('get_productivity_staff_fy_hours', {
+          p_organization_id: organizationId,
+          p_current_fy_start: fullCurrentYearStart,
+          p_current_fy_end: fullCurrentYearEnd,
+          p_last_fy_start: fullLastYearStart,
+          p_last_fy_end: fullLastYearEnd,
+        }),
   ])
 
-  // Build settings maps
-  const staffSettingsMap = new Map<string, any>()
-  allStaffSettings.forEach((s) => { if (s.staff_name) staffSettingsMap.set(s.staff_name, s) })
+  if (settingsRes.error) {
+    throw new Error(`Failed to fetch staff settings: ${settingsRes.error.message}`)
+  }
+  if (cyBillRes.error) {
+    throw new Error(`Failed to fetch billable totals: ${cyBillRes.error.message}`)
+  }
+  if (lyBillRes.error) {
+    throw new Error(`Failed to fetch billable totals: ${lyBillRes.error.message}`)
+  }
+  if (cyCapRes.error) {
+    throw new Error(`Failed to fetch capacity reducing hours: ${cyCapRes.error.message}`)
+  }
+  if (lyCapRes.error) {
+    throw new Error(`Failed to fetch capacity reducing hours: ${lyCapRes.error.message}`)
+  }
+  if (fyRes.error) {
+    throw new Error(`Failed to fetch staff FY hours: ${fyRes.error.message}`)
+  }
+
+  const allStaffSettings = settingsRes.data ?? []
+
+  const cyRow = (cyBillRes.data?.[0] ?? null) as BillableTotalsRow | null
+  const lyRow = (lyBillRes.data?.[0] ?? null) as BillableTotalsRow | null
+  const currentYearBillable = {
+    hours: Number(cyRow?.total_hours ?? 0),
+    amount: Number(cyRow?.total_amount ?? 0),
+  }
+  const lastYearBillable = {
+    hours: Number(lyRow?.total_hours ?? 0),
+    amount: Number(lyRow?.total_amount ?? 0),
+  }
+
+  const unwrapRpcNumeric = (value: unknown): number => {
+    if (value === null || value === undefined) return 0
+    if (typeof value === 'number' && !Number.isNaN(value)) return value
+    if (Array.isArray(value) && value.length > 0) return Number(value[0])
+    return Number(value)
+  }
+
+  const currentYearCapacityReducing = unwrapRpcNumeric(cyCapRes.data)
+  const lastYearCapacityReducing = unwrapRpcNumeric(lyCapRes.data)
+
+  const fyRows = (fyRes.data ?? []) as StaffFyRow[]
+
+  const staffSettingsMap = new Map<string, (typeof allStaffSettings)[number]>()
+  allStaffSettings.forEach((s) => {
+    if (s.staff_name) staffSettingsMap.set(s.staff_name, s)
+  })
 
   const excludedStaffSet = new Set<string>()
   allStaffSettings.forEach((s) => {
     if (s.staff_name && (s.is_hidden || s.report === false)) excludedStaffSet.add(s.staff_name)
   })
 
-  // Determine eligible staff (same logic as before, but reusing already-fetched data)
   let selectedStaffNames: string[] = []
   if (staffFilter) {
     const settings = staffSettingsMap.get(staffFilter)
@@ -232,36 +166,29 @@ async function computeProductivityKpi(
       selectedStaffNames = [staffFilter]
     }
   } else {
-    const staffBillableHours = new Map<string, { currentYear: number; lastYear: number }>()
-    const addHours = (data: any[], key: 'currentYear' | 'lastYear') => {
-      data.forEach((record) => {
-        if (!record.staff) return
-        const name = record.staff.trim()
-        if (!name || name.toLowerCase() === 'disbursement') return
-        const entry = staffBillableHours.get(name) ?? { currentYear: 0, lastYear: 0 }
-        entry[key] += convertTimeToHours(record.time)
-        staffBillableHours.set(name, entry)
-      })
-    }
-    addHours(fullCurrentYearData, 'currentYear')
-    addHours(fullLastYearData, 'lastYear')
-
-    selectedStaffNames = Array.from(staffBillableHours.entries())
-      .filter(([name, hours]) => {
+    selectedStaffNames = fyRows
+      .filter((row) => {
+        if (!row.staff) return false
+        const name = row.staff.trim()
+        if (!name || name.toLowerCase() === 'disbursement') return false
         if (excludedStaffSet.has(name)) return false
-        const rounded = { cy: Math.round(hours.currentYear * 100) / 100, ly: Math.round(hours.lastYear * 100) / 100 }
+        const cy = Number(row.cy_hours ?? 0)
+        const ly = Number(row.ly_hours ?? 0)
+        const rounded = {
+          cy: Math.round(cy * 100) / 100,
+          ly: Math.round(ly * 100) / 100,
+        }
         return rounded.cy > 0 || rounded.ly > 0
       })
-      .filter(([name]) => {
-        const s = staffSettingsMap.get(name)
+      .filter((row) => {
+        const s = staffSettingsMap.get(row.staff.trim())
         return s && !s.is_hidden && s.report !== false
       })
-      .map(([name]) => name)
+      .map((row) => row.staff.trim())
       .sort()
   }
 
-  // Build filtered settings map for standard hours calculation
-  const settingsMap = new Map<string, any>()
+  const settingsMap = new Map<string, (typeof allStaffSettings)[number]>()
   selectedStaffNames.forEach((name) => {
     const s = staffSettingsMap.get(name)
     if (s) settingsMap.set(name, s)
@@ -306,17 +233,16 @@ async function computeProductivityKpi(
   const currentYearTotalHours = Math.max(0, currentYearStandardHours - currentYearCapacityReducing)
   const lastYearTotalHours = Math.max(0, lastYearStandardHours - lastYearCapacityReducing)
 
-  const ytdBillablePercentage = currentYearTotalHours > 0
-    ? (currentYearBillable.hours / currentYearTotalHours) * 100
-    : 0
-  const lastYearBillablePercentage = lastYearTotalHours > 0
-    ? (lastYearBillable.hours / lastYearTotalHours) * 100
-    : 0
+  const ytdBillablePercentage =
+    currentYearTotalHours > 0 ? (currentYearBillable.hours / currentYearTotalHours) * 100 : 0
+  const lastYearBillablePercentage =
+    lastYearTotalHours > 0 ? (lastYearBillable.hours / lastYearTotalHours) * 100 : 0
 
-  const ytdAverageRate = currentYearBillable.hours > 0 ? currentYearBillable.amount / currentYearBillable.hours : 0
-  const lastYearAverageRate = lastYearBillable.hours > 0 ? lastYearBillable.amount / lastYearBillable.hours : 0
+  const ytdAverageRate =
+    currentYearBillable.hours > 0 ? currentYearBillable.amount / currentYearBillable.hours : 0
+  const lastYearAverageRate =
+    lastYearBillable.hours > 0 ? lastYearBillable.amount / lastYearBillable.hours : 0
 
-  // Target billable % — derived from already-fetched settings
   let targetBillablePercentage = 0
   let totalWeight = 0
   const validSettings = allStaffSettings.filter(
@@ -341,6 +267,8 @@ async function computeProductivityKpi(
 }
 
 export async function GET(request: NextRequest) {
+  const startedAt = performance.now()
+  const routeName = 'GET /api/productivity/kpi'
   try {
     const org = await requireOrg()
     const searchParams = request.nextUrl.searchParams
@@ -368,7 +296,6 @@ export async function GET(request: NextRequest) {
     const lastYearEnd = lastYearEndDate <= lastYearFYEnd ? lastYearEndDate : lastYearFYEnd
     const lastYearStart = `${lastFYStartYear}-07-01`
 
-    // Normalize filters to a stable cache key (strip ephemeral id fields)
     let filtersKey = ''
     if (filtersParam) {
       try {
@@ -376,11 +303,17 @@ export async function GET(request: NextRequest) {
         if (Array.isArray(parsed)) {
           filtersKey = JSON.stringify(
             parsed
-              .filter((f: any) => f.type && f.value)
-              .map((f: any) => ({ type: f.type, value: f.value, operator: f.operator }))
+              .filter((f: { type?: string; value?: string }) => f.type && f.value)
+              .map((f: { type: string; value: string; operator?: string }) => ({
+                type: f.type,
+                value: f.value,
+                operator: f.operator,
+              }))
           )
         }
-      } catch {}
+      } catch {
+        /* ignore */
+      }
     }
 
     const result = await computeProductivityKpi(
@@ -396,8 +329,11 @@ export async function GET(request: NextRequest) {
       staffFilter
     )
 
+    logApiPerf(routeName, startedAt)
     return NextResponse.json(result, { headers: { 'Cache-Control': CACHE_CONTROL_READONLY_JSON } })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Server error' }, { status: 500 })
+  } catch (error: unknown) {
+    logApiPerf(routeName, startedAt)
+    const message = error instanceof Error ? error.message : 'Server error'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

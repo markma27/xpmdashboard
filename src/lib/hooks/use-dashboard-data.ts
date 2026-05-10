@@ -13,9 +13,9 @@ export async function dashboardDataFetcher(url: string) {
 
 export const dashboardSwrConfig = {
   revalidateOnFocus: false,
-  revalidateOnReconnect: true,
-  dedupingInterval: 60000,
-  refreshInterval: 5 * 60 * 1000,
+  revalidateOnReconnect: false,
+  dedupingInterval: 10 * 60 * 1000,
+  refreshInterval: 0,
   errorRetryCount: 3,
 }
 

@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireOrg } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
+import { logApiPerf } from '@/lib/api-perf'
+
+type FilterOptsRow = {
+  jobManagers?: unknown
+}
+
+function asSortedStringArray(v: unknown): string[] {
+  if (!Array.isArray(v)) return []
+  return v.filter((x): x is string => typeof x === 'string')
+}
 
 export async function GET(request: NextRequest) {
+  const startedAt = performance.now()
+  const routeName = 'GET /api/billable/client-managers'
   try {
     const org = await requireOrg()
     const searchParams = request.nextUrl.searchParams
@@ -10,57 +22,28 @@ export async function GET(request: NextRequest) {
 
     const supabase = await createClient()
 
-    // Fetch all unique job_manager values
-    let allData: any[] = []
-    let page = 0
-    const pageSize = 1000
-    let hasMore = true
-    
-    while (hasMore) {
-      const { data: pageData, error: pageError } = await supabase
-        .from('timesheet_uploads')
-        .select('job_manager')
-        .eq('organization_id', organizationId)
-        .range(page * pageSize, (page + 1) * pageSize - 1)
-      
-      if (pageError) {
-        throw new Error(`Failed to fetch client managers: ${pageError.message}`)
-      }
-      
-      if (pageData && pageData.length > 0) {
-        allData = allData.concat(pageData)
-        page++
-        hasMore = pageData.length === pageSize
-      } else {
-        hasMore = false
-      }
-    }
-
-    // Extract unique values
-    const clientManagers = new Set<string>()
-    allData.forEach((record) => {
-      const jobManagerValue = record.job_manager
-      if (jobManagerValue !== null && jobManagerValue !== undefined) {
-        const jobManagerStr = String(jobManagerValue).trim()
-        if (jobManagerStr.length > 0) {
-          clientManagers.add(jobManagerStr)
-        }
-      }
+    const { data: raw, error } = await supabase.rpc('get_billable_filter_options', {
+      p_organization_id: organizationId,
     })
 
-    const clientManagerList = Array.from(clientManagers).sort()
+    if (error) {
+      throw new Error(`Failed to fetch client managers: ${error.message}`)
+    }
 
+    const row = raw as FilterOptsRow | null
+    const clientManagerList = asSortedStringArray(row?.jobManagers)
+
+    logApiPerf(routeName, startedAt)
     return NextResponse.json(clientManagerList, {
       headers: {
         'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+        Pragma: 'no-cache',
+        Expires: '0',
       },
     })
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Server error' },
-      { status: 500 }
-    )
+  } catch (error: unknown) {
+    logApiPerf(routeName, startedAt)
+    const message = error instanceof Error ? error.message : 'Server error'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
