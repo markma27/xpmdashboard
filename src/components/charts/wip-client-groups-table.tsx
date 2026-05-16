@@ -1,9 +1,17 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import * as XLSX from 'xlsx'
+import { Download } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { TableSkeleton } from './chart-skeleton'
 import { useWIPReport } from './wip-report-context'
+
+function excelTimestamp() {
+  const now = new Date()
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
+}
 
 interface ClientGroupData {
   clientGroup: string
@@ -221,10 +229,62 @@ export function WIPClientGroupsTable({
     { lessThan30: 0, days30to60: 0, days60to90: 0, days90to120: 0, days120Plus: 0 }
   )
 
+  const wipAmountHeader = formattedLastUpdated ? `WIP Amount (${formattedLastUpdated})` : 'WIP Amount'
+
+  const handleDownloadExcel = () => {
+    const rows = sortedData.map((item) => ({
+      'Client Group': item.clientGroup,
+      Partner: item.partner || '',
+      'Client Manager': item.clientManager || '',
+      [wipAmountHeader]: item.amount,
+      '< 30 days': item.aging?.lessThan30 || 0,
+      '30 - 60 days': item.aging?.days30to60 || 0,
+      '60 - 90 days': item.aging?.days60to90 || 0,
+      '90 - 120 days': item.aging?.days90to120 || 0,
+      '120 days +': item.aging?.days120Plus || 0,
+    }))
+    rows.push({
+      'Client Group': 'Total',
+      Partner: '',
+      'Client Manager': '',
+      [wipAmountHeader]: totalAmount,
+      '< 30 days': totalAging.lessThan30,
+      '30 - 60 days': totalAging.days30to60,
+      '60 - 90 days': totalAging.days60to90,
+      '90 - 120 days': totalAging.days90to120,
+      '120 days +': totalAging.days120Plus,
+    })
+
+    const worksheet = XLSX.utils.json_to_sheet(rows)
+    worksheet['!cols'] = [
+      { wch: 32 },
+      { wch: 20 },
+      { wch: 20 },
+      { wch: 24 },
+      { wch: 14 },
+      { wch: 14 },
+      { wch: 14 },
+      { wch: 14 },
+      { wch: 14 },
+    ]
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'WIP by Client Group')
+    XLSX.writeFile(workbook, `wip_by_client_group_${excelTimestamp()}.xlsx`)
+  }
+
   return (
     <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
-      <CardHeader className="py-1.5 px-3 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+      <CardHeader className="relative py-1.5 px-3 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
         <CardTitle className="text-base font-bold text-slate-800 tracking-tight">WIP by Client Group</CardTitle>
+        <button
+          type="button"
+          onClick={handleDownloadExcel}
+          aria-label="Download as Excel"
+          title="Download as Excel"
+          className="absolute right-2 inset-y-0 my-auto h-6 w-6 inline-flex items-center justify-center rounded-md text-slate-600 hover:text-emerald-700 hover:bg-white/60 active:scale-95 transition-all"
+        >
+          <Download className="h-4 w-4" />
+        </button>
       </CardHeader>
       <CardContent className="px-0 pb-0">
         <div className="overflow-x-auto">

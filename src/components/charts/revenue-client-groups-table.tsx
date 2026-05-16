@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import * as XLSX from 'xlsx'
+import { Download } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { TableSkeleton } from './chart-skeleton'
 import { useRevenueReport } from './revenue-report-context'
@@ -261,10 +263,68 @@ export function RevenueClientGroupsTable({
   const totalCurrentYear = sortedData.reduce((sum, item) => sum + item.currentYear, 0)
   const totalLastYear = sortedData.reduce((sum, item) => sum + item.lastYear, 0)
 
+  const currentYearHeader = monthLabel
+    ? `Current Year (${monthLabel.currentYear})`
+    : formattedLastUpdated
+      ? `Current Year (YTD to ${formattedLastUpdated})`
+      : 'Current Year'
+  const lastYearHeader = monthLabel
+    ? `Last Year (${monthLabel.lastYear})`
+    : 'Last Year (Full Year)'
+
+  const handleDownloadExcel = () => {
+    const rows = sortedData.map((item) => {
+      const change = calculateChange(item.currentYear, item.lastYear)
+      return {
+        'Client Group': item.clientGroup,
+        Partner: item.partner || '',
+        'Client Manager': item.clientManager || '',
+        [currentYearHeader]: item.currentYear,
+        [lastYearHeader]: item.lastYear,
+        'Change (%)': Number(change.toFixed(1)),
+      }
+    })
+    const totalChange = calculateChange(totalCurrentYear, totalLastYear)
+    rows.push({
+      'Client Group': 'Total',
+      Partner: '',
+      'Client Manager': '',
+      [currentYearHeader]: totalCurrentYear,
+      [lastYearHeader]: totalLastYear,
+      'Change (%)': Number(totalChange.toFixed(1)),
+    })
+
+    const worksheet = XLSX.utils.json_to_sheet(rows)
+    worksheet['!cols'] = [
+      { wch: 32 },
+      { wch: 20 },
+      { wch: 20 },
+      { wch: 28 },
+      { wch: 24 },
+      { wch: 12 },
+    ]
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Invoices by Client Group')
+
+    const now = new Date()
+    const pad = (n: number) => n.toString().padStart(2, '0')
+    const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
+    XLSX.writeFile(workbook, `invoices_by_client_group_${timestamp}.xlsx`)
+  }
+
   return (
     <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
-      <CardHeader className="py-1.5 px-3 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+      <CardHeader className="relative py-1.5 px-3 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
         <CardTitle className="text-base font-bold text-slate-800 tracking-tight">Invoices by Client Group</CardTitle>
+        <button
+          type="button"
+          onClick={handleDownloadExcel}
+          aria-label="Download as Excel"
+          title="Download as Excel"
+          className="absolute right-2 inset-y-0 my-auto h-6 w-6 inline-flex items-center justify-center rounded-md text-slate-600 hover:text-emerald-700 hover:bg-white/60 active:scale-95 transition-all"
+        >
+          <Download className="h-4 w-4" />
+        </button>
       </CardHeader>
       <CardContent className="px-0 pb-0">
         <div className="overflow-x-auto">

@@ -2,9 +2,17 @@
 
 import { useState } from 'react'
 import useSWR from 'swr'
+import * as XLSX from 'xlsx'
+import { Download } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { TableSkeleton } from './chart-skeleton'
 import { dashboardSwrConfig, useSavedFilters } from '@/lib/hooks/use-dashboard-data'
+
+function excelTimestamp() {
+  const now = new Date()
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
+}
 
 interface StaffPerformanceData {
   staff: string
@@ -259,10 +267,63 @@ export function DashboardStaffPerformanceTable({ organizationId, asOfDate }: Das
     )
   }
 
+  const handleDownloadExcel = () => {
+    const currentYearHeaderSuffix = formattedAsOfDate ? ` (YTD to ${formattedAsOfDate})` : ''
+    const rows = sortedData.map((item) => ({
+      Staff: item.staff,
+      [`Billable $${currentYearHeaderSuffix}`]: item.currentYear.billableAmount,
+      'Billable %': Number(item.currentYear.billablePercentage.toFixed(1)),
+      'Target % (Billable)': item.currentYear.targetBillablePercentage !== null
+        ? Number(item.currentYear.targetBillablePercentage.toFixed(1))
+        : '',
+      'Var % (Billable)': item.currentYear.billableVariance !== null
+        ? Number(item.currentYear.billableVariance.toFixed(1))
+        : '',
+      'Write On/Off $': item.currentYear.recoverabilityAmount,
+      'Recov %': Number(item.currentYear.recoverabilityPercentage.toFixed(1)),
+      'Target % (Recov)': Number(item.currentYear.targetRecoverabilityPercentage.toFixed(1)),
+      'Var % (Recov)': Number(item.currentYear.recoverabilityVariance.toFixed(1)),
+      Hours: Math.round(item.currentYear.billableHours),
+      'Avg Rate': item.currentYear.averageHourlyRate,
+    }))
+    if (totals) {
+      rows.push({
+        Staff: 'TOTAL',
+        [`Billable $${currentYearHeaderSuffix}`]: totals.currentYear.billableAmount,
+        'Billable %': Number(totals.currentYear.billablePercentage.toFixed(1)),
+        'Target % (Billable)': totals.currentYear.targetBillablePercentage !== null
+          ? Number(totals.currentYear.targetBillablePercentage.toFixed(1))
+          : '',
+        'Var % (Billable)': totals.currentYear.billableVariance !== null
+          ? Number(totals.currentYear.billableVariance.toFixed(1))
+          : '',
+        'Write On/Off $': totals.currentYear.recoverabilityAmount,
+        'Recov %': Number(totals.currentYear.recoverabilityPercentage.toFixed(1)),
+        'Target % (Recov)': Number(totals.currentYear.targetRecoverabilityPercentage.toFixed(1)),
+        'Var % (Recov)': Number(totals.currentYear.recoverabilityVariance.toFixed(1)),
+        Hours: Math.round(totals.currentYear.billableHours),
+        'Avg Rate': totals.currentYear.averageHourlyRate,
+      })
+    }
+    const worksheet = XLSX.utils.json_to_sheet(rows)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Staff Performance')
+    XLSX.writeFile(workbook, `staff_performance_${excelTimestamp()}.xlsx`)
+  }
+
   return (
     <Card className="shadow-sm border-slate-200 transition-all duration-200 hover:shadow-md hover:border-slate-300">
-       <CardHeader className="py-1.5 px-3 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
+       <CardHeader className="relative py-1.5 px-3 flex items-center justify-center bg-gradient-to-r from-blue-50 via-green-100 to-green-50 rounded-t-lg">
          <CardTitle className="text-base font-bold text-slate-800 tracking-tight">Staff Performance</CardTitle>
+         <button
+           type="button"
+           onClick={handleDownloadExcel}
+           aria-label="Download as Excel"
+           title="Download as Excel"
+           className="absolute right-2 inset-y-0 my-auto h-6 w-6 inline-flex items-center justify-center rounded-md text-slate-600 hover:text-emerald-700 hover:bg-white/60 active:scale-95 transition-all"
+         >
+           <Download className="h-4 w-4" />
+         </button>
       </CardHeader>
       <CardContent className="px-0 pb-0">
         <div className="overflow-x-auto">
