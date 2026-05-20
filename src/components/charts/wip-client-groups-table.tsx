@@ -1,17 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import * as XLSX from 'xlsx'
+import { downloadExcelFile, excelTimestamp } from '@/lib/download-excel'
 import { Download } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { TableSkeleton } from './chart-skeleton'
 import { useWIPReport } from './wip-report-context'
-
-function excelTimestamp() {
-  const now = new Date()
-  const pad = (n: number) => n.toString().padStart(2, '0')
-  return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
-}
 
 interface ClientGroupData {
   clientGroup: string
@@ -231,7 +225,7 @@ export function WIPClientGroupsTable({
 
   const wipAmountHeader = formattedLastUpdated ? `WIP Amount (${formattedLastUpdated})` : 'WIP Amount'
 
-  const handleDownloadExcel = () => {
+  const handleDownloadExcel = async () => {
     const rows = sortedData.map((item) => ({
       'Client Group': item.clientGroup,
       Partner: item.partner || '',
@@ -255,21 +249,11 @@ export function WIPClientGroupsTable({
       '120 days +': totalAging.days120Plus,
     })
 
-    const worksheet = XLSX.utils.json_to_sheet(rows)
-    worksheet['!cols'] = [
-      { wch: 32 },
-      { wch: 20 },
-      { wch: 20 },
-      { wch: 24 },
-      { wch: 14 },
-      { wch: 14 },
-      { wch: 14 },
-      { wch: 14 },
-      { wch: 14 },
-    ]
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'WIP by Client Group')
-    XLSX.writeFile(workbook, `wip_by_client_group_${excelTimestamp()}.xlsx`)
+    await downloadExcelFile(rows, {
+      sheetName: 'WIP by Client Group',
+      fileName: `wip_by_client_group_${excelTimestamp()}.xlsx`,
+      columnWidths: [32, 20, 20, 24, 14, 14, 14, 14, 14],
+    })
   }
 
   return (

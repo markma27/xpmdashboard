@@ -1,17 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import * as XLSX from 'xlsx'
+import { downloadExcelFile, excelTimestamp } from '@/lib/download-excel'
 import { Download } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { TableSkeleton } from './chart-skeleton'
 import { useProductivityReport } from './productivity-report-context'
-
-function excelTimestamp() {
-  const now = new Date()
-  const pad = (n: number) => n.toString().padStart(2, '0')
-  return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
-}
 
 interface ClientGroupData {
   clientGroup: string
@@ -331,7 +325,7 @@ export function ProductivityClientGroupsTable({
       : ''
   const lastYearSuffix = monthLabel ? ` (${monthLabel.lastYear})` : ' (Full Year)'
 
-  const handleDownloadExcel = () => {
+  const handleDownloadExcel = async () => {
     const safeRate = (amount: number, hours: number) => (hours === 0 || amount === 0 ? 0 : amount / hours)
     const rows = sortedData.map((item) => {
       const change = calculateChange(item.currentYear, item.lastYear)
@@ -365,22 +359,11 @@ export function ProductivityClientGroupsTable({
       'Change (Hours) %': Number(calculateChange(totalCurrentYear, totalLastYear).toFixed(1)),
     })
 
-    const worksheet = XLSX.utils.json_to_sheet(rows)
-    worksheet['!cols'] = [
-      { wch: 32 },
-      { wch: 20 },
-      { wch: 20 },
-      { wch: 22 },
-      { wch: 22 },
-      { wch: 22 },
-      { wch: 22 },
-      { wch: 22 },
-      { wch: 22 },
-      { wch: 14 },
-    ]
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Billable & Avg Rate by Group')
-    XLSX.writeFile(workbook, `billable_avg_rate_by_client_group_${excelTimestamp()}.xlsx`)
+    await downloadExcelFile(rows, {
+      sheetName: 'Billable & Avg Rate by Group',
+      fileName: `billable_avg_rate_by_client_group_${excelTimestamp()}.xlsx`,
+      columnWidths: [32, 20, 20, 22, 22, 22, 22, 22, 22, 14],
+    })
   }
 
   return (

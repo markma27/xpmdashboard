@@ -2,17 +2,11 @@
 
 import { useState } from 'react'
 import useSWR from 'swr'
-import * as XLSX from 'xlsx'
+import { downloadExcelFile, excelTimestamp } from '@/lib/download-excel'
 import { Download } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { TableSkeleton } from './chart-skeleton'
 import { dashboardSwrConfig, useSavedFilters } from '@/lib/hooks/use-dashboard-data'
-
-function excelTimestamp() {
-  const now = new Date()
-  const pad = (n: number) => n.toString().padStart(2, '0')
-  return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
-}
 
 interface StaffPerformanceData {
   staff: string
@@ -267,7 +261,7 @@ export function DashboardStaffPerformanceTable({ organizationId, asOfDate }: Das
     )
   }
 
-  const handleDownloadExcel = () => {
+  const handleDownloadExcel = async () => {
     const currentYearHeaderSuffix = formattedAsOfDate ? ` (YTD to ${formattedAsOfDate})` : ''
     const rows = sortedData.map((item) => ({
       Staff: item.staff,
@@ -305,10 +299,10 @@ export function DashboardStaffPerformanceTable({ organizationId, asOfDate }: Das
         'Avg Rate': totals.currentYear.averageHourlyRate,
       })
     }
-    const worksheet = XLSX.utils.json_to_sheet(rows)
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Staff Performance')
-    XLSX.writeFile(workbook, `staff_performance_${excelTimestamp()}.xlsx`)
+    await downloadExcelFile(rows, {
+      sheetName: 'Staff Performance',
+      fileName: `staff_performance_${excelTimestamp()}.xlsx`,
+    })
   }
 
   return (

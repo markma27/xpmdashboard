@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import * as XLSX from 'xlsx'
+import { downloadExcelFile, excelTimestamp } from '@/lib/download-excel'
 import { Download } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { TableSkeleton } from './chart-skeleton'
@@ -272,7 +272,7 @@ export function RevenueClientGroupsTable({
     ? `Last Year (${monthLabel.lastYear})`
     : 'Last Year (Full Year)'
 
-  const handleDownloadExcel = () => {
+  const handleDownloadExcel = async () => {
     const rows = sortedData.map((item) => {
       const change = calculateChange(item.currentYear, item.lastYear)
       return {
@@ -294,22 +294,11 @@ export function RevenueClientGroupsTable({
       'Change (%)': Number(totalChange.toFixed(1)),
     })
 
-    const worksheet = XLSX.utils.json_to_sheet(rows)
-    worksheet['!cols'] = [
-      { wch: 32 },
-      { wch: 20 },
-      { wch: 20 },
-      { wch: 28 },
-      { wch: 24 },
-      { wch: 12 },
-    ]
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Invoices by Client Group')
-
-    const now = new Date()
-    const pad = (n: number) => n.toString().padStart(2, '0')
-    const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
-    XLSX.writeFile(workbook, `invoices_by_client_group_${timestamp}.xlsx`)
+    await downloadExcelFile(rows, {
+      sheetName: 'Invoices by Client Group',
+      fileName: `invoices_by_client_group_${excelTimestamp()}.xlsx`,
+      columnWidths: [32, 20, 20, 28, 24, 12],
+    })
   }
 
   return (
