@@ -6,7 +6,7 @@ import { downloadExcelFile, excelTimestamp } from '@/lib/download-excel'
 import { Download } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { TableSkeleton } from './chart-skeleton'
-import { dashboardSwrConfig, useSavedFilters } from '@/lib/hooks/use-dashboard-data'
+import { dashboardSwrConfig, useProductivityKPI, useSavedFilters } from '@/lib/hooks/use-dashboard-data'
 
 interface StaffPerformanceData {
   staff: string
@@ -52,9 +52,17 @@ interface DashboardStaffPerformanceTableProps {
 
 export function DashboardStaffPerformanceTable({ organizationId, asOfDate }: DashboardStaffPerformanceTableProps) {
   const { filters: billableFilters, isLoading: savedFiltersBusy } = useSavedFilters(organizationId)
+  const kpiReady = !savedFiltersBusy
+
+  const { data: productivityKpi, isLoading: productivityKpiLoading } = useProductivityKPI(
+    organizationId,
+    asOfDate,
+    billableFilters,
+    kpiReady
+  )
 
   const bundleKey =
-    organizationId && !savedFiltersBusy
+    organizationId && kpiReady
       ? ([
           'dashboard-staff-performance',
           organizationId,
@@ -66,7 +74,7 @@ export function DashboardStaffPerformanceTable({ organizationId, asOfDate }: Das
   const {
     data: bundle,
     error: swrError,
-    isLoading,
+    isLoading: staffLoading,
   } = useSWR<{ data: StaffPerformanceData[]; totals: StaffPerformanceResponse['totals'] | null }>(
     bundleKey,
     async () => {
@@ -74,43 +82,30 @@ export function DashboardStaffPerformanceTable({ organizationId, asOfDate }: Das
       const filtersParam =
         billableFilters.length > 0 ? `&filters=${encodeURIComponent(JSON.stringify(billableFilters))}` : ''
 
-      const [staffResponse, kpiResponse] = await Promise.all([
-        fetch(`/api/dashboard/staff-performance?${baseParams}${filtersParam}`),
-        fetch(`/api/productivity/kpi?${baseParams}${filtersParam}`),
-      ])
+      const staffResponse = await fetch(`/api/dashboard/staff-performance?${baseParams}${filtersParam}`)
 
       if (!staffResponse.ok) {
         throw new Error('Failed to fetch staff performance data')
       }
 
       const result: StaffPerformanceResponse = await staffResponse.json()
-      const rows = result.data
-      let finalTotals = result.totals || null
-
-      if (kpiResponse.ok && finalTotals) {
-        try {
-          const kpiData = await kpiResponse.json()
-          if (kpiData.ytdBillablePercentage !== undefined) {
-            finalTotals = {
-              ...finalTotals,
-              currentYear: {
-                ...finalTotals.currentYear,
-                billablePercentage: kpiData.ytdBillablePercentage,
-              },
-            }
-          }
-        } catch {
-          /* keep original totals */
-        }
-      }
-
-      return { data: rows, totals: finalTotals }
+      return { data: result.data, totals: result.totals || null }
     },
     dashboardSwrConfig
   )
 
   const data = bundle?.data ?? []
-  const totals = bundle?.totals ?? null
+  const baseTotals = bundle?.totals ?? null
+  const totals =
+    baseTotals && productivityKpi
+      ? {
+          ...baseTotals,
+          currentYear: {
+            ...baseTotals.currentYear,
+            billablePercentage: productivityKpi.ytdBillablePercentage,
+          },
+        }
+      : baseTotals
   const error = swrError ? (swrError instanceof Error ? swrError.message : 'Failed to load') : null
 
   const [sortColumn, setSortColumn] = useState<SortColumn>('currentYearBillableAmount')
@@ -225,7 +220,7 @@ export function DashboardStaffPerformanceTable({ organizationId, asOfDate }: Das
     }
   })
 
-  if (savedFiltersBusy || isLoading) {
+  if (savedFiltersBusy || staffLoading || productivityKpiLoading) {
     return <TableSkeleton />
   }
 

@@ -19,6 +19,33 @@ export const dashboardSwrConfig = {
   errorRetryCount: 3,
 }
 
+/** Consistent query string for dashboard KPI endpoints (shared SWR cache keys). */
+export function buildDashboardQueryString(
+  organizationId: string,
+  asOfDate?: string,
+  filters: unknown[] = []
+): string {
+  const params = new URLSearchParams({ organizationId })
+  if (asOfDate) params.set('asOfDate', asOfDate)
+  if (filters.length > 0) params.set('filters', JSON.stringify(filters))
+  return params.toString()
+}
+
+export function dashboardKpiUrl(
+  endpoint: 'dashboard' | 'productivity' | 'recoverability',
+  organizationId: string,
+  asOfDate?: string,
+  filters: unknown[] = []
+): string {
+  const path =
+    endpoint === 'dashboard'
+      ? '/api/dashboard/kpi'
+      : endpoint === 'productivity'
+        ? '/api/productivity/kpi'
+        : '/api/recoverability/kpi'
+  return `${path}?${buildDashboardQueryString(organizationId, asOfDate, filters)}`
+}
+
 // Dashboard KPI data hook
 interface DashboardKPIData {
   revenue: {
@@ -34,14 +61,16 @@ interface DashboardKPIData {
   wipAmount: number
 }
 
-export function useDashboardKPI(organizationId: string, asOfDate?: string) {
-  const params = new URLSearchParams({
-    organizationId,
-    ...(asOfDate && { asOfDate }),
-  })
-  
+export function useDashboardKPI(
+  organizationId: string,
+  asOfDate?: string,
+  filters: unknown[] = [],
+  enabled = true
+) {
+  const key = enabled ? dashboardKpiUrl('dashboard', organizationId, asOfDate, filters) : null
+
   const { data, error, isLoading, mutate } = useSWR<DashboardKPIData>(
-    `/api/dashboard/kpi?${params}`,
+    key,
     dashboardDataFetcher,
     dashboardSwrConfig
   )
@@ -66,16 +95,13 @@ interface ProductivityKPIData {
 export function useProductivityKPI(
   organizationId: string,
   asOfDate?: string,
-  filters?: any[]
+  filters: unknown[] = [],
+  enabled = true
 ) {
-  const params = new URLSearchParams({
-    organizationId,
-    ...(asOfDate && { asOfDate }),
-    ...(filters && filters.length > 0 && { filters: JSON.stringify(filters) }),
-  })
+  const key = enabled ? dashboardKpiUrl('productivity', organizationId, asOfDate, filters) : null
 
   const { data, error, isLoading, mutate } = useSWR<ProductivityKPIData>(
-    `/api/productivity/kpi?${params}`,
+    key,
     dashboardDataFetcher,
     dashboardSwrConfig
   )
@@ -100,16 +126,13 @@ interface RecoverabilityKPIData {
 export function useRecoverabilityKPI(
   organizationId: string,
   asOfDate?: string,
-  filters?: any[]
+  filters: unknown[] = [],
+  enabled = true
 ) {
-  const params = new URLSearchParams({
-    organizationId,
-    ...(asOfDate && { asOfDate }),
-    ...(filters && filters.length > 0 && { filters: JSON.stringify(filters) }),
-  })
+  const key = enabled ? dashboardKpiUrl('recoverability', organizationId, asOfDate, filters) : null
 
   const { data, error, isLoading, mutate } = useSWR<RecoverabilityKPIData>(
-    `/api/recoverability/kpi?${params}`,
+    key,
     dashboardDataFetcher,
     dashboardSwrConfig
   )

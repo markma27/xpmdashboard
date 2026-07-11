@@ -1,42 +1,13 @@
 'use client'
 
-import useSWR from 'swr'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowUp, ArrowDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { dashboardDataFetcher, dashboardSwrConfig, useSavedFilters } from '@/lib/hooks/use-dashboard-data'
+import { useDashboardKPI, useProductivityKPI, useRecoverabilityKPI, useSavedFilters } from '@/lib/hooks/use-dashboard-data'
 
 interface DashboardKPICardsProps {
   organizationId: string
   asOfDate?: string
-}
-
-interface DashboardKPIData {
-  revenue: {
-    currentYear: number
-    lastYear: number
-    percentageChange: number | null
-  }
-  billableAmount: {
-    currentYear: number
-    lastYear: number
-    percentageChange: number | null
-  }
-}
-
-interface ProductivityKPIData {
-  ytdBillablePercentage: number
-  lastYearBillablePercentage: number
-  ytdAverageRate: number
-  lastYearAverageRate: number
-}
-
-interface RecoverabilityKPIData {
-  currentYearAmount: number
-  lastYearAmount: number
-  percentageChange: number | null
-  currentYearPercentage: number
-  lastYearPercentage: number
 }
 
 interface KPICardProps {
@@ -146,12 +117,7 @@ function KPICardSkeleton() {
 
 export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICardsProps) {
   const { filters: billableFilters, isLoading: savedFiltersBusy } = useSavedFilters(organizationId)
-
-  const filtersParam =
-    billableFilters.length > 0 ? `&filters=${encodeURIComponent(JSON.stringify(billableFilters))}` : ''
-
-  // Build base params
-  const baseParams = `organizationId=${organizationId}${asOfDate ? `&asOfDate=${asOfDate}` : ''}`
+  const kpiReady = !savedFiltersBusy
 
   // Format last year date for display
   const formatLastYearDate = (dateString: string | undefined): string | null => {
@@ -199,23 +165,15 @@ export function DashboardKPICards({ organizationId, asOfDate }: DashboardKPICard
   }
 
   const formattedLastYearDate = calculateLastYearDate()
-  
+
   const { data: dashboardData, error: dashboardError, isLoading: dashboardLoading } =
-    useSWR<DashboardKPIData>(`/api/dashboard/kpi?${baseParams}${filtersParam}`, dashboardDataFetcher, dashboardSwrConfig)
+    useDashboardKPI(organizationId, asOfDate, billableFilters, kpiReady)
 
   const { data: productivityData, error: productivityError, isLoading: productivityLoading } =
-    useSWR<ProductivityKPIData>(
-      `/api/productivity/kpi?${baseParams}${filtersParam}`,
-      dashboardDataFetcher,
-      dashboardSwrConfig
-    )
+    useProductivityKPI(organizationId, asOfDate, billableFilters, kpiReady)
 
   const { data: recoverabilityData, error: recoverabilityError, isLoading: recoverabilityLoading } =
-    useSWR<RecoverabilityKPIData>(
-      `/api/recoverability/kpi?${baseParams}${filtersParam}`,
-      dashboardDataFetcher,
-      dashboardSwrConfig
-    )
+    useRecoverabilityKPI(organizationId, asOfDate, billableFilters, kpiReady)
 
   // Format currency with parentheses for negative values and red color
   const formatCurrency = (amount: number) => {
