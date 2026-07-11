@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireOrg } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
+import { formatDateLocal } from '@/lib/utils'
 
 /**
  * Convert time value from timesheet format to hours
@@ -37,13 +38,14 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const organizationId = searchParams.get('organizationId') || org.id
     const staffFilter = searchParams.get('staff') // Optional staff filter
+    const asOfDateParam = searchParams.get('asOfDate')
 
     const supabase = await createClient()
 
-    // Calculate financial year based on current date
-    const now = new Date()
-    const currentMonth = now.getMonth() // 0-11
-    const currentYear = now.getFullYear()
+    // Calculate financial year based on report date (or today if not provided)
+    const asOfDate = asOfDateParam ? new Date(asOfDateParam) : new Date()
+    const currentMonth = asOfDate.getMonth() // 0-11
+    const currentYear = asOfDate.getFullYear()
     
     // Determine current financial year
     let currentFYStartYear: number
@@ -59,7 +61,7 @@ export async function GET(request: NextRequest) {
     
     // Format dates as YYYY-MM-DD
     const currentYearStart = `${currentFYStartYear}-07-01`
-    const currentYearEnd = `${currentFYEndYear}-06-30`
+    const currentYearEnd = formatDateLocal(asOfDate)
     const lastYearStart = `${lastFYStartYear}-07-01`
     const lastYearEnd = `${lastFYEndYear}-06-30`
 

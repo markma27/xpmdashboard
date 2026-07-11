@@ -18,13 +18,14 @@ interface MonthlyProductivityPercentageData {
 
 interface ProductivityPercentageChartProps {
   data: MonthlyProductivityPercentageData[]
+  asOfDate?: string
 }
 
-export function ProductivityPercentageChart({ data }: ProductivityPercentageChartProps) {
-  // Calculate financial year based on current date
-  const now = new Date()
-  const currentMonth = now.getMonth() // 0-11
-  const currentYear = now.getFullYear()
+export function ProductivityPercentageChart({ data, asOfDate }: ProductivityPercentageChartProps) {
+  // Calculate financial year based on report date (or today if not provided)
+  const referenceDate = asOfDate ? new Date(asOfDate) : new Date()
+  const currentMonth = referenceDate.getMonth() // 0-11
+  const currentYear = referenceDate.getFullYear()
   
   // Determine current financial year
   let currentFYStartYear: number

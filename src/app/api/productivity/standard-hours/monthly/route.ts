@@ -51,13 +51,14 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const organizationId = searchParams.get('organizationId') || org.id
     const staffFilter = searchParams.get('staff') // Optional staff filter
+    const asOfDateParam = searchParams.get('asOfDate')
 
     const supabase = await createClient()
 
-    // Calculate financial year based on current date
-    const now = new Date()
-    const currentMonth = now.getMonth() // 0-11
-    const currentYear = now.getFullYear()
+    // Calculate financial year based on report date (or today if not provided)
+    const asOfDate = asOfDateParam ? new Date(asOfDateParam) : new Date()
+    const currentMonth = asOfDate.getMonth() // 0-11
+    const currentYear = asOfDate.getFullYear()
     
     // Determine current financial year
     let currentFYStartYear: number

@@ -139,6 +139,7 @@ export function ProductivityMonthlyChartClient({
           data={data} 
           selectedMonth={selectedMonth}
           onMonthClick={onMonthClick}
+          asOfDate={asOfDate}
         />
       </CardContent>
     </Card>

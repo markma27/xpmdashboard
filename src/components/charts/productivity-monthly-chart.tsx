@@ -21,13 +21,14 @@ interface ProductivityMonthlyChartProps {
   data: MonthlyProductivityData[]
   selectedMonth?: string | null
   onMonthClick?: (month: string | null) => void
+  asOfDate?: string
 }
 
-export function ProductivityMonthlyChart({ data, selectedMonth, onMonthClick }: ProductivityMonthlyChartProps) {
-  // Calculate financial year based on current date
-  const now = new Date()
-  const currentMonth = now.getMonth() // 0-11
-  const currentYear = now.getFullYear()
+export function ProductivityMonthlyChart({ data, selectedMonth, onMonthClick, asOfDate }: ProductivityMonthlyChartProps) {
+  // Calculate financial year based on report date (or today if not provided)
+  const referenceDate = asOfDate ? new Date(asOfDate) : new Date()
+  const currentMonth = referenceDate.getMonth() // 0-11
+  const currentYear = referenceDate.getFullYear()
   
   // Determine current financial year
   let currentFYStartYear: number

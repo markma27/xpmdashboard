@@ -176,7 +176,7 @@ export function ProductivityPercentageChartClient({
         <CardTitle className="text-base font-bold text-slate-800 tracking-tight">Monthly Billable %</CardTitle>
       </CardHeader>
       <CardContent className="pt-4">
-        <ProductivityPercentageChart data={data} />
+        <ProductivityPercentageChart data={data} asOfDate={asOfDate} />
       </CardContent>
     </Card>
   )
